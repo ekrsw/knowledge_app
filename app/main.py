@@ -3,8 +3,8 @@ from app.crud.user import user_crud
 from app.core.logging import get_logger
 from app.core.security import get_password_hash
 from app.schemas.user import UserCreate
-from app.db.session import get_async_session
-from fastapi import Depends
+from app.db.session import async_engine, AsyncSessionLocal
+
 import asyncio
 
 logger = get_logger(__name__)
@@ -19,7 +19,9 @@ async def main():
         password="password"
     )
     
-    await user_crud.create_user(Depends(get_async_session), obj_in=user_obj)
+    with AsyncSessionLocal() as session:
+        await user_crud.create_user(session, obj_in=user_obj)
+        await session.commit()
 
 
 if __name__ == "__main__":
