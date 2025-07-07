@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.logging import get_logger
-from app.core.exceptions import (
+from app.crud.exceptions import (
     DuplicateUsernameError,
     DuplicateEmailError,
     DatabaseIntegrityError
@@ -39,3 +39,5 @@ class CRUDUser:
                 self.logger.error(f"Database integrity error while creating user: {str(e)}")
                 raise DatabaseIntegrityError("Database integrity error") from e
         return db_obj
+
+user_crud = CRUDUser()
