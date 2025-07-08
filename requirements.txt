@@ -1,4 +1,7 @@
 asyncpg==0.30.0
+alembic==1.15.2
+asyncpg==0.30.0
+bcrypt==4.0.1 # passlibで__about__を使用するためにバージョンを固定
 email_validator==2.2.0
 fastapi==0.115.12
 greenlet==3.2.1 # SQL Alchemyで非同期操作を行うための依存関係
@@ -6,3 +9,4 @@ passlib==1.7.4
 pydantic_settings==2.8.1
 pydantic==2.10.6
 SQLAlchemy==2.0.40
+tzdata==2025.2

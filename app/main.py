@@ -19,7 +19,7 @@ async def main():
         password="password"
     )
     
-    with AsyncSessionLocal() as session:
+    async with AsyncSessionLocal() as session:
         await user_crud.create_user(session, obj_in=user_obj)
         await session.commit()
 

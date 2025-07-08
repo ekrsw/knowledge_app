@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.logging import get_logger
+from app.core.security import get_password_hash
 from app.crud.exceptions import (
     DuplicateUsernameError,
     DuplicateEmailError,
