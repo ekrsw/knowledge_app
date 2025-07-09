@@ -14,16 +14,28 @@ async def main():
     db = Database()
     await db.init()
 
-    user_obj = UserCreate(
-        username="testuser",
-        email="test@email.com",
-        password="password",
-        group=GroupEnum.CSC_2
-    )
-    
     async with AsyncSessionLocal() as session:
-        user = await user_crud.create_user(session, obj_in=user_obj)
-        await session.commit()
+        # 既存のユーザーをIDで取得してテスト
+        existing_user = await user_crud.get_user_by_id(
+            session, 
+            "1ce35210-bf6d-4a21-84b1-9d3c1081eb31"  # testuser3のID
+        )
+        
+        if existing_user:
+            print(f"Found user: {existing_user.username} ({existing_user.email})")
+        else:
+            print("User not found")
+        
+        # 存在しないIDでテスト
+        non_existing_user = await user_crud.get_user_by_id(
+            session,
+            "00000000-0000-0000-0000-000000000000"
+        )
+        
+        if non_existing_user:
+            print(f"Found user: {non_existing_user.username}")
+        else:
+            print("Non-existing user correctly returned None")
 
 
 if __name__ == "__main__":
