@@ -22,8 +22,9 @@ async def main():
     )
     
     async with AsyncSessionLocal() as session:
-        await user_crud.create_user(session, obj_in=user_obj)
-        await session.commit()
+        user = await user_crud.get_user_by_username(session, username="testuser1")
+    
+    print(user.username, user.email, user.group)
 
 
 if __name__ == "__main__":
