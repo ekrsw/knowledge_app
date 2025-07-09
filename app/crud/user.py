@@ -146,8 +146,9 @@ class CRUDUser:
             )
             session.add(db_obj)
             await session.flush()
-            await session.commit()
-            self.logger.info(f"User created successfully: {db_obj.id}")
+            # flush後にIDを取得（commitする前）
+            user_id = db_obj.id
+            self.logger.info(f"User created successfully: {user_id}")
             return db_obj
             
         except IntegrityError as e:

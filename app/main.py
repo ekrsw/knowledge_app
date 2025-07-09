@@ -16,15 +16,14 @@ async def main():
 
     user_obj = UserCreate(
         username="testuser",
-        email="test2@email.com",
+        email="test@email.com",
         password="password",
         group=GroupEnum.CSC_2
     )
     
     async with AsyncSessionLocal() as session:
-        user = await user_crud.get_user_by_username(session, username="testuser1")
-    
-    print(user.username, user.email, user.group)
+        user = await user_crud.create_user(session, obj_in=user_obj)
+        await session.commit()
 
 
 if __name__ == "__main__":
