@@ -4,6 +4,7 @@ from app.core.logging import get_logger
 from app.core.security import get_password_hash
 from app.schemas.user import UserCreate
 from app.db.session import async_engine, AsyncSessionLocal
+from app.models.user import GroupEnum
 
 import asyncio
 
@@ -15,8 +16,9 @@ async def main():
 
     user_obj = UserCreate(
         username="testuser",
-        email="test@email.com",
-        password="password"
+        email="test2@email.com",
+        password="password",
+        group=GroupEnum.CSC_2
     )
     
     async with AsyncSessionLocal() as session:

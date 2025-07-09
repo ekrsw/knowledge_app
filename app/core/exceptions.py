@@ -1,3 +1,5 @@
+from typing import Optional, Any
+
 class AppException(Exception):
     """アプリケーションのベース例外クラス"""
     def __init__(self, message: str = "An application error occurred"):
@@ -6,7 +8,7 @@ class AppException(Exception):
 
 class DuplicateResourceError(AppException):
     """リソースの重複エラー"""
-    def __init__(self, resource_type: str, field: str=None, value = None, message: str=None):
+    def __init__(self, resource_type: str, field: Optional[str] = None, value: Any = None, message: Optional[str] = None):
         self.resource_type = resource_type
         self.field = field
         self.value = value
