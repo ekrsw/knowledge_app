@@ -1,6 +1,5 @@
-from sqlalchemy import Boolean, String, Uuid
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
-import uuid
 
 from app.db.base import Base
 
@@ -14,6 +13,6 @@ class User(Base):
     ctstage_name: Mapped[str] = mapped_column(String, nullable=True)
     sweet_name: Mapped[str] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_sv: Mapped[bool] = mapped_column(Boolean, default=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
