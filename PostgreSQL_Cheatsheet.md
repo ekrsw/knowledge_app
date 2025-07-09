@@ -8,25 +8,25 @@ psql -U postgres -h localhost -p 5432
 \du
 
 ## ユーザーの作成
-create user <username>;
+create user <USER_POSTGRES_USER>;
 
 ## ユーザーにパスワードを持たせる
-\password <username>
+\password <USER_POSTGRES_USER>
 
 ## データベースに接続
-\c <dbname>
+\c <USER_POSTGRES_DB>
 
 ## データベースの作成
-create database <dbname>;
+create database <USER_POSTGRES_DB>;
 
 ## データベースの削除
-drop database <dbname>
+drop database <USER_POSTGRES_DB>
 
 ## テーブル一覧の表示
 \z
 
 ## テーブル定義の表示
-\d <tablename>
+\d <TABLE_NAME>
 
 ## データベース初期セットアップ手順
 ### **ユーザーの作成**
