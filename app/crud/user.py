@@ -3,7 +3,7 @@
 This module provides CRUD (Create, Read, Update, Delete) operations for User model.
 """
 
-from typing import Optional
+from typing import List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -237,6 +237,33 @@ class CRUDUser:
             self.logger.error(
                 f"Error getting user by ID '{user_id}': {str(e)}"
             )
+            raise
+
+    async def get_all_users(
+        self, 
+        session: AsyncSession
+    ) -> List[User]:
+        """すべてのユーザーを取得する.
+
+        Args:
+            session: データベースセッション
+
+        Returns:
+            List[User]: すべてのユーザーオブジェクトのリスト、ユーザーがいない場合は空リスト
+
+        Raises:
+            Exception: データベースアクセスエラーが発生した場合
+        """
+        self.logger.debug("Getting all users")
+        try:
+            stmt = select(User)
+            result = await session.execute(stmt)
+            users = result.scalars().all()
+            
+            self.logger.debug(f"Found {len(users)} users")
+            return list(users)
+        except Exception as e:
+            self.logger.error(f"Error getting all users: {str(e)}")
             raise
 
 
