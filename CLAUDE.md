@@ -49,6 +49,18 @@ alembic revision --autogenerate -m "Description of changes"
 python app/main.py
 ```
 
+### Testing
+
+#### Running Tests
+```bash
+pytest                          # Run all tests
+pytest -v                       # Verbose output
+pytest --cov=app                 # Run with coverage
+pytest tests/                    # Run specific test directory
+```
+
+Note: The codebase includes pytest, pytest-asyncio, and pytest-cov but currently has minimal test coverage. The `test_error_handling.py` file demonstrates error handling concepts but is not an executable test.
+
 ## Architecture
 
 ### Layered Architecture
@@ -66,8 +78,10 @@ The application follows a clean layered architecture:
 
 ### Error Handling
 - Custom exception hierarchy in `app/crud/exceptions.py`
-- Database-specific error handling with pre-validation
+- PostgreSQL-specific error code handling (23505 for duplicates, 23502 for NOT NULL violations)
+- Pre-validation approach to avoid database-specific errors
 - Comprehensive logging with request tracking
+- Rollback handling for failed transactions
 
 ## Key Components
 
@@ -115,8 +129,26 @@ Settings managed through `app/core/config.py`:
 - Log errors with appropriate context
 - Handle rollback for failed transactions
 
-## Testing
-The application currently uses `app/main.py` as a test runner for CRUD operations. Future FastAPI endpoints should be added to create a proper API server.
+## Current State
+
+### Application Status
+The application currently serves as a **CRUD operations demonstration** rather than a full REST API server. The `app/main.py` file acts as both the entry point and test runner for user management operations.
+
+### What's Implemented
+- Complete user management CRUD operations
+- Async database operations with PostgreSQL
+- Comprehensive error handling and logging
+- Database migrations with Alembic
+- User model with authentication fields and permissions
+
+### What's Missing
+- FastAPI REST API endpoints
+- Authentication middleware (JWT tokens)
+- API route definitions
+- OpenAPI/Swagger documentation
+- Production-ready error handlers
+- Comprehensive test suite
+- Code quality tools (linting, formatting)
 
 ## Security Notes
 - Passwords are hashed using bcrypt via passlib
