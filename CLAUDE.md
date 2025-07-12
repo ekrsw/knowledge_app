@@ -51,15 +51,33 @@ python app/main.py
 
 ### Testing
 
+#### Comprehensive Test Suite
+The application features an extensive test suite with **55+ test methods** across **8 test files**, achieving **comprehensive coverage** of CRUD user operations:
+
+**Test Categories:**
+- **Basic Operations** (`test_crud_user_basic.py`) - Core CRUD functionality
+- **Error Handling** (`test_crud_user_error_handling.py`) - Exception handling
+- **Data Validation** (`test_crud_user_validation.py`) - Input validation and constraints
+- **Security** (`test_crud_user_security.py`) - Password hashing, authentication, timing attacks
+- **Optional Fields** (`test_crud_user_optional_fields.py`) - Field combinations and permissions
+- **Edge Cases** (`test_crud_user_edge_cases.py`) - Boundary values, memory limits, concurrency
+- **Transactions** (`test_crud_user_transactions.py`) - ACID properties, rollback, isolation
+- **Integration** (`test_crud_user_integration.py`) - Real-world workflows, admin operations
+
 #### Running Tests
 ```bash
-pytest                          # Run all tests
+pytest                          # Run all tests (99+ tests)
 pytest -v                       # Verbose output
-pytest --cov=app                 # Run with coverage
-pytest tests/                    # Run specific test directory
+pytest --cov=app                # Run with coverage
+pytest tests/test_crud_user_security.py  # Run specific test file
 ```
 
-Note: The codebase includes pytest, pytest-asyncio, and pytest-cov but currently has minimal test coverage. The `test_error_handling.py` file demonstrates error handling concepts but is not an executable test.
+#### Key Testing Patterns
+- **Async Session Management**: Fresh sessions with proper cleanup for each test
+- **SQLAlchemy 2.0 Compatibility**: Immediate data retrieval pattern to avoid MissingGreenlet errors
+- **Comprehensive Cleanup**: Automatic test data cleanup after each test
+- **Security Focus**: Password hashing verification, timing attack resistance
+- **Real-world Scenarios**: User registration workflows, admin operations, disaster recovery
 
 ## Architecture
 
@@ -140,6 +158,7 @@ The application currently serves as a **CRUD operations demonstration** rather t
 - Comprehensive error handling and logging
 - Database migrations with Alembic
 - User model with authentication fields and permissions
+- **Extensive test suite with 99+ tests covering validation, security, edge cases, transactions, and integration scenarios**
 
 ### What's Missing
 - FastAPI REST API endpoints
@@ -147,10 +166,30 @@ The application currently serves as a **CRUD operations demonstration** rather t
 - API route definitions
 - OpenAPI/Swagger documentation
 - Production-ready error handlers
-- Comprehensive test suite
 - Code quality tools (linting, formatting)
 
 ## Security Notes
-- Passwords are hashed using bcrypt via passlib
+- Passwords are hashed using bcrypt via passlib with configurable cost factor
+- Password verification functions available in `app.core.security`
 - Database credentials are managed through environment variables
 - UUID primary keys provide non-enumerable identifiers
+- Security tests include timing attack resistance, password hash uniqueness, and sensitive data exposure prevention
+
+## Testing Best Practices
+
+### SQLAlchemy 2.0 Async Patterns
+- Use immediate data retrieval before commit to avoid MissingGreenlet errors
+- Store primitive types (strings, IDs) rather than ORM objects after commit
+- Use `expire_on_commit=True` with proper data extraction patterns
+
+### Test Structure
+- Each test class creates fresh sessions with proper cleanup
+- Use structured data dictionaries for post-commit verification
+- Implement comprehensive cleanup methods to avoid test interference
+- Follow naming conventions: `test_crud_user_<category>.py`
+
+### Security Testing
+- Verify password hashing with bcrypt format validation
+- Test timing attack resistance for authentication operations
+- Ensure no plain text passwords in logs or error messages
+- Validate authentication workflows with active/inactive users
