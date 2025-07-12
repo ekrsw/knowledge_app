@@ -30,7 +30,7 @@ class TestCRUDUserOptionalFields:
         session_factory = sessionmaker(
             engine,
             class_=AsyncSession,
-            expire_on_commit=False,
+            expire_on_commit=True,
             autocommit=False,
             autoflush=False,
         )
