@@ -17,7 +17,7 @@ from app.crud.exceptions import (
     MissingRequiredFieldError,
 )
 from app.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 
 
 class CRUDUser:
@@ -265,6 +265,93 @@ class CRUDUser:
         except Exception as e:
             self.logger.error(f"Error getting all users: {str(e)}")
             raise
+
+    async def update_user_by_id(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        obj_in: UserUpdate
+    ) -> Optional[User]:
+        """IDでユーザーを更新する.
+
+        Args:
+            session: データベースセッション
+            user_id: 更新するユーザーID（UUID文字列）
+            obj_in: 更新データ
+
+        Returns:
+            Optional[User]: 更新されたユーザーオブジェクト、見つからない場合はNone
+
+        Raises:
+            DuplicateUsernameError: ユーザー名が既に存在する場合
+            DuplicateEmailError: メールアドレスが既に存在する場合
+            DatabaseIntegrityError: その他のデータベース整合性エラー
+        """
+        self.logger.info(f"Updating user with ID: {user_id}")
+
+        # 更新するユーザーの存在確認
+        user = await self.get_user_by_id(session, user_id)
+        if not user:
+            self.logger.warning(f"User not found for update: {user_id}")
+            return None
+
+        # 更新データの取得（None値は除外）
+        update_data = obj_in.model_dump(exclude_unset=True)
+        
+        if not update_data:
+            self.logger.debug(f"No update data provided for user: {user_id}")
+            return user
+
+        # ユニーク制約のチェック（更新される場合のみ）
+        await self._check_unique_constraints_for_update(session, user_id, update_data)
+
+        try:
+            # フィールドの更新
+            for field, value in update_data.items():
+                if hasattr(user, field):
+                    setattr(user, field, value)
+
+            await session.flush()
+            # flush後にIDを取得（commitする前）
+            updated_user_id = user.id
+            self.logger.info(f"User updated successfully: {updated_user_id}")
+            return user
+
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"Unexpected error updating user: {str(e)}")
+            raise DatabaseIntegrityError("Failed to update user") from e
+
+    async def _check_unique_constraints_for_update(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        update_data: dict
+    ) -> None:
+        """更新時のユニーク制約チェック.
+
+        Args:
+            session: データベースセッション
+            user_id: 更新するユーザーID
+            update_data: 更新データ
+
+        Raises:
+            DuplicateUsernameError: ユーザー名が既に存在する場合
+            DuplicateEmailError: メールアドレスが既に存在する場合
+        """
+        # ユーザー名の重複チェック
+        if "username" in update_data:
+            existing_user = await self.get_user_by_username(session, update_data["username"])
+            if existing_user and str(existing_user.id) != user_id:
+                self.logger.error("Failed to update user: duplicate username")
+                raise DuplicateUsernameError("Username already exists")
+
+        # メールアドレスの重複チェック
+        if "email" in update_data:
+            existing_email = await self.get_user_by_email(session, update_data["email"])
+            if existing_email and str(existing_email.id) != user_id:
+                self.logger.error("Failed to update user: duplicate email")
+                raise DuplicateEmailError("Email already exists")
 
 
 user_crud = CRUDUser()

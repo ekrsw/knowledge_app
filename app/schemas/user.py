@@ -21,3 +21,15 @@ class UserCreate(BaseModel):
     is_active: bool = True
     is_admin: bool = False
     is_sv: bool = False
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    ctstage_name: Optional[str] = None
+    sweet_name: Optional[str] = None
+    group: Optional[GroupEnum] = None
+    is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+    is_sv: Optional[bool] = None
