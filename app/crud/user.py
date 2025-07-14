@@ -9,11 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 from app.crud.exceptions import (
     DatabaseIntegrityError,
     DuplicateEmailError,
     DuplicateUsernameError,
+    InvalidPasswordError,
     MissingRequiredFieldError,
 )
 from app.models.user import User
@@ -352,6 +353,66 @@ class CRUDUser:
             if existing_email and str(existing_email.id) != user_id:
                 self.logger.error("Failed to update user: duplicate email")
                 raise DuplicateEmailError("Email already exists")
+
+    async def update_password(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        old_password: str,
+        new_password: str
+    ) -> Optional[User]:
+        """ユーザーのパスワードを更新する.
+
+        Args:
+            session: データベースセッション
+            user_id: 更新するユーザーID（UUID文字列）
+            old_password: 現在のパスワード
+            new_password: 新しいパスワード
+
+        Returns:
+            Optional[User]: 更新されたユーザーオブジェクト、見つからない場合はNone
+
+        Raises:
+            InvalidPasswordError: 現在のパスワードが正しくない場合
+            MissingRequiredFieldError: 必須パラメータが不足している場合
+            DatabaseIntegrityError: その他のデータベース整合性エラー
+        """
+        self.logger.info(f"Updating password for user ID: {user_id}")
+
+        # 入力パラメータの検証
+        if not old_password or not old_password.strip():
+            self.logger.error("Failed to update password: old_password is required")
+            raise MissingRequiredFieldError("old_password", "Old password is required")
+
+        if not new_password or not new_password.strip():
+            self.logger.error("Failed to update password: new_password is required")
+            raise MissingRequiredFieldError("new_password", "New password is required")
+
+        # 更新するユーザーの存在確認
+        user = await self.get_user_by_id(session, user_id)
+        if not user:
+            self.logger.warning(f"User not found for password update: {user_id}")
+            return None
+
+        # 現在のパスワードの検証
+        if not verify_password(old_password, user.hashed_password):
+            self.logger.error(f"Invalid old password for user: {user_id}")
+            raise InvalidPasswordError("Current password is incorrect")
+
+        try:
+            # 新しいパスワードのハッシュ化と更新
+            user.hashed_password = get_password_hash(new_password)
+
+            await session.flush()
+            # flush後にIDを取得（commitする前）
+            updated_user_id = user.id
+            self.logger.info(f"Password updated successfully for user: {updated_user_id}")
+            return user
+
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"Unexpected error updating password: {str(e)}")
+            raise DatabaseIntegrityError("Failed to update password") from e
 
 
 user_crud = CRUDUser()

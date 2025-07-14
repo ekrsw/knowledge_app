@@ -30,3 +30,10 @@ class DatabaseIntegrityError(Exception):
     def __init__(self, message: str = "Database integrity error"):
         self.message = message
         super().__init__(self.message)
+
+
+class InvalidPasswordError(Exception):
+    """パスワードが無効な場合のエラー"""
+    def __init__(self, message: str = "Invalid password"):
+        self.message = message
+        super().__init__(self.message)
