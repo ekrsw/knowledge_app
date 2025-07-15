@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.core.logging import get_logger
 from app.core.security import get_password_hash, verify_password
@@ -56,8 +57,8 @@ class CRUDUser:
         # 必須フィールドの事前チェック
         self._validate_required_fields(obj_in)
 
-        # ユニーク制約の事前チェック
-        await self._check_unique_constraints(session, obj_in)
+        # TOCTOUレース条件を避けるため、事前チェックを削除
+        # データベースレベルでの制約エラーを適切に処理
 
         try:
             db_obj = User(
@@ -76,14 +77,87 @@ class CRUDUser:
             await session.flush()
             # flush後にIDを取得（commitする前）
             user_id = db_obj.id
+            await session.commit()
             self.logger.info(f"User created successfully: {user_id}")
             return db_obj
 
+        except IntegrityError as e:
+            # PostgreSQL固有のエラーコードを処理
+            error_code = getattr(e.orig, 'pgcode', None) if hasattr(e, 'orig') else None
+            
+            if error_code == '23505':  # unique_violation
+                constraint_name = self._extract_constraint_name(str(e))
+                if 'username' in constraint_name:
+                    self.logger.error(f"Duplicate username detected: {obj_in.username}")
+                    raise DuplicateUsernameError("Username already exists")
+                elif 'email' in constraint_name:
+                    self.logger.error(f"Duplicate email detected: {obj_in.email}")
+                    raise DuplicateEmailError("Email already exists")
+                else:
+                    self.logger.error(f"Unique constraint violation: {constraint_name}")
+                    raise DatabaseIntegrityError(f"Unique constraint violation: {constraint_name}")
+            elif error_code == '23502':  # not_null_violation
+                column_name = self._extract_column_name(str(e))
+                self.logger.error(f"NULL value in required column: {column_name}")
+                raise MissingRequiredFieldError(column_name, f"Column {column_name} cannot be null")
+            else:
+                self.logger.error(f"Database integrity error: {str(e)}")
+                raise DatabaseIntegrityError("Database integrity error occurred")
+        
         except Exception as e:
-            await session.rollback()
             self.logger.error(f"Unexpected error creating user: {str(e)}")
             raise DatabaseIntegrityError("Failed to create user") from e
 
+    def _extract_constraint_name(self, error_message: str) -> str:
+        """エラーメッセージから制約名を抽出する.
+        
+        Args:
+            error_message: エラーメッセージ
+            
+        Returns:
+            str: 制約名、抽出できない場合は空文字列
+        """
+        import re
+        # PostgreSQLの制約名を抽出するパターン
+        
+        # パターン1: DETAILメッセージからカラム名を抽出
+        constraint_pattern = r'DETAIL:.*Key \(([^)]+)\)'
+        match = re.search(constraint_pattern, error_message)
+        if match:
+            return match.group(1)
+        
+        # パターン2: 制約名を直接抽出
+        constraint_pattern2 = r'constraint "([^"]+)"'
+        match2 = re.search(constraint_pattern2, error_message)
+        if match2:
+            return match2.group(1)
+        
+        # パターン3: ユーザーネームやメールアドレスのキーワードを絶対検索
+        if 'username' in error_message.lower():
+            return 'username'
+        elif 'email' in error_message.lower():
+            return 'email'
+        
+        return ""
+    
+    def _extract_column_name(self, error_message: str) -> str:
+        """エラーメッセージからカラム名を抽出する.
+        
+        Args:
+            error_message: エラーメッセージ
+            
+        Returns:
+            str: カラム名、抽出できない場合は空文字列
+        """
+        import re
+        # PostgreSQLのnull制約違反のカラム名を抽出
+        column_pattern = r'column "([^"]+)"'
+        match = re.search(column_pattern, error_message)
+        if match:
+            return match.group(1)
+        
+        return ""
+    
     def _validate_required_fields(self, obj_in: UserCreate) -> None:
         """必須フィールドの検証.
 
@@ -109,32 +183,9 @@ class CRUDUser:
             self.logger.error("Failed to create user: group is required")
             raise MissingRequiredFieldError("group", "Group is required")
 
-    async def _check_unique_constraints(
-        self, 
-        session: AsyncSession, 
-        obj_in: UserCreate
-    ) -> None:
-        """ユニーク制約の事前チェック.
-
-        Args:
-            session: データベースセッション
-            obj_in: ユーザー作成データ
-
-        Raises:
-            DuplicateUsernameError: ユーザー名が既に存在する場合
-            DuplicateEmailError: メールアドレスが既に存在する場合
-        """
-        # ユーザー名の重複チェック
-        existing_user = await self.get_user_by_username(session, obj_in.username)
-        if existing_user:
-            self.logger.error("Failed to create user: duplicate username")
-            raise DuplicateUsernameError("Username already exists")
-
-        # メールアドレスの重複チェック
-        existing_email = await self.get_user_by_email(session, obj_in.email)
-        if existing_email:
-            self.logger.error("Failed to create user: duplicate email")
-            raise DuplicateEmailError("Email already exists")
+    # _check_unique_constraintsメソッドを削除
+    # TOCTOUレース条件を避けるため、事前チェックを廃止し
+    # データベースレベルでの制約エラーで適切に処理
 
     async def get_user_by_username(
         self, 
@@ -305,8 +356,8 @@ class CRUDUser:
             self.logger.debug(f"No update data provided for user: {user_id}")
             return user
 
-        # ユニーク制約のチェック（更新される場合のみ）
-        await self._check_unique_constraints_for_update(session, user_id, update_data)
+        # TOCTOUレース条件を避けるため、事前チェックを削除
+        # データベースレベルでの制約エラーを適切に処理
 
         try:
             # フィールドの更新
@@ -317,44 +368,40 @@ class CRUDUser:
             await session.flush()
             # flush後にIDを取得（commitする前）
             updated_user_id = user.id
+            await session.commit()
             self.logger.info(f"User updated successfully: {updated_user_id}")
             return user
 
+        except IntegrityError as e:
+            # PostgreSQL固有のエラーコードを処理
+            error_code = getattr(e.orig, 'pgcode', None) if hasattr(e, 'orig') else None
+            
+            if error_code == '23505':  # unique_violation
+                constraint_name = self._extract_constraint_name(str(e))
+                if 'username' in constraint_name:
+                    self.logger.error(f"Duplicate username detected during update: {user_id}")
+                    raise DuplicateUsernameError("Username already exists")
+                elif 'email' in constraint_name:
+                    self.logger.error(f"Duplicate email detected during update: {user_id}")
+                    raise DuplicateEmailError("Email already exists")
+                else:
+                    self.logger.error(f"Unique constraint violation during update: {constraint_name}")
+                    raise DatabaseIntegrityError(f"Unique constraint violation: {constraint_name}")
+            elif error_code == '23502':  # not_null_violation
+                column_name = self._extract_column_name(str(e))
+                self.logger.error(f"NULL value in required column during update: {column_name}")
+                raise MissingRequiredFieldError(column_name, f"Column {column_name} cannot be null")
+            else:
+                self.logger.error(f"Database integrity error during update: {str(e)}")
+                raise DatabaseIntegrityError("Database integrity error occurred")
+        
         except Exception as e:
-            await session.rollback()
             self.logger.error(f"Unexpected error updating user: {str(e)}")
             raise DatabaseIntegrityError("Failed to update user") from e
 
-    async def _check_unique_constraints_for_update(
-        self,
-        session: AsyncSession,
-        user_id: str,
-        update_data: dict
-    ) -> None:
-        """更新時のユニーク制約チェック.
-
-        Args:
-            session: データベースセッション
-            user_id: 更新するユーザーID
-            update_data: 更新データ
-
-        Raises:
-            DuplicateUsernameError: ユーザー名が既に存在する場合
-            DuplicateEmailError: メールアドレスが既に存在する場合
-        """
-        # ユーザー名の重複チェック
-        if "username" in update_data:
-            existing_user = await self.get_user_by_username(session, update_data["username"])
-            if existing_user and str(existing_user.id) != user_id:
-                self.logger.error("Failed to update user: duplicate username")
-                raise DuplicateUsernameError("Username already exists")
-
-        # メールアドレスの重複チェック
-        if "email" in update_data:
-            existing_email = await self.get_user_by_email(session, update_data["email"])
-            if existing_email and str(existing_email.id) != user_id:
-                self.logger.error("Failed to update user: duplicate email")
-                raise DuplicateEmailError("Email already exists")
+    # _check_unique_constraints_for_updateメソッドを削除
+    # TOCTOUレース条件を避けるため、事前チェックを廃止し
+    # データベースレベルでの制約エラーで適切に処理
 
     async def update_password(
         self,
@@ -409,11 +456,11 @@ class CRUDUser:
             await session.flush()
             # flush後にIDを取得（commitする前）
             updated_user_id = user.id
+            await session.commit()
             self.logger.info(f"Password updated successfully for user: {updated_user_id}")
             return user
 
         except Exception as e:
-            await session.rollback()
             self.logger.error(f"Unexpected error updating password: {str(e)}")
             raise DatabaseIntegrityError("Failed to update password") from e
 
@@ -448,11 +495,11 @@ class CRUDUser:
             await session.flush()
             # flush後にIDを取得（commitする前）
             deleted_user_id = user.id
+            await session.commit()
             self.logger.info(f"User deleted successfully: {deleted_user_id}")
             return user
 
         except Exception as e:
-            await session.rollback()
             self.logger.error(f"Unexpected error deleting user: {str(e)}")
             raise DatabaseIntegrityError("Failed to delete user") from e
 

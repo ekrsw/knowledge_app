@@ -12,7 +12,12 @@ logger = get_logger(__name__)
 async_engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.SQLALCHEMY_ECHO,
-    future=True
+    future=True,
+    connect_args={
+        "server_settings": {
+            "client_encoding": "utf8"
+        }
+    }
 )
 
 # 非同期セッションファクトリの作成
@@ -35,13 +40,6 @@ async def get_async_session() -> AsyncSession:
             await session.rollback()
             raise # 例外を再スローして呼び出し元で処理できるようにする
         finally:
-            try:
-                logger.debug("Committing database session")
-                await session.commit()
-                logger.debug("Database session committed successfully")
-            except Exception as e:
-                logger.error(f"Failed to commit database session: {str(e)}")
-                raise
-            finally:
-                logger.debug("Closing database session")
-                await session.close()
+            # commitはCRUDUserで行うため、ここではsessionのクローズのみ
+            logger.debug("Closing database session")
+            await session.close()

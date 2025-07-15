@@ -22,12 +22,22 @@ async def main():
     )
 
     async with AsyncSessionLocal() as session:
-        user_list = await user_crud.get_all_users(session)
+        await user_crud.create_user(session, user_obj)
+        await session.commit()
+        await session.close()
+
+    async with AsyncSessionLocal() as session:
+        user = await user_crud.get_user_by_username(session, "testuser")
+        await session.close()
     
-    for user in user_list:
-        print(user.username)
+    print("user: ", user.username)
+    id = user.id
 
-
+    async with AsyncSessionLocal() as session:
+        await user_crud.delete_user(session, id)
+        await session.commit()
+        await session.close()
+    
 if __name__ == "__main__":
     logger.info("Starting the application")
     asyncio.run(main())

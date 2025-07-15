@@ -37,6 +37,11 @@ async def test_engine(test_settings):
         future=True,
         pool_pre_ping=True,  # 接続の健全性チェック
         pool_recycle=300,    # 接続の再利用間隔
+        connect_args={
+            "server_settings": {
+                "client_encoding": "utf8"
+            }
+        }
     )
     
     # テスト開始前にテーブルを作成

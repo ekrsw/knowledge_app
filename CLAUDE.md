@@ -14,6 +14,7 @@ This is a **knowledge_app** - a Python-based web application built with **FastAP
 - **Alembic** - Database migrations
 - **Pydantic** - Data validation and settings management
 - **passlib + bcrypt** - Password hashing
+- **greenlet** - Required for SQLAlchemy async operations
 
 ## Development Setup
 
@@ -34,6 +35,11 @@ This is a **knowledge_app** - a Python-based web application built with **FastAP
 
 ### Database Operations
 
+#### Verify Database Tables
+```bash
+python check_tables.py
+```
+
 #### Running Migrations
 ```bash
 alembic upgrade head
@@ -48,11 +54,12 @@ alembic revision --autogenerate -m "Description of changes"
 ```bash
 python app/main.py
 ```
+Note: Currently runs as a demo script, not as an API server.
 
 ### Testing
 
 #### Comprehensive Test Suite
-The application features an extensive test suite with **123+ test methods** across **14 test files**, achieving **comprehensive coverage** of CRUD user operations:
+The application features an extensive test suite with **123+ test methods** across **14 test files**, achieving **94% test coverage** of CRUD user operations:
 
 **Test Categories:**
 - **Basic Operations** (`test_crud_user_basic.py`) - Core CRUD functionality
@@ -70,17 +77,17 @@ The application features an extensive test suite with **123+ test methods** acro
 ```bash
 pytest                          # Run all tests (123+ tests)
 pytest -v                       # Verbose output
-pytest --cov=app                # Run with coverage
+pytest --cov=app                # Run with coverage report
 pytest tests/test_crud_user_security.py  # Run specific test file
 pytest tests/test_crud_user_basic.py::TestCRUDUserBasic::test_create_user  # Run single test
 ```
 
-#### Key Testing Patterns
-- **Async Session Management**: Fresh sessions with proper cleanup for each test
-- **SQLAlchemy 2.0 Compatibility**: Immediate data retrieval pattern to avoid MissingGreenlet errors
-- **Comprehensive Cleanup**: Automatic test data cleanup after each test
-- **Security Focus**: Password hashing verification, timing attack resistance
-- **Real-world Scenarios**: User registration workflows, admin operations, disaster recovery
+#### Test Configuration
+- **pytest.ini** configures async mode, test discovery, and disabled concurrent execution
+- **conftest.py** provides three session fixtures:
+  - `clean_db_session` - Cleans test data before/after (recommended)
+  - `rollback_db_session` - Always rolls back
+  - `simple_db_session` - Manual commit control
 
 ## Architecture
 
@@ -91,11 +98,13 @@ The application follows a clean layered architecture:
 - **Schemas** (`app/schemas/`) - Pydantic models for request/response validation
 - **CRUD** (`app/crud/`) - Data access layer with async operations
 - **Core** (`app/core/`) - Business logic, configuration, logging, security
+- **Database** (`app/db/`) - Session management and initialization
 
 ### Async Pattern
 - All database operations are async using SQLAlchemy 2.0
-- Session management through `AsyncSessionLocal`
+- Session management through `AsyncSessionLocal` with `expire_on_commit=False`
 - Async context managers for database transactions
+- Greenlet required for proper async operation
 
 ### Error Handling
 - Custom exception hierarchy in `app/crud/exceptions.py`
@@ -113,7 +122,7 @@ The `CRUDUser` class in `app/crud/user.py` provides:
 - `get_user_by_username()` - Retrieve user by username
 - `get_user_by_email()` - Retrieve user by email
 - `get_all_users()` - Retrieve all users
-- `update_user()` - Update user information
+- `update_user_by_id()` - Update user information
 - `update_password()` - Update user password with verification
 - `delete_user()` - Delete user by ID
 
@@ -129,29 +138,32 @@ User model (`app/models/user.py`) includes:
 ### Configuration
 Settings managed through `app/core/config.py`:
 - Environment-based configuration (development/testing/production)
-- Database connection settings
-- Logging configuration
-- SQLAlchemy settings
+- Database connection settings with async PostgreSQL URL
+- Logging configuration with structured logging
+- SQLAlchemy settings optimized for async operation
 
 ## Development Patterns
 
 ### Creating New CRUD Operations
 1. Define the operation in the appropriate CRUD class
-2. Use async session management
-3. Implement proper error handling and logging
-4. Follow the existing naming conventions
+2. Use async session management with proper cleanup
+3. Implement error handling using custom exceptions
+4. Add comprehensive logging with operation context
+5. Write tests covering all scenarios
 
 ### Database Schema Changes
 1. Modify the model in `app/models/`
 2. Generate migration: `alembic revision --autogenerate -m "description"`
 3. Review and edit the migration file if needed
 4. Apply migration: `alembic upgrade head`
+5. Update tests to cover new fields/constraints
 
-### Error Handling
-- Use custom exceptions from `app/crud/exceptions.py`
-- Implement pre-validation to avoid database-specific errors
-- Log errors with appropriate context
-- Handle rollback for failed transactions
+### Testing Best Practices
+- Use `clean_db_session` fixture for most tests
+- Store primitive values (not ORM objects) after commit
+- Implement comprehensive cleanup to avoid test interference
+- Follow naming convention: `test_crud_user_<category>.py`
+- Test both positive and negative scenarios
 
 ## Current State
 
@@ -159,43 +171,50 @@ Settings managed through `app/core/config.py`:
 The application currently serves as a **CRUD operations demonstration** rather than a full REST API server. The `app/main.py` file acts as both the entry point and test runner for user management operations.
 
 ### What's Implemented
-- Complete user management CRUD operations
-- Async database operations with PostgreSQL
-- Comprehensive error handling and logging
+- Complete user management CRUD operations with async patterns
+- Comprehensive error handling with custom exceptions
 - Database migrations with Alembic
-- User model with authentication fields and permissions
-- **Extensive test suite with 123+ tests covering validation, security, edge cases, transactions, and integration scenarios**
+- User model with authentication and permission fields
+- Extensive test suite with 94% coverage (123+ tests)
+- Structured logging with operation tracking
+- PostgreSQL-specific optimizations
 
 ### What's Missing
-- FastAPI REST API endpoints
+- FastAPI REST API endpoints and route handlers
 - Authentication middleware (JWT tokens)
-- API route definitions
-- OpenAPI/Swagger documentation
-- Production-ready error handlers
-- Code quality tools (linting, formatting)
+- API documentation (OpenAPI/Swagger)
+- Production error handlers and middleware
+- Code quality tools (linting, formatting, pre-commit hooks)
+- API rate limiting and request validation
+- Background task processing
 
-## Security Notes
-- Passwords are hashed using bcrypt via passlib with configurable cost factor
-- Password verification functions available in `app.core.security`
-- Database credentials are managed through environment variables
-- UUID primary keys provide non-enumerable identifiers
-- Security tests include timing attack resistance, password hash uniqueness, and sensitive data exposure prevention
+## Security Considerations
+- Passwords hashed using bcrypt with configurable cost factor (default: 12)
+- UUID primary keys prevent enumeration attacks
+- Timing attack resistant authentication operations
+- Environment-based configuration for sensitive data
+- No plain text passwords in logs or error messages
+- Input validation at multiple layers (Pydantic + database constraints)
 
-## Testing Best Practices
+## Utility Scripts
+- `check_tables.py` - Verify database table existence
+- `PostgreSQL_Cheatsheet.md` - PostgreSQL command reference
+- Various database creation scripts in root directory
 
-### SQLAlchemy 2.0 Async Patterns
-- Use immediate data retrieval before commit to avoid MissingGreenlet errors
-- Store primitive types (strings, IDs) rather than ORM objects after commit
-- Use `expire_on_commit=True` with proper data extraction patterns
+## Documentation
+- `docs/crud-user-refactoring-plan.md` - Comprehensive 3-phase refactoring plan with progress tracking
+- Detailed docstrings in CRUD operations
+- Type hints throughout the codebase for better IDE support
 
-### Test Structure
-- Each test class creates fresh sessions with proper cleanup
-- Use structured data dictionaries for post-commit verification
-- Implement comprehensive cleanup methods to avoid test interference
-- Follow naming conventions: `test_crud_user_<category>.py`
+## Recent Changes (2025-07-15)
+- **Phase 1.1 TOCTOU Implementation Completed**: Eliminated Time-of-Check-Time-of-Use race conditions by:
+  - Removing pre-check methods (`_check_unique_constraints`)
+  - Implementing PostgreSQL-specific error handling (pgcode 23505 for unique violations)
+  - Adding comprehensive concurrency tests (`test_crud_user_concurrency.py`)
+  - Modifying `create_user` and `update_user_by_id` to handle database-level constraint violations
 
-### Security Testing
-- Verify password hashing with bcrypt format validation
-- Test timing attack resistance for authentication operations
-- Ensure no plain text passwords in logs or error messages
-- Validate authentication workflows with active/inactive users
+## Important Notes
+- **Character Encoding**: Use UTF8 for PostgreSQL connections when working with Japanese text
+- **Session Management**: The `CRUDUser` class automatically handles commits; avoid manual commit/rollback
+- **Testing**: All tests use independent sessions to prevent interference
+- **Concurrency**: TOCTOU race conditions have been resolved using database-level constraints

@@ -36,7 +36,7 @@ class TestCRUDUserEdgeCases:
         session_factory = sessionmaker(
             engine,
             class_=AsyncSession,
-            expire_on_commit=True,
+            expire_on_commit=False,
             autocommit=False,
             autoflush=False,
         )

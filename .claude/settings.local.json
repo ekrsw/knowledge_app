@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(pytest:*)",
+      "Bash(python -m pytest tests/test_crud_user_basic.py::TestCRUDUserBasic::test_create_user -v)",
+      "Bash(python -m pytest tests/test_crud_user_basic.py -v -k test_create_user)",
+      "Bash(python -m pytest tests/test_crud_user_basic.py -v)",
+      "Bash(python -m pytest -v)",
+      "Bash(python -m pytest tests/test_crud_user_delete.py::TestUserCRUDDelete::test_delete_user_success -v)",
+      "Bash(python -m pytest tests/test_crud_user_optional_fields.py::TestCRUDUserOptionalFields::test_optional_fields_combinations -v)",
+      "Bash(python -m pytest -x --tb=short)",
+      "Bash(python -m pytest tests/test_crud_user_error_handling.py::TestUserCRUDErrorHandling::test_create_user_database_error_simulation -v)",
+      "Bash(python -m pytest --tb=no -q)",
+      "Bash(python -m pytest tests/test_crud_user_transactions.py::TestCRUDUserTransactions::test_transaction_isolation --tb=short -v)",
+      "Bash(python -m pytest tests/test_crud_user_transactions.py::TestCRUDUserTransactions::test_transaction_isolation tests/test_crud_user_transactions.py::TestCRUDUserTransactions::test_deadlock_handling tests/test_crud_user_transactions.py::TestCRUDUserTransactions::test_acid_properties --tb=no -v)",
+      "Bash(python -m pytest tests/test_crud_user_transactions.py::TestCRUDUserTransactions::test_acid_properties -v)",
+      "Bash(python -m pytest tests/test_crud_user_concurrency.py -v)",
+      "Bash(python -m pytest tests/test_crud_user_concurrency.py::TestCRUDUserConcurrency::test_concurrent_user_creation_duplicate_username -v)",
+      "Bash(python -m pytest tests/test_crud_user_basic.py tests/test_crud_user_security.py tests/test_crud_user_validation.py --tb=no -q)"
     ],
     "deny": []
   }

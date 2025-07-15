@@ -182,8 +182,8 @@ class TestUserCRUDErrorHandling:
                     group=GroupEnum.CSC_1
                 )
                 
-                # session.flushをモックしてSQLAlchemyErrorをシミュレート
-                with patch.object(session, 'flush', side_effect=SQLAlchemyError("Simulated DB error")):
+                # session.commitをモックしてSQLAlchemyErrorをシミュレート
+                with patch.object(session, 'commit', side_effect=SQLAlchemyError("Simulated DB error")):
                     with pytest.raises(DatabaseIntegrityError) as exc_info:
                         await user_crud.create_user(session, user_data)
                     
