@@ -180,28 +180,43 @@ class TestGetLogger:
     @patch('app.core.logging.settings')
     def test_get_logger_with_file_logging(self, mock_settings):
         """ファイルログ有効時のテスト"""
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        import tempfile
+        import shutil
+        
+        # 一時ディレクトリを作成
+        temp_dir = tempfile.mkdtemp()
+        log_file_path = os.path.join(temp_dir, "test.log")
+        
+        try:
+            # ファイルログ有効の設定をモック
+            mock_settings.ENVIRONMENT = "development"
+            mock_settings.LOG_LEVEL = "DEBUG"
+            mock_settings.LOG_TO_FILE = True
+            mock_settings.LOG_FILE_PATH = log_file_path
+            
+            logger_name = "test_logger_file"
+            logger = get_logger(logger_name)
+            
+            # コンソールハンドラーとファイルハンドラーの両方が存在
+            assert len(logger.handlers) == 2
+            
+            # ファイルハンドラーが追加されていることを確認
+            handler_types = [type(h).__name__ for h in logger.handlers]
+            assert "StreamHandler" in handler_types
+            assert "RotatingFileHandler" in handler_types
+            
+            # ハンドラーをクローズ
+            for handler in logger.handlers[:]:
+                if hasattr(handler, 'close'):
+                    handler.close()
+                logger.removeHandler(handler)
+                
+        finally:
+            # 一時ディレクトリごと削除（より確実）
             try:
-                # ファイルログ有効の設定をモック
-                mock_settings.ENVIRONMENT = "development"
-                mock_settings.LOG_LEVEL = "DEBUG"
-                mock_settings.LOG_TO_FILE = True
-                mock_settings.LOG_FILE_PATH = tmp_file.name
-                
-                logger_name = "test_logger_file"
-                logger = get_logger(logger_name)
-                
-                # コンソールハンドラーとファイルハンドラーの両方が存在
-                assert len(logger.handlers) == 2
-                
-                # ファイルハンドラーが追加されていることを確認
-                handler_types = [type(h).__name__ for h in logger.handlers]
-                assert "StreamHandler" in handler_types
-                assert "RotatingFileHandler" in handler_types
-                
-            finally:
-                # 一時ファイルをクリーンアップ
-                os.unlink(tmp_file.name)
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass  # クリーンアップエラーは無視
 
 
 class TestGetRequestLogger:

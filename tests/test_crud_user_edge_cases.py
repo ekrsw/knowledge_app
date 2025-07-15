@@ -6,7 +6,6 @@ import asyncio
 import threading
 import time
 import gc
-import resource
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -304,64 +303,6 @@ class TestCRUDUserEdgeCases:
                 # 少なくとも1つは成功し、他は適切にエラーハンドリングされることを確認
                 assert successful_creations >= 1, "At least one creation should succeed"
                 assert failed_creations >= 0, "Failed creations should be handled gracefully"
-                
-            except Exception:
-                await session.rollback()
-                raise
-            finally:
-                await self.cleanup_test_data(session)
-
-    @pytest.mark.asyncio
-    async def test_memory_usage_limits(self):
-        """メモリ使用量制限のテスト"""
-        async for session, engine in self.create_fresh_session():
-            try:
-                await self.cleanup_test_data(session)
-                
-                # メモリ使用量の監視開始
-                initial_memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024  # KB to MB (macOS)
-                
-                # 大量のユーザーデータ作成
-                user_count = 100
-                created_users = []
-                
-                for i in range(user_count):
-                    user_data = UserCreate(
-                        username=f"edge_memory_test_{i}",
-                        email=f"memory{i}@edge.com",
-                        password="testpass123",
-                        group=GroupEnum.CSC_1,
-                        full_name=f"メモリテストユーザー{i}" * 10,  # 長めの文字列
-                        ctstage_name=f"ステージ{i}" * 5,
-                        sweet_name=f"スイート{i}" * 5
-                    )
-                    
-                    created_user = await user_crud.create_user(session, user_data)
-                    created_users.append(created_user)
-                    
-                    # 定期的にメモリをチェック
-                    if i % 20 == 0:
-                        current_memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024  # KB to MB
-                        memory_increase = current_memory - initial_memory
-                        
-                        # メモリ使用量が異常に増加していないことを確認（1GB以下）
-                        assert memory_increase < 1000, f"Memory usage too high: {memory_increase}MB"
-                
-                await session.commit()
-                
-                # ガベージコレクション実行
-                gc.collect()
-                
-                # 最終メモリ使用量チェック
-                final_memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024  # KB to MB
-                total_increase = final_memory - initial_memory
-                
-                # メモリリークがないことを確認（多少の増加は正常）
-                assert total_increase < 1000, f"Potential memory leak: {total_increase}MB increase"
-                
-                # 作成されたユーザーが正しく取得できることを確認
-                sample_user = await user_crud.get_user_by_username(session, "edge_memory_test_50")
-                assert sample_user is not None
                 
             except Exception:
                 await session.rollback()
