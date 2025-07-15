@@ -16,6 +16,7 @@ from app.crud.exceptions import (
     DuplicateUsernameError,
     InvalidPasswordError,
     MissingRequiredFieldError,
+    UserNotFoundError,
 )
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
@@ -272,7 +273,7 @@ class CRUDUser:
         session: AsyncSession,
         user_id: str,
         obj_in: UserUpdate
-    ) -> Optional[User]:
+    ) -> User:
         """IDでユーザーを更新する.
 
         Args:
@@ -281,9 +282,10 @@ class CRUDUser:
             obj_in: 更新データ
 
         Returns:
-            Optional[User]: 更新されたユーザーオブジェクト、見つからない場合はNone
+            User: 更新されたユーザーオブジェクト
 
         Raises:
+            UserNotFoundError: ユーザーが見つからない場合
             DuplicateUsernameError: ユーザー名が既に存在する場合
             DuplicateEmailError: メールアドレスが既に存在する場合
             DatabaseIntegrityError: その他のデータベース整合性エラー
@@ -293,8 +295,8 @@ class CRUDUser:
         # 更新するユーザーの存在確認
         user = await self.get_user_by_id(session, user_id)
         if not user:
-            self.logger.warning(f"User not found for update: {user_id}")
-            return None
+            self.logger.error(f"User not found for update: {user_id}")
+            raise UserNotFoundError(user_id)
 
         # 更新データの取得（None値は除外）
         update_data = obj_in.model_dump(exclude_unset=True)
@@ -360,7 +362,7 @@ class CRUDUser:
         user_id: str,
         old_password: str,
         new_password: str
-    ) -> Optional[User]:
+    ) -> User:
         """ユーザーのパスワードを更新する.
 
         Args:
@@ -370,9 +372,10 @@ class CRUDUser:
             new_password: 新しいパスワード
 
         Returns:
-            Optional[User]: 更新されたユーザーオブジェクト、見つからない場合はNone
+            User: 更新されたユーザーオブジェクト
 
         Raises:
+            UserNotFoundError: ユーザーが見つからない場合
             InvalidPasswordError: 現在のパスワードが正しくない場合
             MissingRequiredFieldError: 必須パラメータが不足している場合
             DatabaseIntegrityError: その他のデータベース整合性エラー
@@ -391,8 +394,8 @@ class CRUDUser:
         # 更新するユーザーの存在確認
         user = await self.get_user_by_id(session, user_id)
         if not user:
-            self.logger.warning(f"User not found for password update: {user_id}")
-            return None
+            self.logger.error(f"User not found for password update: {user_id}")
+            raise UserNotFoundError(user_id)
 
         # 現在のパスワードの検証
         if not verify_password(old_password, user.hashed_password):
@@ -413,6 +416,45 @@ class CRUDUser:
             await session.rollback()
             self.logger.error(f"Unexpected error updating password: {str(e)}")
             raise DatabaseIntegrityError("Failed to update password") from e
+
+    async def delete_user(
+        self,
+        session: AsyncSession,
+        user_id: str
+    ) -> User:
+        """IDでユーザーを削除する.
+
+        Args:
+            session: データベースセッション
+            user_id: 削除するユーザーID（UUID文字列）
+
+        Returns:
+            User: 削除されたユーザーオブジェクト
+
+        Raises:
+            UserNotFoundError: ユーザーが見つからない場合
+            DatabaseIntegrityError: その他のデータベース整合性エラー
+        """
+        self.logger.info(f"Deleting user with ID: {user_id}")
+
+        # 削除するユーザーの存在確認
+        user = await self.get_user_by_id(session, user_id)
+        if not user:
+            self.logger.error(f"User not found for deletion: {user_id}")
+            raise UserNotFoundError(user_id)
+
+        try:
+            await session.delete(user)
+            await session.flush()
+            # flush後にIDを取得（commitする前）
+            deleted_user_id = user.id
+            self.logger.info(f"User deleted successfully: {deleted_user_id}")
+            return user
+
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"Unexpected error deleting user: {str(e)}")
+            raise DatabaseIntegrityError("Failed to delete user") from e
 
 
 user_crud = CRUDUser()

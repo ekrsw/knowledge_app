@@ -37,3 +37,13 @@ class InvalidPasswordError(Exception):
     def __init__(self, message: str = "Invalid password"):
         self.message = message
         super().__init__(self.message)
+
+
+class UserNotFoundError(Exception):
+    """ユーザーが見つからない場合のエラー"""
+    def __init__(self, identifier: str, message: Optional[str] = None):
+        if message is None:
+            message = f"User not found: {identifier}"
+        self.identifier = identifier
+        self.message = message
+        super().__init__(self.message)

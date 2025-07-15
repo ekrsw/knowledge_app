@@ -10,6 +10,7 @@ from app.crud.user import user_crud
 from app.crud.exceptions import (
     InvalidPasswordError,
     MissingRequiredFieldError,
+    UserNotFoundError,
 )
 from app.models.user import GroupEnum
 from app.schemas.user import UserCreate
@@ -116,13 +117,14 @@ class TestUserCRUDUpdatePassword:
                 # 存在しないUUID
                 nonexistent_id = "00000000-0000-0000-0000-000000000000"
                 
-                # パスワード更新を試行
-                result = await user_crud.update_password(
-                    session, nonexistent_id, "oldpass", "newpass"
-                )
+                # UserNotFoundErrorが発生することを確認
+                with pytest.raises(UserNotFoundError) as exc_info:
+                    await user_crud.update_password(
+                        session, nonexistent_id, "oldpass", "newpass"
+                    )
                 
-                # 検証
-                assert result is None
+                # エラーメッセージの検証
+                assert nonexistent_id in str(exc_info.value)
                 
             except Exception:
                 await session.rollback()

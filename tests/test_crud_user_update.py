@@ -10,6 +10,7 @@ from app.crud.user import user_crud
 from app.crud.exceptions import (
     DuplicateUsernameError,
     DuplicateEmailError,
+    UserNotFoundError,
 )
 from app.models.user import GroupEnum
 from app.schemas.user import UserCreate, UserUpdate
@@ -213,11 +214,12 @@ class TestUserCRUDUpdate:
                     full_name="Should Not Update"
                 )
                 
-                # 更新を試行
-                result = await user_crud.update_user_by_id(session, nonexistent_id, update_data)
+                # UserNotFoundErrorが発生することを確認
+                with pytest.raises(UserNotFoundError) as exc_info:
+                    await user_crud.update_user_by_id(session, nonexistent_id, update_data)
                 
-                # 検証
-                assert result is None
+                # エラーメッセージの検証
+                assert nonexistent_id in str(exc_info.value)
                 
             except Exception:
                 await session.rollback()
