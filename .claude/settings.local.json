@@ -17,7 +17,16 @@
       "Bash(python -m pytest tests/test_crud_user_transactions.py::TestCRUDUserTransactions::test_acid_properties -v)",
       "Bash(python -m pytest tests/test_crud_user_concurrency.py -v)",
       "Bash(python -m pytest tests/test_crud_user_concurrency.py::TestCRUDUserConcurrency::test_concurrent_user_creation_duplicate_username -v)",
-      "Bash(python -m pytest tests/test_crud_user_basic.py tests/test_crud_user_security.py tests/test_crud_user_validation.py --tb=no -q)"
+      "Bash(python -m pytest tests/test_crud_user_basic.py tests/test_crud_user_security.py tests/test_crud_user_validation.py --tb=no -q)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(python -m pytest tests/test_crud_user_basic.py::TestUserCRUDBasic::test_duplicate_username -v)",
+      "Bash(python -m pytest tests/test_crud_user_concurrency.py::TestCRUDUserConcurrency::test_high_concurrency_stress_test -v -s)",
+      "Bash(python -m pytest tests/test_crud_user_concurrency.py::TestCRUDUserConcurrency::test_high_concurrency_stress_test -v)",
+      "Bash(python -m pytest tests/ -x)",
+      "Bash(python -m pytest tests/test_crud_user_type_safety.py -v)",
+      "Bash(python -m pytest tests/test_crud_user_type_safety.py::TestCRUDUserTypeSafety::test_get_user_by_id_uuid_type -v)",
+      "Bash(python -m pytest tests/test_crud_user_basic.py tests/test_crud_user_optional_fields.py tests/test_crud_user_security.py -v)",
+      "Bash(python -m pytest tests/test_crud_user_basic.py::TestUserCRUDBasic::test_get_operations -v)"
     ],
     "deny": []
   }

@@ -169,7 +169,7 @@ class TestUserCRUDBasic:
                 
                 # ユーザー作成
                 created_user = await user_crud.create_user(session, sample_user_data)
-                created_user_id = str(created_user.id)
+                created_user_id = created_user.id
                 await session.commit()
                 
                 # 各種検索テスト
@@ -183,7 +183,7 @@ class TestUserCRUDBasic:
                 
                 found_by_id = await user_crud.get_user_by_id(session, created_user_id)
                 assert found_by_id is not None
-                assert str(found_by_id.id) == created_user_id
+                assert found_by_id.id == created_user_id
                 
                 # 存在しない検索
                 not_found = await user_crud.get_user_by_username(session, "nonexistent")

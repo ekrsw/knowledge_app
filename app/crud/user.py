@@ -4,6 +4,7 @@ This module provides CRUD (Create, Read, Update, Delete) operations for User mod
 """
 
 from typing import List, Optional
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -82,6 +83,9 @@ class CRUDUser:
             return db_obj
 
         except IntegrityError as e:
+            # セッションを明示的にロールバック
+            await session.rollback()
+            
             # PostgreSQL固有のエラーコードを処理
             error_code = getattr(e.orig, 'pgcode', None) if hasattr(e, 'orig') else None
             
@@ -260,13 +264,13 @@ class CRUDUser:
     async def get_user_by_id(
         self, 
         session: AsyncSession, 
-        user_id: str
+        user_id: UUID
     ) -> Optional[User]:
         """IDでユーザーを取得する.
 
         Args:
             session: データベースセッション
-            user_id: 検索するユーザーID（UUID文字列）
+            user_id: 検索するユーザーID（UUID）
 
         Returns:
             Optional[User]: 見つかったユーザーオブジェクト、見つからない場合はNone
@@ -322,14 +326,14 @@ class CRUDUser:
     async def update_user_by_id(
         self,
         session: AsyncSession,
-        user_id: str,
+        user_id: UUID,
         obj_in: UserUpdate
     ) -> User:
         """IDでユーザーを更新する.
 
         Args:
             session: データベースセッション
-            user_id: 更新するユーザーID（UUID文字列）
+            user_id: 更新するユーザーID（UUID）
             obj_in: 更新データ
 
         Returns:
@@ -373,6 +377,9 @@ class CRUDUser:
             return user
 
         except IntegrityError as e:
+            # セッションを明示的にロールバック
+            await session.rollback()
+            
             # PostgreSQL固有のエラーコードを処理
             error_code = getattr(e.orig, 'pgcode', None) if hasattr(e, 'orig') else None
             
@@ -406,7 +413,7 @@ class CRUDUser:
     async def update_password(
         self,
         session: AsyncSession,
-        user_id: str,
+        user_id: UUID,
         old_password: str,
         new_password: str
     ) -> User:
@@ -414,7 +421,7 @@ class CRUDUser:
 
         Args:
             session: データベースセッション
-            user_id: 更新するユーザーID（UUID文字列）
+            user_id: 更新するユーザーID（UUID）
             old_password: 現在のパスワード
             new_password: 新しいパスワード
 
@@ -467,13 +474,13 @@ class CRUDUser:
     async def delete_user(
         self,
         session: AsyncSession,
-        user_id: str
+        user_id: UUID
     ) -> User:
         """IDでユーザーを削除する.
 
         Args:
             session: データベースセッション
-            user_id: 削除するユーザーID（UUID文字列）
+            user_id: 削除するユーザーID（UUID）
 
         Returns:
             User: 削除されたユーザーオブジェクト

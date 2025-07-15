@@ -46,8 +46,8 @@ class TestCRUDUserConcurrency:
         try:
             await session.execute(text(
                 "DELETE FROM users WHERE "
-                "username LIKE 'concurrent%' OR username LIKE 'race%' OR "
-                "email LIKE 'concurrent%' OR email LIKE 'race%'"
+                "username LIKE 'concurrent%' OR username LIKE 'race%' OR username LIKE 'stress_test_user_%' OR "
+                "email LIKE 'concurrent%' OR email LIKE 'race%' OR email LIKE 'stress_test%'"
             ))
             await session.commit()
         except Exception:

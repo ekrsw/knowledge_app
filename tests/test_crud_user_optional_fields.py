@@ -175,7 +175,7 @@ class TestCRUDUserOptionalFields:
                 await session.commit()
                 
                 # データベースから再取得して確認
-                retrieved_user = await user_crud.get_user_by_id(session, str(user_id))
+                retrieved_user = await user_crud.get_user_by_id(session, user_id)
                 assert retrieved_user is not None
                 assert retrieved_user.full_name is None
                 assert retrieved_user.ctstage_name is None

@@ -377,7 +377,7 @@ class TestCRUDUserSecurity:
                 await session.commit()
                 
                 # 同じユーザーを再度取得
-                retrieved_user = await user_crud.get_user_by_id(session, str(original_id))
+                retrieved_user = await user_crud.get_user_by_id(session, original_id)
                 assert retrieved_user is not None
                 
                 # ハッシュが変更されていないことを確認
