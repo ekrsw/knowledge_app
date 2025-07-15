@@ -52,7 +52,7 @@ python app/main.py
 ### Testing
 
 #### Comprehensive Test Suite
-The application features an extensive test suite with **55+ test methods** across **8 test files**, achieving **comprehensive coverage** of CRUD user operations:
+The application features an extensive test suite with **55+ test methods** across **13 test files**, achieving **comprehensive coverage** of CRUD user operations:
 
 **Test Categories:**
 - **Basic Operations** (`test_crud_user_basic.py`) - Core CRUD functionality
@@ -63,6 +63,8 @@ The application features an extensive test suite with **55+ test methods** acros
 - **Edge Cases** (`test_crud_user_edge_cases.py`) - Boundary values, memory limits, concurrency
 - **Transactions** (`test_crud_user_transactions.py`) - ACID properties, rollback, isolation
 - **Integration** (`test_crud_user_integration.py`) - Real-world workflows, admin operations
+- **Update Operations** (`test_crud_user_update.py`) - User update functionality
+- **Password Updates** (`test_crud_user_update_password.py`) - Password change operations
 
 #### Running Tests
 ```bash
@@ -70,6 +72,7 @@ pytest                          # Run all tests (99+ tests)
 pytest -v                       # Verbose output
 pytest --cov=app                # Run with coverage
 pytest tests/test_crud_user_security.py  # Run specific test file
+pytest tests/test_crud_user_basic.py::TestCRUDUserBasic::test_create_user  # Run single test
 ```
 
 #### Key Testing Patterns
@@ -110,6 +113,9 @@ The `CRUDUser` class in `app/crud/user.py` provides:
 - `get_user_by_username()` - Retrieve user by username
 - `get_user_by_email()` - Retrieve user by email
 - `get_all_users()` - Retrieve all users
+- `update_user()` - Update user information
+- `update_password()` - Update user password with verification
+- `delete_user()` - Delete user by ID
 
 ### Database Models
 User model (`app/models/user.py`) includes:
