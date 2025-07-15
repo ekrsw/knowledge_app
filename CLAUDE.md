@@ -52,7 +52,7 @@ python app/main.py
 ### Testing
 
 #### Comprehensive Test Suite
-The application features an extensive test suite with **55+ test methods** across **13 test files**, achieving **comprehensive coverage** of CRUD user operations:
+The application features an extensive test suite with **123+ test methods** across **14 test files**, achieving **comprehensive coverage** of CRUD user operations:
 
 **Test Categories:**
 - **Basic Operations** (`test_crud_user_basic.py`) - Core CRUD functionality
@@ -68,7 +68,7 @@ The application features an extensive test suite with **55+ test methods** acros
 
 #### Running Tests
 ```bash
-pytest                          # Run all tests (99+ tests)
+pytest                          # Run all tests (123+ tests)
 pytest -v                       # Verbose output
 pytest --cov=app                # Run with coverage
 pytest tests/test_crud_user_security.py  # Run specific test file
@@ -164,7 +164,7 @@ The application currently serves as a **CRUD operations demonstration** rather t
 - Comprehensive error handling and logging
 - Database migrations with Alembic
 - User model with authentication fields and permissions
-- **Extensive test suite with 99+ tests covering validation, security, edge cases, transactions, and integration scenarios**
+- **Extensive test suite with 123+ tests covering validation, security, edge cases, transactions, and integration scenarios**
 
 ### What's Missing
 - FastAPI REST API endpoints
