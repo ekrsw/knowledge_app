@@ -5,7 +5,6 @@ This module provides CRUD (Create, Read, Update, Delete) operations for User mod
 
 from typing import List, Optional
 from uuid import UUID
-import hashlib
 import asyncio
 import time
 import math
@@ -16,7 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.logging import get_logger
-from app.core.security import get_password_hash, verify_password
+from app.core.crud_config import CRUDConfig, DEFAULT_CRUD_CONFIG
+from app.core.security_service import SecurityService, DEFAULT_SECURITY_SERVICE
 from app.crud.exceptions import (
     DatabaseIntegrityError,
     DuplicateEmailError,
@@ -35,17 +35,27 @@ class CRUDUser:
     # クラスレベルのロガー初期化
     logger = get_logger(__name__)
     
+    def __init__(self, config: CRUDConfig = None, security_service: SecurityService = None):
+        """Initialize CRUD operations with configuration and security service.
+        
+        Args:
+            config: Configuration for CRUD operations. If None, uses default configuration.
+            security_service: Security service for operations. If None, uses default security service.
+        """
+        self.config = config or DEFAULT_CRUD_CONFIG
+        self.security_service = security_service or DEFAULT_SECURITY_SERVICE
+    
     def _hash_user_id(self, user_id: UUID) -> str:
         """セキュリティ上の理由でユーザーIDをハッシュ化する."""
-        return hashlib.sha256(str(user_id).encode()).hexdigest()[:8]
+        return self.security_service.hash_user_id(user_id)
     
     async def _constant_time_user_lookup(self, session: AsyncSession, lookup_func, *args) -> Optional[User]:
         """タイミング攻撃を防ぐためのユーザー検索."""
         start_time = time.time()
         user = await lookup_func(*args)
         
-        # 最小実行時間を確保（50ms）
-        min_time = 0.05
+        # 最小実行時間を確保（設定値を使用）
+        min_time = self.config.timing_attack_min_delay
         elapsed = time.time() - start_time
         if elapsed < min_time:
             await asyncio.sleep(min_time - elapsed)
@@ -86,7 +96,7 @@ class CRUDUser:
             db_obj = User(
                 username=obj_in.username,
                 email=obj_in.email,
-                hashed_password=get_password_hash(obj_in.password),
+                hashed_password=self.security_service.hash_password(obj_in.password),
                 full_name=obj_in.full_name,
                 ctstage_name=obj_in.ctstage_name,
                 sweet_name=obj_in.sweet_name,
@@ -316,11 +326,11 @@ class CRUDUser:
                 **context
             }
             
-            # スローログ警告（500ms以上）
-            if execution_time > 0.5:
+            # スローログ警告（設定値を使用）
+            if execution_time > self.config.slow_query_threshold:
                 self.logger.warning(f"Slow query detected: {query_name}", extra=log_data)
-            # 通常のパフォーマンスログ（100ms以上）
-            elif execution_time > 0.1:
+            # 通常のパフォーマンスログ（設定値を使用）
+            elif execution_time > self.config.performance_log_threshold:
                 self.logger.info(f"Query performance: {query_name}", extra=log_data)
             else:
                 self.logger.debug(f"Query completed: {query_name}", extra=log_data)
@@ -822,14 +832,7 @@ class CRUDUser:
             raise UserNotFoundError(user_id)
 
         # 現在のパスワードの検証（タイミング攻撃対策）
-        start_time = time.time()
-        is_valid = verify_password(old_password, user.hashed_password)
-        
-        # 最小実行時間を確保（250ms）
-        min_time = 0.25
-        elapsed = time.time() - start_time
-        if elapsed < min_time:
-            await asyncio.sleep(min_time - elapsed)
+        is_valid = self.security_service.verify_password_with_timing_protection(old_password, user.hashed_password)
         
         if not is_valid:
             self.logger.error(
@@ -844,7 +847,7 @@ class CRUDUser:
 
         try:
             # 新しいパスワードのハッシュ化と更新
-            user.hashed_password = get_password_hash(new_password)
+            user.hashed_password = self.security_service.hash_password(new_password)
 
             await session.flush()
             # flush後にIDを取得（commitする前）
