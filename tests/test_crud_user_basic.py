@@ -14,6 +14,7 @@ from app.crud.exceptions import (
 from app.models.user import GroupEnum
 from app.schemas.user import UserCreate
 from app.core.config import settings
+from pydantic import ValidationError
 
 
 class TestUserCRUDBasic:
@@ -113,12 +114,18 @@ class TestUserCRUDBasic:
             try:
                 await self.cleanup_test_data(session)
                 
-                sample_user_data.username = ""
+                # Pydanticバリデーションでエラーになることを確認
+                with pytest.raises(ValidationError) as exc_info:
+                    user_data = UserCreate(
+                        username="",  # 空文字列
+                        email="empty@basictest.com",
+                        password="validpass123",
+                        group=GroupEnum.CSC_1
+                    )
+                    await user_crud.create_user(session, user_data)
                 
-                with pytest.raises(MissingRequiredFieldError) as exc_info:
-                    await user_crud.create_user(session, sample_user_data)
-                
-                assert exc_info.value.field_name == "username"
+                # Pydanticバリデーションエラーであることを確認
+                assert "username" in str(exc_info.value)
                 
             except Exception:
                 await session.rollback()
@@ -242,18 +249,18 @@ class TestUserCRUDBasic:
             try:
                 await self.cleanup_test_data(session)
                 
-                # ユーザー名が空白のみの場合のテスト（最小長制約をクリア）
-                user_data = UserCreate(
-                    username="   ",  # 3文字の空白
-                    email="whitespace@basictest.com",
-                    password="validpass123",
-                    group=GroupEnum.CSC_1
-                )
-                
-                with pytest.raises(MissingRequiredFieldError) as exc_info:
+                # ユーザー名が空白のみの場合のテスト（Pydanticバリデーションでエラー）
+                with pytest.raises(ValidationError) as exc_info:
+                    user_data = UserCreate(
+                        username="   ",  # 3文字の空白
+                        email="whitespace@basictest.com",
+                        password="validpass123",
+                        group=GroupEnum.CSC_1
+                    )
                     await user_crud.create_user(session, user_data)
                 
-                assert exc_info.value.field_name == "username"
+                # Pydanticバリデーションエラーであることを確認
+                assert "username" in str(exc_info.value)
                 
             except Exception:
                 await session.rollback()

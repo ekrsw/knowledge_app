@@ -73,10 +73,9 @@ class CRUDUser:
             MissingRequiredFieldError: 必須フィールドが不足している場合
             DatabaseIntegrityError: その他のデータベース整合性エラー
         """
-        self.logger.info("Creating new user")
+        self._log_operation("user creation", "start")
 
-        # 必須フィールドの事前チェック
-        self._validate_required_fields(obj_in)
+        # Pydanticでバリデーション済みなので、重複チェックを削除
 
         # TOCTOUレース条件を避けるため、事前チェックを削除
         # データベースレベルでの制約エラーを適切に処理
@@ -99,38 +98,17 @@ class CRUDUser:
             # flush後にIDを取得（commitする前）
             user_id = db_obj.id
             await session.commit()
-            self.logger.info(f"User created successfully: {self._hash_user_id(user_id)}")
+            self._log_operation("user creation", "success", user_id)
             return db_obj
 
         except IntegrityError as e:
             # セッションを明示的にロールバック
             await session.rollback()
-            
-            # PostgreSQL固有のエラーコードを処理
-            error_code = getattr(e.orig, 'pgcode', None) if hasattr(e, 'orig') else None
-            
-            if error_code == '23505':  # unique_violation
-                constraint_name = self._extract_constraint_name(str(e))
-                
-                if 'username' in constraint_name:
-                    self.logger.error("Duplicate username detected")
-                    raise DuplicateUsernameError("Username already exists") from None
-                elif 'email' in constraint_name:
-                    self.logger.error("Duplicate email detected")
-                    raise DuplicateEmailError("Email already exists") from None
-                else:
-                    self.logger.error(f"Unique constraint violation: {constraint_name}")
-                    raise DatabaseIntegrityError(f"Unique constraint violation: {constraint_name}") from None
-            elif error_code == '23502':  # not_null_violation
-                column_name = self._extract_column_name(str(e))
-                self.logger.error(f"NULL value in required column: {column_name}")
-                raise MissingRequiredFieldError(column_name, f"Column {column_name} cannot be null") from None
-            else:
-                self.logger.error("Database integrity error occurred")
-                raise DatabaseIntegrityError("Database integrity error occurred") from None
+            # 共通化された例外処理を使用
+            self._handle_database_error(e, "user creation")
         
         except Exception as e:
-            self.logger.error("Unexpected error creating user")
+            self._log_operation("user creation", "error", error_type=type(e).__name__)
             raise DatabaseIntegrityError("Failed to create user") from None
 
     def _extract_constraint_name(self, error_message: str) -> str:
@@ -212,30 +190,72 @@ class CRUDUser:
         
         return ""
     
-    def _validate_required_fields(self, obj_in: UserCreate) -> None:
-        """必須フィールドの検証.
-
+    def _handle_database_error(self, e: IntegrityError, operation: str) -> None:
+        """データベース例外を適切なアプリケーション例外に変換する.
+        
         Args:
-            obj_in: ユーザー作成データ
-
+            e: SQLAlchemy IntegrityError
+            operation: 実行していた操作名（ログ用）
+            
         Raises:
-            MissingRequiredFieldError: 必須フィールドが不足している場合
+            DuplicateUsernameError: ユーザー名重複の場合
+            DuplicateEmailError: メール重複の場合
+            MissingRequiredFieldError: NOT NULL制約違反の場合
+            DatabaseIntegrityError: その他のデータベース整合性エラー
         """
-        if not obj_in.username or not obj_in.username.strip():
-            self.logger.error("Failed to create user: username is required")
-            raise MissingRequiredFieldError("username", "Username is required")
-
-        if not obj_in.email or not obj_in.email.strip():
-            self.logger.error("Failed to create user: email is required")
-            raise MissingRequiredFieldError("email", "Email is required")
-
-        if not obj_in.password or not obj_in.password.strip():
-            self.logger.error("Failed to create user: password is required")
-            raise MissingRequiredFieldError("password", "Password is required")
-
-        if obj_in.group is None:
-            self.logger.error("Failed to create user: group is required")
-            raise MissingRequiredFieldError("group", "Group is required")
+        # PostgreSQL固有のエラーコードを処理
+        error_code = getattr(e.orig, 'pgcode', None) if hasattr(e, 'orig') else None
+        
+        if error_code == '23505':  # unique_violation
+            constraint_name = self._extract_constraint_name(str(e))
+            
+            if 'username' in constraint_name:
+                self.logger.error(f"Duplicate username detected during {operation}")
+                raise DuplicateUsernameError("Username already exists") from None
+            elif 'email' in constraint_name:
+                self.logger.error(f"Duplicate email detected during {operation}")
+                raise DuplicateEmailError("Email already exists") from None
+            else:
+                self.logger.error(f"Unique constraint violation during {operation}: {constraint_name}")
+                raise DatabaseIntegrityError(f"Unique constraint violation: {constraint_name}") from None
+        elif error_code == '23502':  # not_null_violation
+            column_name = self._extract_column_name(str(e))
+            self.logger.error(f"NULL value in required column during {operation}: {column_name}")
+            raise MissingRequiredFieldError(column_name, f"Column {column_name} cannot be null") from None
+        else:
+            self.logger.error(f"Database integrity error during {operation}")
+            raise DatabaseIntegrityError("Database integrity error occurred") from None
+    
+    def _log_operation(self, operation: str, status: str, user_id: UUID = None, **kwargs) -> None:
+        """構造化されたログを出力する.
+        
+        Args:
+            operation: 実行した操作名
+            status: 操作のステータス（start, success, error）
+            user_id: 対象ユーザーID（オプション）
+            **kwargs: 追加のログパラメータ
+        """
+        log_data = {
+            "operation": operation,
+            "status": status
+        }
+        
+        if user_id:
+            log_data["user_id_hash"] = self._hash_user_id(user_id)
+        
+        # 追加パラメータをマージ
+        log_data.update(kwargs)
+        
+        # ログレベルに応じて出力
+        if status == "start":
+            self.logger.info(f"{operation.title()} started", extra=log_data)
+        elif status == "success":
+            self.logger.info(f"{operation.title()} completed successfully", extra=log_data)
+        elif status == "error":
+            self.logger.error(f"{operation.title()} failed", extra=log_data)
+        else:
+            self.logger.debug(f"{operation.title()} - {status}", extra=log_data)
+    
 
     # _check_unique_constraintsメソッドを削除
     # TOCTOUレース条件を避けるため、事前チェックを廃止し
@@ -395,7 +415,7 @@ class CRUDUser:
             DuplicateEmailError: メールアドレスが既に存在する場合
             DatabaseIntegrityError: その他のデータベース整合性エラー
         """
-        self.logger.info(f"Updating user with ID: {self._hash_user_id(user_id)}")
+        self._log_operation("user update", "start", user_id)
 
         # 更新するユーザーの存在確認
         user = await self.get_user_by_id(session, user_id)
@@ -423,37 +443,17 @@ class CRUDUser:
             # flush後にIDを取得（commitする前）
             updated_user_id = user.id
             await session.commit()
-            self.logger.info(f"User updated successfully: {self._hash_user_id(updated_user_id)}")
+            self._log_operation("user update", "success", updated_user_id)
             return user
 
         except IntegrityError as e:
             # セッションを明示的にロールバック
             await session.rollback()
-            
-            # PostgreSQL固有のエラーコードを処理
-            error_code = getattr(e.orig, 'pgcode', None) if hasattr(e, 'orig') else None
-            
-            if error_code == '23505':  # unique_violation
-                constraint_name = self._extract_constraint_name(str(e))
-                if 'username' in constraint_name:
-                    self.logger.error("Duplicate username detected during update")
-                    raise DuplicateUsernameError("Username already exists") from None
-                elif 'email' in constraint_name:
-                    self.logger.error("Duplicate email detected during update")
-                    raise DuplicateEmailError("Email already exists") from None
-                else:
-                    self.logger.error(f"Unique constraint violation during update: {constraint_name}")
-                    raise DatabaseIntegrityError(f"Unique constraint violation: {constraint_name}") from None
-            elif error_code == '23502':  # not_null_violation
-                column_name = self._extract_column_name(str(e))
-                self.logger.error(f"NULL value in required column during update: {column_name}")
-                raise MissingRequiredFieldError(column_name, f"Column {column_name} cannot be null") from None
-            else:
-                self.logger.error("Database integrity error during update")
-                raise DatabaseIntegrityError("Database integrity error occurred") from None
+            # 共通化された例外処理を使用
+            self._handle_database_error(e, "user update")
         
         except Exception as e:
-            self.logger.error("Unexpected error updating user")
+            self._log_operation("user update", "error", user_id, error_type=type(e).__name__)
             raise DatabaseIntegrityError("Failed to update user") from None
 
     # _check_unique_constraints_for_updateメソッドを削除
@@ -484,7 +484,7 @@ class CRUDUser:
             MissingRequiredFieldError: 必須パラメータが不足している場合
             DatabaseIntegrityError: その他のデータベース整合性エラー
         """
-        self.logger.info(f"Updating password for user ID: {self._hash_user_id(user_id)}")
+        self._log_operation("password update", "start", user_id)
 
         # 入力パラメータの検証
         if not old_password or not old_password.strip():
@@ -523,7 +523,7 @@ class CRUDUser:
             # flush後にIDを取得（commitする前）
             updated_user_id = user.id
             await session.commit()
-            self.logger.info(f"Password updated successfully for user: {self._hash_user_id(updated_user_id)}")
+            self._log_operation("password update", "success", updated_user_id)
             return user
 
         except Exception as e:
@@ -548,7 +548,7 @@ class CRUDUser:
             UserNotFoundError: ユーザーが見つからない場合
             DatabaseIntegrityError: その他のデータベース整合性エラー
         """
-        self.logger.info(f"Deleting user with ID: {self._hash_user_id(user_id)}")
+        self._log_operation("user deletion", "start", user_id)
 
         # 削除するユーザーの存在確認
         user = await self.get_user_by_id(session, user_id)
@@ -562,7 +562,7 @@ class CRUDUser:
             # flush後にIDを取得（commitする前）
             deleted_user_id = user.id
             await session.commit()
-            self.logger.info(f"User deleted successfully: {self._hash_user_id(deleted_user_id)}")
+            self._log_operation("user deletion", "success", deleted_user_id)
             return user
 
         except Exception as e:
