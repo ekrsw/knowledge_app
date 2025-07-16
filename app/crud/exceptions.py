@@ -43,7 +43,7 @@ class UserNotFoundError(Exception):
     """ユーザーが見つからない場合のエラー"""
     def __init__(self, identifier: str, message: Optional[str] = None):
         if message is None:
-            message = f"User not found: {identifier}"
+            message = "User not found"  # 汎用的なメッセージに変更
         self.identifier = identifier
         self.message = message
         super().__init__(self.message)
