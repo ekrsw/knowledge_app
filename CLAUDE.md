@@ -135,7 +135,7 @@ The `CRUDUser` class in `app/crud/user.py` provides:
 - `get_users_paginated()` - Retrieve users with pagination metadata
 - `update_user_by_id()` - Update user information
 - `update_password()` - Update user password with verification
-- `delete_user()` - Delete user by ID
+- `delete_user_by_id()` - Delete user by ID (with backward compatibility alias `delete_user`)
 
 ### Pagination Support
 Pagination functionality introduced in Phase 3.1:

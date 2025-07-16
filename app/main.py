@@ -34,7 +34,7 @@ async def main():
     id = user.id
 
     async with AsyncSessionLocal() as session:
-        await user_crud.delete_user(session, id)
+        await user_crud.delete_user_by_id(session, id)
         await session.commit()
         await session.close()
     

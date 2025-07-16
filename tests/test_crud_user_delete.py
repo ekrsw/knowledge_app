@@ -86,7 +86,7 @@ class TestUserCRUDDelete:
                 assert existing_user is not None
                 
                 # ユーザーを削除
-                deleted_user = await user_crud.delete_user(session, user_id)
+                deleted_user = await user_crud.delete_user_by_id(session, user_id)
                 
                 # セッション内で即座に属性にアクセス
                 deleted_username = deleted_user.username
@@ -121,7 +121,7 @@ class TestUserCRUDDelete:
                 
                 # UserNotFoundErrorが発生することを確認
                 with pytest.raises(UserNotFoundError) as exc_info:
-                    await user_crud.delete_user(session, nonexistent_id)
+                    await user_crud.delete_user_by_id(session, nonexistent_id)
                 
                 # エラーメッセージの検証（セキュリティ強化: 汎用的なメッセージ）
                 assert str(exc_info.value) == "User not found"
@@ -162,7 +162,7 @@ class TestUserCRUDDelete:
                 assert existing_user2 is not None
                 
                 # 最初のユーザーを削除
-                deleted_user1 = await user_crud.delete_user(session, user1_id)
+                deleted_user1 = await user_crud.delete_user_by_id(session, user1_id)
                 await session.commit()
                 
                 # 1番目のユーザーが削除され、2番目のユーザーが存在することを確認
@@ -172,7 +172,7 @@ class TestUserCRUDDelete:
                 assert still_existing_user2 is not None
                 
                 # 2番目のユーザーも削除
-                deleted_user2 = await user_crud.delete_user(session, user2_id)
+                deleted_user2 = await user_crud.delete_user_by_id(session, user2_id)
                 await session.commit()
                 
                 # 両方のユーザーが削除されたことを確認
@@ -213,7 +213,7 @@ class TestUserCRUDDelete:
                 await session.commit()
                 
                 # ユーザーを削除
-                deleted_user = await user_crud.delete_user(session, user_id)
+                deleted_user = await user_crud.delete_user_by_id(session, user_id)
                 
                 # セッション内で属性を取得
                 deleted_full_name = deleted_user.full_name

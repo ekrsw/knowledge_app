@@ -195,7 +195,7 @@ class TestCRUDUserTypeSafety:
                 await session.commit()
                 
                 # Delete user with UUID object
-                deleted_user = await user_crud.delete_user(session, user_uuid)
+                deleted_user = await user_crud.delete_user_by_id(session, user_uuid)
                 assert deleted_user.id == user_uuid
                 
                 # Verify user is deleted
@@ -205,7 +205,7 @@ class TestCRUDUserTypeSafety:
                 # Test with non-existent UUID (should raise UserNotFoundError)
                 non_existent_uuid = uuid4()
                 with pytest.raises(UserNotFoundError):
-                    await user_crud.delete_user(session, non_existent_uuid)
+                    await user_crud.delete_user_by_id(session, non_existent_uuid)
                 
             except Exception:
                 await session.rollback()
@@ -257,7 +257,7 @@ class TestCRUDUserTypeSafety:
                 assert isinstance(password_updated_user.id, UUID)
                 
                 # Delete user
-                deleted_user = await user_crud.delete_user(session, user_uuid)
+                deleted_user = await user_crud.delete_user_by_id(session, user_uuid)
                 assert deleted_user.id == user_uuid
                 assert isinstance(deleted_user.id, UUID)
                 

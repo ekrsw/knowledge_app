@@ -656,7 +656,7 @@ class CRUDUser:
             self.logger.error("Unexpected error updating password")
             raise DatabaseIntegrityError("Failed to update password") from None
 
-    async def delete_user(
+    async def delete_user_by_id(
         self,
         session: AsyncSession,
         user_id: UUID
@@ -694,6 +694,9 @@ class CRUDUser:
         except Exception as e:
             self.logger.error("Unexpected error deleting user")
             raise DatabaseIntegrityError("Failed to delete user") from None
+
+    # Backward compatibility alias
+    delete_user = delete_user_by_id
 
     async def get_active_users(
         self,
