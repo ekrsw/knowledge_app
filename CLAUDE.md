@@ -52,42 +52,52 @@ alembic revision --autogenerate -m "Description of changes"
 
 #### Running the Application
 ```bash
-python app/main.py
+python -m app.main    # Run as module (recommended)
 ```
 Note: Currently runs as a demo script, not as an API server.
 
 ### Testing
 
 #### Comprehensive Test Suite
-The application features an extensive test suite with **123+ test methods** across **14 test files**, achieving **94% test coverage** of CRUD user operations:
+The application features an extensive test suite with **150+ test methods** across **15 test files**, achieving **94% test coverage** of CRUD user operations:
 
 **Test Categories:**
 - **Basic Operations** (`test_crud_user_basic.py`) - Core CRUD functionality
 - **Error Handling** (`test_crud_user_error_handling.py`) - Exception handling
 - **Data Validation** (`test_crud_user_validation.py`) - Input validation and constraints
 - **Security** (`test_crud_user_security.py`) - Password hashing, authentication, timing attacks
+- **Security Enhanced** (`test_crud_user_security_enhanced.py`) - Advanced security features
 - **Optional Fields** (`test_crud_user_optional_fields.py`) - Field combinations and permissions
 - **Edge Cases** (`test_crud_user_edge_cases.py`) - Boundary values, memory limits, concurrency
 - **Transactions** (`test_crud_user_transactions.py`) - ACID properties, rollback, isolation
 - **Integration** (`test_crud_user_integration.py`) - Real-world workflows, admin operations
 - **Update Operations** (`test_crud_user_update.py`) - User update functionality
 - **Password Updates** (`test_crud_user_update_password.py`) - Password change operations
+- **Concurrency** (`test_crud_user_concurrency.py`) - Race condition and concurrent access tests
+- **Type Safety** (`test_crud_user_type_safety.py`) - UUID type consistency tests
+- **Pagination** (`test_crud_user_pagination.py`) - Performance optimization and pagination tests
+- **Delete Operations** (`test_crud_user_delete.py`) - User deletion functionality
 
 #### Running Tests
 ```bash
-pytest                          # Run all tests (123+ tests)
+pytest                          # Run all tests (150+ tests)
 pytest -v                       # Verbose output
 pytest --cov=app                # Run with coverage report
+pytest --cov=app --cov-report=html  # Generate HTML coverage report
 pytest tests/test_crud_user_security.py  # Run specific test file
-pytest tests/test_crud_user_basic.py::TestCRUDUserBasic::test_create_user  # Run single test
+pytest -k "test_create_user"    # Run tests matching pattern
+pytest tests/test_crud_user_pagination.py  # Run pagination tests
+pytest -x                       # Stop at first failure
+pytest --tb=short               # Shorter traceback format
 ```
 
 #### Test Configuration
-- **pytest.ini** configures async mode, test discovery, and disabled concurrent execution
+- **pytest.ini** configures async mode, test discovery, and disabled concurrent execution with `-x` flag for stopping at first failure
 - **conftest.py** provides three session fixtures:
-  - `clean_db_session` - Cleans test data before/after (recommended)
-  - `rollback_db_session` - Always rolls back
-  - `simple_db_session` - Manual commit control
+  - `clean_db_session` - Cleans test data before/after (recommended for most tests)
+  - `rollback_db_session` - Always rolls back changes (for tests that don't need persistence)
+  - `simple_db_session` - Manual commit control (for advanced scenarios)
+- Tests automatically clean up data with username patterns like 'test%', 'another%', etc.
 
 ## Architecture
 
@@ -121,10 +131,18 @@ The `CRUDUser` class in `app/crud/user.py` provides:
 - `get_user_by_id()` - Retrieve user by UUID
 - `get_user_by_username()` - Retrieve user by username
 - `get_user_by_email()` - Retrieve user by email
-- `get_all_users()` - Retrieve all users
+- `get_all_users()` - Retrieve all users with optional pagination
+- `get_users_paginated()` - Retrieve users with pagination metadata
 - `update_user_by_id()` - Update user information
 - `update_password()` - Update user password with verification
 - `delete_user()` - Delete user by ID
+
+### Pagination Support
+Pagination functionality introduced in Phase 3.1:
+- `PaginationParams` schema (page, limit, offset calculation)
+- `PaginatedUsers` response schema with metadata
+- Performance monitoring for queries
+- Backward compatibility maintained
 
 ### Database Models
 User model (`app/models/user.py`) includes:
@@ -172,12 +190,14 @@ The application currently serves as a **CRUD operations demonstration** rather t
 
 ### What's Implemented
 - Complete user management CRUD operations with async patterns
+- Pagination support for scalable data retrieval
 - Comprehensive error handling with custom exceptions
 - Database migrations with Alembic
 - User model with authentication and permission fields
-- Extensive test suite with 94% coverage (123+ tests)
-- Structured logging with operation tracking
-- PostgreSQL-specific optimizations
+- Extensive test suite with 94% coverage (150+ tests)
+- Structured logging with operation tracking and performance monitoring
+- PostgreSQL-specific optimizations and TOCTOU race condition fixes
+- Security enhancements (timing attack resistance, information leak prevention)
 
 ### What's Missing
 - FastAPI REST API endpoints and route handlers
@@ -187,6 +207,7 @@ The application currently serves as a **CRUD operations demonstration** rather t
 - Code quality tools (linting, formatting, pre-commit hooks)
 - API rate limiting and request validation
 - Background task processing
+- Production deployment configuration
 
 ## Security Considerations
 - Passwords hashed using bcrypt with configurable cost factor (default: 12)
@@ -203,18 +224,32 @@ The application currently serves as a **CRUD operations demonstration** rather t
 
 ## Documentation
 - `docs/crud-user-refactoring-plan.md` - Comprehensive 3-phase refactoring plan with progress tracking
+- `docs/index-optimization-analysis.md` - Database index optimization analysis and recommendations
 - Detailed docstrings in CRUD operations
 - Type hints throughout the codebase for better IDE support
 
-## Recent Changes (2025-07-15)
-- **Phase 1.1 TOCTOU Implementation Completed**: Eliminated Time-of-Check-Time-of-Use race conditions by:
-  - Removing pre-check methods (`_check_unique_constraints`)
-  - Implementing PostgreSQL-specific error handling (pgcode 23505 for unique violations)
-  - Adding comprehensive concurrency tests (`test_crud_user_concurrency.py`)
-  - Modifying `create_user` and `update_user_by_id` to handle database-level constraint violations
+## Recent Changes
+
+### Phase 3.1 - Performance Optimization (2025-07-16)
+- **Pagination Implementation**: Added scalable pagination support
+  - `PaginationParams` and `PaginatedUsers` schemas
+  - Enhanced `get_all_users()` with optional pagination
+  - New `get_users_paginated()` method with metadata
+- **Performance Monitoring**: Query execution time tracking and slow query detection
+- **Index Analysis**: Comprehensive database index optimization strategy
+- **Testing**: Added pagination-specific test suite
+
+### Phase 1-2 Completion (2025-07-15-16)
+- **TOCTOU Race Conditions**: Eliminated Time-of-Check-Time-of-Use vulnerabilities
+- **Security Enhancements**: Timing attack resistance, information leak prevention
+- **Code Quality**: Eliminated duplications, improved error handling
+- **Type Safety**: Consistent UUID type usage throughout
 
 ## Important Notes
+- **Module Execution**: Run the application using `python -m app.main` for proper module resolution
 - **Character Encoding**: Use UTF8 for PostgreSQL connections when working with Japanese text
 - **Session Management**: The `CRUDUser` class automatically handles commits; avoid manual commit/rollback
-- **Testing**: All tests use independent sessions to prevent interference
+- **Testing**: All tests use independent sessions to prevent interference. Some tests may have async event loop issues in certain environments
 - **Concurrency**: TOCTOU race conditions have been resolved using database-level constraints
+- **Pagination**: New pagination features maintain backward compatibility with existing code
+- **Performance Monitoring**: Query execution times are automatically logged; slow queries (>500ms) generate warnings

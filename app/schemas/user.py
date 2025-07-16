@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import uuid
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -71,3 +71,25 @@ class UserUpdate(BaseModel):
                 raise ValueError('Username must be at most 50 characters long')
             return v.strip()
         return v
+
+
+class PaginationParams(BaseModel):
+    """ページネーション用のパラメータ"""
+    page: int = Field(default=1, ge=1, description="Page number (1-based)")
+    limit: int = Field(default=20, ge=1, le=100, description="Items per page (max 100)")
+    
+    @property
+    def offset(self) -> int:
+        """Calculate offset from page and limit"""
+        return (self.page - 1) * self.limit
+
+
+class PaginatedUsers(BaseModel):
+    """ページネーション付きユーザーリスト"""
+    users: List[dict]  # User model will be converted to dict
+    total: int = Field(description="Total number of users")
+    page: int = Field(description="Current page number")
+    limit: int = Field(description="Items per page")
+    pages: int = Field(description="Total number of pages")
+    has_next: bool = Field(description="Whether there is a next page")
+    has_prev: bool = Field(description="Whether there is a previous page")

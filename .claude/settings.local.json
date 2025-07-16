@@ -28,7 +28,11 @@
       "Bash(python -m pytest tests/test_crud_user_basic.py tests/test_crud_user_optional_fields.py tests/test_crud_user_security.py -v)",
       "Bash(python -m pytest tests/test_crud_user_basic.py::TestUserCRUDBasic::test_get_operations -v)",
       "Bash(python:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(ls:*)",
+      "Bash(alembic current:*)",
+      "Bash(alembic revision:*)",
+      "Bash(alembic upgrade:*)"
     ],
     "deny": []
   }

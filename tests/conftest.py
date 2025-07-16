@@ -37,6 +37,8 @@ async def test_engine(test_settings):
         future=True,
         pool_pre_ping=True,  # 接続の健全性チェック
         pool_recycle=300,    # 接続の再利用間隔
+        pool_size=5,         # 接続プールサイズを制限
+        max_overflow=0,      # オーバーフローを無効化
         connect_args={
             "server_settings": {
                 "client_encoding": "utf8"
@@ -50,11 +52,13 @@ async def test_engine(test_settings):
     
     yield engine
     
-    # テスト終了後にテーブルを削除
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    
-    await engine.dispose()
+    # テスト終了後の適切なクリーンアップ
+    try:
+        # 残っている接続を全てクローズ
+        await engine.dispose()
+    except Exception:
+        # クリーンアップエラーは無視
+        pass
 
 
 # テスト用のセッションファクトリ
@@ -76,30 +80,41 @@ async def clean_db_session(test_session_factory):
     """各テスト用のクリーンなデータベースセッション（改善版）"""
     async with test_session_factory() as session:
         # テスト前にテストデータをクリーンアップ
-        await session.execute(text(
-            "DELETE FROM users WHERE username LIKE 'test%' OR username LIKE 'another%' "
-            "OR username LIKE 'group%' OR username LIKE 'optional%' OR username LIKE 'valid%'"
-        ))
-        await session.commit()
+        try:
+            await session.execute(text(
+                "DELETE FROM users WHERE username LIKE 'test%' OR username LIKE 'another%' "
+                "OR username LIKE 'group%' OR username LIKE 'optional%' OR username LIKE 'valid%' "
+                "OR username LIKE 'pag%' OR username LIKE 'edge%' OR username LIKE 'compat%' "
+                "OR username LIKE 'log%' OR username LIKE 'perftest%'"
+            ))
+            await session.commit()
+        except Exception:
+            await session.rollback()
         
         try:
             yield session
             # テスト成功時はコミット
-            await session.commit()
+            if session.in_transaction():
+                await session.commit()
         except Exception:
             # エラー時はロールバック
-            await session.rollback()
+            if session.in_transaction():
+                await session.rollback()
             raise
         finally:
             # テスト後にテストデータをクリーンアップ
             try:
-                await session.execute(text(
-                    "DELETE FROM users WHERE username LIKE 'test%' OR username LIKE 'another%' "
-                    "OR username LIKE 'group%' OR username LIKE 'optional%' OR username LIKE 'valid%'"
-                ))
-                await session.commit()
+                if session.is_active:
+                    await session.execute(text(
+                        "DELETE FROM users WHERE username LIKE 'test%' OR username LIKE 'another%' "
+                        "OR username LIKE 'group%' OR username LIKE 'optional%' OR username LIKE 'valid%' "
+                        "OR username LIKE 'pag%' OR username LIKE 'edge%' OR username LIKE 'compat%' "
+                        "OR username LIKE 'log%' OR username LIKE 'perftest%'"
+                    ))
+                    await session.commit()
             except Exception:
-                await session.rollback()
+                if session.is_active:
+                    await session.rollback()
 
 
 # ロールバック用のデータベースセッション

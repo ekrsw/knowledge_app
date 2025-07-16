@@ -8,8 +8,10 @@ from uuid import UUID
 import hashlib
 import asyncio
 import time
+import math
+from contextlib import asynccontextmanager
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
@@ -23,8 +25,8 @@ from app.crud.exceptions import (
     MissingRequiredFieldError,
     UserNotFoundError,
 )
-from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
+from app.models.user import User, GroupEnum
+from app.schemas.user import UserCreate, UserUpdate, PaginationParams, PaginatedUsers
 
 
 class CRUDUser:
@@ -256,6 +258,39 @@ class CRUDUser:
         else:
             self.logger.debug(f"{operation.title()} - {status}", extra=log_data)
     
+    @asynccontextmanager
+    async def _monitor_query_performance(self, query_name: str, **context):
+        """クエリのパフォーマンスを監視する.
+        
+        Args:
+            query_name: クエリの名前
+            **context: 追加のコンテキスト情報
+        """
+        start_time = time.time()
+        
+        try:
+            self.logger.debug(f"Query started: {query_name}", extra={"query_name": query_name, **context})
+            yield
+            
+        finally:
+            execution_time = time.time() - start_time
+            
+            # パフォーマンスログ
+            log_data = {
+                "query_name": query_name,
+                "execution_time_ms": round(execution_time * 1000, 2),
+                **context
+            }
+            
+            # スローログ警告（500ms以上）
+            if execution_time > 0.5:
+                self.logger.warning(f"Slow query detected: {query_name}", extra=log_data)
+            # 通常のパフォーマンスログ（100ms以上）
+            elif execution_time > 0.1:
+                self.logger.info(f"Query performance: {query_name}", extra=log_data)
+            else:
+                self.logger.debug(f"Query completed: {query_name}", extra=log_data)
+    
 
     # _check_unique_constraintsメソッドを削除
     # TOCTOUレース条件を避けるため、事前チェックを廃止し
@@ -368,29 +403,120 @@ class CRUDUser:
 
     async def get_all_users(
         self, 
-        session: AsyncSession
+        session: AsyncSession,
+        pagination: Optional[PaginationParams] = None
     ) -> List[User]:
-        """すべてのユーザーを取得する.
+        """すべてのユーザーを取得する（ページネーション対応）.
 
         Args:
             session: データベースセッション
+            pagination: ページネーションパラメータ（指定しない場合は全件取得）
 
         Returns:
-            List[User]: すべてのユーザーオブジェクトのリスト、ユーザーがいない場合は空リスト
+            List[User]: ユーザーオブジェクトのリスト、ユーザーがいない場合は空リスト
 
         Raises:
             Exception: データベースアクセスエラーが発生した場合
         """
-        self.logger.debug("Getting all users")
+        if pagination:
+            self.logger.debug(f"Getting users with pagination: page={pagination.page}, limit={pagination.limit}")
+        else:
+            self.logger.debug("Getting all users without pagination")
+        
         try:
             stmt = select(User)
+            
+            if pagination:
+                # LIMIT と OFFSET を適用
+                stmt = stmt.limit(pagination.limit).offset(pagination.offset)
+            
             result = await session.execute(stmt)
             users = result.scalars().all()
             
             self.logger.debug(f"Found {len(users)} users")
             return list(users)
         except Exception as e:
-            self.logger.error(f"Error getting all users: {str(e)}")
+            self.logger.error(f"Error getting users: {str(e)}")
+            raise
+
+    async def get_users_paginated(
+        self, 
+        session: AsyncSession,
+        pagination: PaginationParams
+    ) -> PaginatedUsers:
+        """ページネーション付きでユーザーを取得する.
+
+        Args:
+            session: データベースセッション
+            pagination: ページネーションパラメータ
+
+        Returns:
+            PaginatedUsers: ページネーション情報付きのユーザーリスト
+
+        Raises:
+            Exception: データベースアクセスエラーが発生した場合
+        """
+        self.logger.debug(f"Getting paginated users: page={pagination.page}, limit={pagination.limit}")
+        
+        try:
+            # 総数を取得（パフォーマンス監視付き）
+            async with self._monitor_query_performance(
+                "count_users", 
+                operation="count_total_users"
+            ):
+                count_stmt = select(func.count(User.id))
+                count_result = await session.execute(count_stmt)
+                total = count_result.scalar()
+            
+            # ページネーション付きでユーザーを取得（パフォーマンス監視付き）
+            async with self._monitor_query_performance(
+                "paginated_users", 
+                operation="get_paginated_users",
+                page=pagination.page,
+                limit=pagination.limit,
+                offset=pagination.offset
+            ):
+                users = await self.get_all_users(session, pagination)
+            
+            # ページネーション情報を計算
+            pages = math.ceil(total / pagination.limit) if total > 0 else 0
+            has_next = pagination.page < pages
+            has_prev = pagination.page > 1
+            
+            # User オブジェクトを辞書に変換
+            users_dict = []
+            for user in users:
+                user_dict = {
+                    "id": str(user.id),
+                    "username": user.username,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "ctstage_name": user.ctstage_name,
+                    "sweet_name": user.sweet_name,
+                    "group": user.group.value if user.group else None,
+                    "is_active": user.is_active,
+                    "is_admin": user.is_admin,
+                    "is_sv": user.is_sv,
+                    "created_at": user.created_at.isoformat() if user.created_at else None,
+                    "updated_at": user.updated_at.isoformat() if user.updated_at else None
+                }
+                users_dict.append(user_dict)
+            
+            result = PaginatedUsers(
+                users=users_dict,
+                total=total,
+                page=pagination.page,
+                limit=pagination.limit,
+                pages=pages,
+                has_next=has_next,
+                has_prev=has_prev
+            )
+            
+            self.logger.debug(f"Returned paginated users: total={total}, page={pagination.page}/{pages}")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error getting paginated users: {str(e)}")
             raise
 
     async def update_user_by_id(
@@ -568,6 +694,142 @@ class CRUDUser:
         except Exception as e:
             self.logger.error("Unexpected error deleting user")
             raise DatabaseIntegrityError("Failed to delete user") from None
+
+    async def get_active_users(
+        self,
+        session: AsyncSession,
+        pagination: Optional[PaginationParams] = None
+    ) -> List[User]:
+        """アクティブなユーザーのみを取得する（is_activeインデックス活用）.
+
+        Args:
+            session: データベースセッション
+            pagination: ページネーションパラメータ（オプション）
+
+        Returns:
+            List[User]: アクティブなユーザーのリスト
+
+        Raises:
+            Exception: データベースアクセスエラーが発生した場合
+        """
+        if pagination:
+            self.logger.debug(f"Getting active users with pagination: page={pagination.page}, limit={pagination.limit}")
+        else:
+            self.logger.debug("Getting all active users")
+        
+        try:
+            async with self._monitor_query_performance(
+                "get_active_users",
+                operation="filter_active_users",
+                pagination=bool(pagination)
+            ):
+                stmt = select(User).where(User.is_active == True)
+                
+                if pagination:
+                    stmt = stmt.limit(pagination.limit).offset(pagination.offset)
+                
+                result = await session.execute(stmt)
+                users = result.scalars().all()
+                
+                self.logger.debug(f"Found {len(users)} active users")
+                return list(users)
+                
+        except Exception as e:
+            self.logger.error(f"Error getting active users: {str(e)}")
+            raise
+
+    async def get_users_by_group(
+        self,
+        session: AsyncSession,
+        group: GroupEnum,
+        pagination: Optional[PaginationParams] = None
+    ) -> List[User]:
+        """指定されたグループのユーザーを取得する（groupインデックス活用）.
+
+        Args:
+            session: データベースセッション
+            group: 検索するグループ
+            pagination: ページネーションパラメータ（オプション）
+
+        Returns:
+            List[User]: 指定グループのユーザーのリスト
+
+        Raises:
+            Exception: データベースアクセスエラーが発生した場合
+        """
+        if pagination:
+            self.logger.debug(f"Getting users by group {group.value} with pagination: page={pagination.page}, limit={pagination.limit}")
+        else:
+            self.logger.debug(f"Getting all users by group {group.value}")
+        
+        try:
+            async with self._monitor_query_performance(
+                "get_users_by_group",
+                operation="filter_by_group",
+                group=group.value,
+                pagination=bool(pagination)
+            ):
+                stmt = select(User).where(User.group == group)
+                
+                if pagination:
+                    stmt = stmt.limit(pagination.limit).offset(pagination.offset)
+                
+                result = await session.execute(stmt)
+                users = result.scalars().all()
+                
+                self.logger.debug(f"Found {len(users)} users in group {group.value}")
+                return list(users)
+                
+        except Exception as e:
+            self.logger.error(f"Error getting users by group {group.value}: {str(e)}")
+            raise
+
+    async def get_recent_users(
+        self,
+        session: AsyncSession,
+        limit: int = 10,
+        active_only: bool = False
+    ) -> List[User]:
+        """最新のユーザーを取得する（created_atインデックス活用）.
+
+        Args:
+            session: データベースセッション
+            limit: 取得する件数（デフォルト: 10）
+            active_only: アクティブユーザーのみか（デフォルト: False）
+
+        Returns:
+            List[User]: 最新のユーザーのリスト（作成日時降順）
+
+        Raises:
+            Exception: データベースアクセスエラーが発生した場合
+        """
+        self.logger.debug(f"Getting recent users: limit={limit}, active_only={active_only}")
+        
+        try:
+            async with self._monitor_query_performance(
+                "get_recent_users",
+                operation="get_recent_users",
+                limit=limit,
+                active_only=active_only
+            ):
+                stmt = select(User)
+                
+                # アクティブユーザーのみの場合は複合インデックスを活用
+                if active_only:
+                    stmt = stmt.where(User.is_active == True)
+                
+                # created_at降順でソート（インデックス活用）
+                stmt = stmt.order_by(User.created_at.desc()).limit(limit)
+                
+                result = await session.execute(stmt)
+                users = result.scalars().all()
+                
+                self.logger.debug(f"Found {len(users)} recent users")
+                return list(users)
+                
+        except Exception as e:
+            self.logger.error(f"Error getting recent users: {str(e)}")
+            raise
 
 
 user_crud = CRUDUser()
