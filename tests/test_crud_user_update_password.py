@@ -123,8 +123,8 @@ class TestUserCRUDUpdatePassword:
                         session, nonexistent_id, "oldpass", "newpass"
                     )
                 
-                # エラーメッセージの検証
-                assert nonexistent_id in str(exc_info.value)
+                # エラーメッセージの検証（セキュリティ強化: 汎用的なメッセージ）
+                assert str(exc_info.value) == "User not found"
                 
             except Exception:
                 await session.rollback()

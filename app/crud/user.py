@@ -111,6 +111,7 @@ class CRUDUser:
             
             if error_code == '23505':  # unique_violation
                 constraint_name = self._extract_constraint_name(str(e))
+                
                 if 'username' in constraint_name:
                     self.logger.error("Duplicate username detected")
                     raise DuplicateUsernameError("Username already exists") from None
@@ -144,19 +145,48 @@ class CRUDUser:
         import re
         # PostgreSQLの制約名を抽出するパターン
         
-        # パターン1: DETAILメッセージからカラム名を抽出
+        # パターン1: DETAILメッセージからカラム名を抽出 (最も信頼性が高い)
+        # 英語版: DETAIL: Key (email)=(test@example.com) already exists.
         constraint_pattern = r'DETAIL:.*Key \(([^)]+)\)'
         match = re.search(constraint_pattern, error_message)
         if match:
             return match.group(1)
         
-        # パターン2: 制約名を直接抽出
+        # パターン1b: DETAILメッセージからカラム名を抽出 (日本語版)
+        # 日本語版: DETAIL: キー (username)=(test) は既に存在します。
+        constraint_pattern_jp = r'DETAIL:.*キー \(([^)]+)\)'
+        match_jp = re.search(constraint_pattern_jp, error_message)
+        if match_jp:
+            return match_jp.group(1)
+        
+        # パターン2: 制約名を直接抽出 (英語版)
+        # 例: constraint "users_email_key" 
         constraint_pattern2 = r'constraint "([^"]+)"'
         match2 = re.search(constraint_pattern2, error_message)
         if match2:
-            return match2.group(1)
+            constraint_name = match2.group(1)
+            # 制約名からフィールド名を推測
+            if '_email' in constraint_name or 'email' in constraint_name:
+                return 'email'
+            elif '_username' in constraint_name or 'username' in constraint_name:
+                return 'username'
+            return constraint_name
         
-        # パターン3: ユーザーネームやメールアドレスのキーワードを絶対検索
+        # パターン2b: 制約名を直接抽出 (日本語版)
+        # 例: 制約"ix_users_username"に違反
+        constraint_pattern2_jp = r'制約"([^"]+)"'
+        match2_jp = re.search(constraint_pattern2_jp, error_message)
+        if match2_jp:
+            constraint_name = match2_jp.group(1)
+            # 制約名からフィールド名を推測
+            if '_email' in constraint_name or 'email' in constraint_name:
+                return 'email'
+            elif '_username' in constraint_name or 'username' in constraint_name:
+                return 'username'
+            return constraint_name
+        
+        # パターン3: エラーメッセージ内のキーワード検索（最後の手段）
+        # usernameを先にチェック（emailはユーザー名の中にも含まれる可能性があるため）
         if 'username' in error_message.lower():
             return 'username'
         elif 'email' in error_message.lower():

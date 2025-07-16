@@ -218,8 +218,8 @@ class TestUserCRUDUpdate:
                 with pytest.raises(UserNotFoundError) as exc_info:
                     await user_crud.update_user_by_id(session, nonexistent_id, update_data)
                 
-                # エラーメッセージの検証
-                assert nonexistent_id in str(exc_info.value)
+                # エラーメッセージの検証（セキュリティ強化: 汎用的なメッセージ）
+                assert str(exc_info.value) == "User not found"
                 
             except Exception:
                 await session.rollback()

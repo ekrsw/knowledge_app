@@ -27,7 +27,8 @@
       "Bash(python -m pytest tests/test_crud_user_type_safety.py::TestCRUDUserTypeSafety::test_get_user_by_id_uuid_type -v)",
       "Bash(python -m pytest tests/test_crud_user_basic.py tests/test_crud_user_optional_fields.py tests/test_crud_user_security.py -v)",
       "Bash(python -m pytest tests/test_crud_user_basic.py::TestUserCRUDBasic::test_get_operations -v)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
