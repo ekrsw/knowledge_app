@@ -212,20 +212,54 @@ class CRUDUser:
             constraint_name = self._extract_constraint_name(str(e))
             
             if 'username' in constraint_name:
-                self.logger.error(f"Duplicate username detected during {operation}")
+                self.logger.error(
+                    "Duplicate username detected",
+                    extra={
+                        "operation": operation,
+                        "error_type": "duplicate_username",
+                        "constraint": "username"
+                    }
+                )
                 raise DuplicateUsernameError("Username already exists") from None
             elif 'email' in constraint_name:
-                self.logger.error(f"Duplicate email detected during {operation}")
+                self.logger.error(
+                    "Duplicate email detected",
+                    extra={
+                        "operation": operation,
+                        "error_type": "duplicate_email",
+                        "constraint": "email"
+                    }
+                )
                 raise DuplicateEmailError("Email already exists") from None
             else:
-                self.logger.error(f"Unique constraint violation during {operation}: {constraint_name}")
+                self.logger.error(
+                    "Unique constraint violation",
+                    extra={
+                        "operation": operation,
+                        "error_type": "unique_violation",
+                        "constraint": constraint_name
+                    }
+                )
                 raise DatabaseIntegrityError(f"Unique constraint violation: {constraint_name}") from None
         elif error_code == '23502':  # not_null_violation
             column_name = self._extract_column_name(str(e))
-            self.logger.error(f"NULL value in required column during {operation}: {column_name}")
+            self.logger.error(
+                "NULL value in required column",
+                extra={
+                    "operation": operation,
+                    "error_type": "not_null_violation",
+                    "column": column_name
+                }
+            )
             raise MissingRequiredFieldError(column_name, f"Column {column_name} cannot be null") from None
         else:
-            self.logger.error(f"Database integrity error during {operation}")
+            self.logger.error(
+                "Database integrity error",
+                extra={
+                    "operation": operation,
+                    "error_type": "database_integrity_error"
+                }
+            )
             raise DatabaseIntegrityError("Database integrity error occurred") from None
     
     def _log_operation(self, operation: str, status: str, user_id: UUID = None, **kwargs) -> None:
@@ -313,21 +347,46 @@ class CRUDUser:
         Raises:
             Exception: データベースアクセスエラーが発生した場合
         """
-        self.logger.debug("Getting user by username")
+        self.logger.debug(
+            "User lookup initiated",
+            extra={
+                "operation": "get_user_by_username",
+                "lookup_type": "username"
+            }
+        )
         try:
             stmt = select(User).where(User.username == username)
             result = await session.execute(stmt)
             user = result.scalar_one_or_none()
 
             if user:
-                self.logger.debug(f"User found: {self._hash_user_id(user.id)}")
+                self.logger.debug(
+                    "User found",
+                    extra={
+                        "operation": "get_user_by_username",
+                        "lookup_type": "username",
+                        "user_id_hash": self._hash_user_id(user.id)
+                    }
+                )
             else:
-                self.logger.debug("User not found with username")
+                self.logger.debug(
+                    "User not found",
+                    extra={
+                        "operation": "get_user_by_username",
+                        "lookup_type": "username",
+                        "result": "not_found"
+                    }
+                )
 
             return user
         except Exception as e:
             self.logger.error(
-                f"Error getting user by username '{username}': {str(e)}"
+                "Error getting user by username",
+                extra={
+                    "operation": "get_user_by_username",
+                    "error_type": type(e).__name__,
+                    "lookup_type": "username"
+                }
             )
             raise
 
@@ -348,21 +407,46 @@ class CRUDUser:
         Raises:
             Exception: データベースアクセスエラーが発生した場合
         """
-        self.logger.debug("Getting user by email")
+        self.logger.debug(
+            "User lookup initiated",
+            extra={
+                "operation": "get_user_by_email",
+                "lookup_type": "email"
+            }
+        )
         try:
             stmt = select(User).where(User.email == email)
             result = await session.execute(stmt)
             user = result.scalar_one_or_none()
 
             if user:
-                self.logger.debug(f"User found: {self._hash_user_id(user.id)}")
+                self.logger.debug(
+                    "User found",
+                    extra={
+                        "operation": "get_user_by_email",
+                        "lookup_type": "email",
+                        "user_id_hash": self._hash_user_id(user.id)
+                    }
+                )
             else:
-                self.logger.debug("User not found with email")
+                self.logger.debug(
+                    "User not found",
+                    extra={
+                        "operation": "get_user_by_email",
+                        "lookup_type": "email",
+                        "result": "not_found"
+                    }
+                )
 
             return user
         except Exception as e:
             self.logger.error(
-                f"Error getting user by email '{email}': {str(e)}"
+                "Error getting user by email",
+                extra={
+                    "operation": "get_user_by_email",
+                    "error_type": type(e).__name__,
+                    "lookup_type": "email"
+                }
             )
             raise
 
@@ -383,21 +467,48 @@ class CRUDUser:
         Raises:
             Exception: データベースアクセスエラーが発生した場合
         """
-        self.logger.debug(f"Getting user by ID: {self._hash_user_id(user_id)}")
+        self.logger.debug(
+            "User lookup initiated",
+            extra={
+                "operation": "get_user_by_id",
+                "lookup_type": "id",
+                "user_id_hash": self._hash_user_id(user_id)
+            }
+        )
         try:
             stmt = select(User).where(User.id == user_id)
             result = await session.execute(stmt)
             user = result.scalar_one_or_none()
 
             if user:
-                self.logger.debug(f"User found: {self._hash_user_id(user.id)}")
+                self.logger.debug(
+                    "User found",
+                    extra={
+                        "operation": "get_user_by_id",
+                        "lookup_type": "id",
+                        "user_id_hash": self._hash_user_id(user.id)
+                    }
+                )
             else:
-                self.logger.debug("User not found with ID")
+                self.logger.debug(
+                    "User not found",
+                    extra={
+                        "operation": "get_user_by_id",
+                        "lookup_type": "id",
+                        "result": "not_found"
+                    }
+                )
 
             return user
         except Exception as e:
             self.logger.error(
-                f"Error getting user by ID '{user_id}': {str(e)}"
+                "Error getting user by ID",
+                extra={
+                    "operation": "get_user_by_id",
+                    "error_type": type(e).__name__,
+                    "user_id_hash": self._hash_user_id(user_id),
+                    "lookup_type": "id"
+                }
             )
             raise
 
@@ -419,9 +530,23 @@ class CRUDUser:
             Exception: データベースアクセスエラーが発生した場合
         """
         if pagination:
-            self.logger.debug(f"Getting users with pagination: page={pagination.page}, limit={pagination.limit}")
+            self.logger.debug(
+                "Getting users with pagination",
+                extra={
+                    "operation": "get_all_users",
+                    "pagination": True,
+                    "page": pagination.page,
+                    "limit": pagination.limit
+                }
+            )
         else:
-            self.logger.debug("Getting all users without pagination")
+            self.logger.debug(
+                "Getting all users without pagination",
+                extra={
+                    "operation": "get_all_users",
+                    "pagination": False
+                }
+            )
         
         try:
             stmt = select(User)
@@ -433,10 +558,23 @@ class CRUDUser:
             result = await session.execute(stmt)
             users = result.scalars().all()
             
-            self.logger.debug(f"Found {len(users)} users")
+            self.logger.debug(
+                "Users retrieved",
+                extra={
+                    "operation": "get_all_users",
+                    "count": len(users),
+                    "pagination": bool(pagination)
+                }
+            )
             return list(users)
         except Exception as e:
-            self.logger.error(f"Error getting users: {str(e)}")
+            self.logger.error(
+                "Error getting users",
+                extra={
+                    "operation": "get_all_users",
+                    "error_type": type(e).__name__
+                }
+            )
             raise
 
     async def get_users_paginated(
@@ -456,7 +594,14 @@ class CRUDUser:
         Raises:
             Exception: データベースアクセスエラーが発生した場合
         """
-        self.logger.debug(f"Getting paginated users: page={pagination.page}, limit={pagination.limit}")
+        self.logger.debug(
+            "Getting paginated users",
+            extra={
+                "operation": "get_users_paginated",
+                "page": pagination.page,
+                "limit": pagination.limit
+            }
+        )
         
         try:
             # 総数を取得（パフォーマンス監視付き）
@@ -512,11 +657,25 @@ class CRUDUser:
                 has_prev=has_prev
             )
             
-            self.logger.debug(f"Returned paginated users: total={total}, page={pagination.page}/{pages}")
+            self.logger.debug(
+                "Paginated users returned",
+                extra={
+                    "operation": "get_users_paginated",
+                    "total": total,
+                    "page": pagination.page,
+                    "pages": pages
+                }
+            )
             return result
             
         except Exception as e:
-            self.logger.error(f"Error getting paginated users: {str(e)}")
+            self.logger.error(
+                "Error getting paginated users",
+                extra={
+                    "operation": "get_users_paginated",
+                    "error_type": type(e).__name__
+                }
+            )
             raise
 
     async def update_user_by_id(
@@ -546,14 +705,28 @@ class CRUDUser:
         # 更新するユーザーの存在確認
         user = await self.get_user_by_id(session, user_id)
         if not user:
-            self.logger.error("User not found for update")
+            self.logger.error(
+                "User not found for update",
+                extra={
+                    "operation": "update_user_by_id",
+                    "error_type": "user_not_found",
+                    "user_id_hash": self._hash_user_id(user_id)
+                }
+            )
             raise UserNotFoundError(user_id)
 
         # 更新データの取得（None値は除外）
         update_data = obj_in.model_dump(exclude_unset=True)
         
         if not update_data:
-            self.logger.debug(f"No update data provided for user: {user_id}")
+            self.logger.debug(
+                "No update data provided",
+                extra={
+                    "operation": "update_user_by_id",
+                    "user_id_hash": self._hash_user_id(user_id),
+                    "reason": "empty_update_data"
+                }
+            )
             return user
 
         # TOCTOUレース条件を避けるため、事前チェックを削除
@@ -614,17 +787,38 @@ class CRUDUser:
 
         # 入力パラメータの検証
         if not old_password or not old_password.strip():
-            self.logger.error("Failed to update password: old_password is required")
+            self.logger.error(
+                "Failed to update password: old_password is required",
+                extra={
+                    "operation": "update_password",
+                    "error_type": "missing_required_field",
+                    "field": "old_password"
+                }
+            )
             raise MissingRequiredFieldError("old_password", "Old password is required")
 
         if not new_password or not new_password.strip():
-            self.logger.error("Failed to update password: new_password is required")
+            self.logger.error(
+                "Failed to update password: new_password is required",
+                extra={
+                    "operation": "update_password",
+                    "error_type": "missing_required_field",
+                    "field": "new_password"
+                }
+            )
             raise MissingRequiredFieldError("new_password", "New password is required")
 
         # 更新するユーザーの存在確認
         user = await self.get_user_by_id(session, user_id)
         if not user:
-            self.logger.error("User not found for password update")
+            self.logger.error(
+                "User not found for password update",
+                extra={
+                    "operation": "update_password",
+                    "error_type": "user_not_found",
+                    "user_id_hash": self._hash_user_id(user_id)
+                }
+            )
             raise UserNotFoundError(user_id)
 
         # 現在のパスワードの検証（タイミング攻撃対策）
@@ -638,7 +832,14 @@ class CRUDUser:
             await asyncio.sleep(min_time - elapsed)
         
         if not is_valid:
-            self.logger.error("Invalid old password for user")
+            self.logger.error(
+                "Invalid old password for user",
+                extra={
+                    "operation": "update_password",
+                    "error_type": "invalid_password",
+                    "user_id_hash": self._hash_user_id(user_id)
+                }
+            )
             raise InvalidPasswordError("Current password is incorrect")
 
         try:
@@ -653,7 +854,14 @@ class CRUDUser:
             return user
 
         except Exception as e:
-            self.logger.error("Unexpected error updating password")
+            self.logger.error(
+                "Unexpected error updating password",
+                extra={
+                    "operation": "update_password",
+                    "error_type": "unexpected_error",
+                    "user_id_hash": self._hash_user_id(user_id)
+                }
+            )
             raise DatabaseIntegrityError("Failed to update password") from None
 
     async def delete_user_by_id(
@@ -679,7 +887,14 @@ class CRUDUser:
         # 削除するユーザーの存在確認
         user = await self.get_user_by_id(session, user_id)
         if not user:
-            self.logger.error("User not found for deletion")
+            self.logger.error(
+                "User not found for deletion",
+                extra={
+                    "operation": "delete_user_by_id",
+                    "error_type": "user_not_found",
+                    "user_id_hash": self._hash_user_id(user_id)
+                }
+            )
             raise UserNotFoundError(user_id)
 
         try:
@@ -692,7 +907,14 @@ class CRUDUser:
             return user
 
         except Exception as e:
-            self.logger.error("Unexpected error deleting user")
+            self.logger.error(
+                "Unexpected error deleting user",
+                extra={
+                    "operation": "delete_user_by_id",
+                    "error_type": "unexpected_error",
+                    "user_id_hash": self._hash_user_id(user_id)
+                }
+            )
             raise DatabaseIntegrityError("Failed to delete user") from None
 
     # Backward compatibility alias
@@ -716,9 +938,23 @@ class CRUDUser:
             Exception: データベースアクセスエラーが発生した場合
         """
         if pagination:
-            self.logger.debug(f"Getting active users with pagination: page={pagination.page}, limit={pagination.limit}")
+            self.logger.debug(
+                "Getting active users with pagination",
+                extra={
+                    "operation": "get_active_users",
+                    "pagination": True,
+                    "page": pagination.page,
+                    "limit": pagination.limit
+                }
+            )
         else:
-            self.logger.debug("Getting all active users")
+            self.logger.debug(
+                "Getting all active users",
+                extra={
+                    "operation": "get_active_users",
+                    "pagination": False
+                }
+            )
         
         try:
             async with self._monitor_query_performance(
@@ -734,11 +970,24 @@ class CRUDUser:
                 result = await session.execute(stmt)
                 users = result.scalars().all()
                 
-                self.logger.debug(f"Found {len(users)} active users")
+                self.logger.debug(
+                    "Active users retrieved",
+                    extra={
+                        "operation": "get_active_users",
+                        "count": len(users),
+                        "pagination": bool(pagination)
+                    }
+                )
                 return list(users)
                 
         except Exception as e:
-            self.logger.error(f"Error getting active users: {str(e)}")
+            self.logger.error(
+                "Error getting active users",
+                extra={
+                    "operation": "get_active_users",
+                    "error_type": type(e).__name__
+                }
+            )
             raise
 
     async def get_users_by_group(
@@ -761,9 +1010,25 @@ class CRUDUser:
             Exception: データベースアクセスエラーが発生した場合
         """
         if pagination:
-            self.logger.debug(f"Getting users by group {group.value} with pagination: page={pagination.page}, limit={pagination.limit}")
+            self.logger.debug(
+                "Getting users by group with pagination",
+                extra={
+                    "operation": "get_users_by_group",
+                    "group": group.value,
+                    "pagination": True,
+                    "page": pagination.page,
+                    "limit": pagination.limit
+                }
+            )
         else:
-            self.logger.debug(f"Getting all users by group {group.value}")
+            self.logger.debug(
+                "Getting all users by group",
+                extra={
+                    "operation": "get_users_by_group",
+                    "group": group.value,
+                    "pagination": False
+                }
+            )
         
         try:
             async with self._monitor_query_performance(
@@ -780,11 +1045,26 @@ class CRUDUser:
                 result = await session.execute(stmt)
                 users = result.scalars().all()
                 
-                self.logger.debug(f"Found {len(users)} users in group {group.value}")
+                self.logger.debug(
+                    "Users by group retrieved",
+                    extra={
+                        "operation": "get_users_by_group",
+                        "group": group.value,
+                        "count": len(users),
+                        "pagination": bool(pagination)
+                    }
+                )
                 return list(users)
                 
         except Exception as e:
-            self.logger.error(f"Error getting users by group {group.value}: {str(e)}")
+            self.logger.error(
+                "Error getting users by group",
+                extra={
+                    "operation": "get_users_by_group",
+                    "error_type": type(e).__name__,
+                    "group": group.value
+                }
+            )
             raise
 
     async def get_recent_users(
@@ -806,7 +1086,14 @@ class CRUDUser:
         Raises:
             Exception: データベースアクセスエラーが発生した場合
         """
-        self.logger.debug(f"Getting recent users: limit={limit}, active_only={active_only}")
+        self.logger.debug(
+            "Getting recent users",
+            extra={
+                "operation": "get_recent_users",
+                "limit": limit,
+                "active_only": active_only
+            }
+        )
         
         try:
             async with self._monitor_query_performance(
@@ -827,11 +1114,25 @@ class CRUDUser:
                 result = await session.execute(stmt)
                 users = result.scalars().all()
                 
-                self.logger.debug(f"Found {len(users)} recent users")
+                self.logger.debug(
+                    "Recent users retrieved",
+                    extra={
+                        "operation": "get_recent_users",
+                        "count": len(users),
+                        "limit": limit,
+                        "active_only": active_only
+                    }
+                )
                 return list(users)
                 
         except Exception as e:
-            self.logger.error(f"Error getting recent users: {str(e)}")
+            self.logger.error(
+                "Error getting recent users",
+                extra={
+                    "operation": "get_recent_users",
+                    "error_type": type(e).__name__
+                }
+            )
             raise
 
 

@@ -250,7 +250,7 @@ class TestCRUDUserPagination:
             # Should have logs for getting paginated users and returning results
             call_args = [call.args[0] for call in mock_debug.call_args_list]
             assert any("Getting paginated users" in arg for arg in call_args)
-            assert any("Returned paginated users" in arg for arg in call_args)
+            assert any("Paginated users returned" in arg for arg in call_args)
 
     @pytest.mark.asyncio
     async def test_pagination_with_empty_page(self, clean_db_session):
