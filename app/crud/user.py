@@ -17,6 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.logging import get_logger
 from app.core.crud_config import CRUDConfig, DEFAULT_CRUD_CONFIG
 from app.core.security_service import SecurityService, DEFAULT_SECURITY_SERVICE
+from app.core.logging_service import LoggingService, default_logging_service
 from app.crud.exceptions import (
     DatabaseIntegrityError,
     DuplicateEmailError,
@@ -35,15 +36,17 @@ class CRUDUser:
     # クラスレベルのロガー初期化
     logger = get_logger(__name__)
     
-    def __init__(self, config: CRUDConfig = None, security_service: SecurityService = None):
-        """Initialize CRUD operations with configuration and security service.
+    def __init__(self, config: CRUDConfig = None, security_service: SecurityService = None, logging_service: LoggingService = None):
+        """Initialize CRUD operations with configuration, security service, and logging service.
         
         Args:
             config: Configuration for CRUD operations. If None, uses default configuration.
             security_service: Security service for operations. If None, uses default security service.
+            logging_service: Logging service for operations. If None, uses default logging service.
         """
         self.config = config or DEFAULT_CRUD_CONFIG
         self.security_service = security_service or DEFAULT_SECURITY_SERVICE
+        self.logging_service = logging_service or default_logging_service
     
     def _hash_user_id(self, user_id: UUID) -> str:
         """セキュリティ上の理由でユーザーIDをハッシュ化する."""
@@ -281,26 +284,12 @@ class CRUDUser:
             user_id: 対象ユーザーID（オプション）
             **kwargs: 追加のログパラメータ
         """
-        log_data = {
-            "operation": operation,
-            "status": status
-        }
-        
-        if user_id:
-            log_data["user_id_hash"] = self._hash_user_id(user_id)
-        
-        # 追加パラメータをマージ
-        log_data.update(kwargs)
-        
-        # ログレベルに応じて出力
-        if status == "start":
-            self.logger.info(f"{operation.title()} started", extra=log_data)
-        elif status == "success":
-            self.logger.info(f"{operation.title()} completed successfully", extra=log_data)
-        elif status == "error":
-            self.logger.error(f"{operation.title()} failed", extra=log_data)
-        else:
-            self.logger.debug(f"{operation.title()} - {status}", extra=log_data)
+        self.logging_service.log_operation(
+            operation=operation,
+            status=status,
+            user_id=str(user_id) if user_id else None,
+            **kwargs
+        )
     
     @asynccontextmanager
     async def _monitor_query_performance(self, query_name: str, **context):
@@ -310,30 +299,14 @@ class CRUDUser:
             query_name: クエリの名前
             **context: 追加のコンテキスト情報
         """
-        start_time = time.time()
-        
-        try:
-            self.logger.debug(f"Query started: {query_name}", extra={"query_name": query_name, **context})
-            yield
-            
-        finally:
-            execution_time = time.time() - start_time
-            
-            # パフォーマンスログ
-            log_data = {
-                "query_name": query_name,
-                "execution_time_ms": round(execution_time * 1000, 2),
-                **context
-            }
-            
-            # スローログ警告（設定値を使用）
-            if execution_time > self.config.slow_query_threshold:
-                self.logger.warning(f"Slow query detected: {query_name}", extra=log_data)
-            # 通常のパフォーマンスログ（設定値を使用）
-            elif execution_time > self.config.performance_log_threshold:
-                self.logger.info(f"Query performance: {query_name}", extra=log_data)
-            else:
-                self.logger.debug(f"Query completed: {query_name}", extra=log_data)
+        # operation キーが重複しないようにcontextから除外
+        filtered_context = {k: v for k, v in context.items() if k not in ['operation', 'query_type']}
+        with self.logging_service.monitor_performance(
+            operation=query_name,
+            query_type="database",
+            **filtered_context
+        ) as performance_context:
+            yield performance_context
     
 
     # _check_unique_constraintsメソッドを削除

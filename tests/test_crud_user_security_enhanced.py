@@ -105,7 +105,7 @@ class TestCRUDUserSecurityEnhanced:
             try:
                 await self.cleanup_test_data(session)
                 
-                with patch.object(user_crud, 'logger') as mock_logger:
+                with patch.object(user_crud.logging_service, 'logger') as mock_logger:
                     user_data = UserCreate(
                         username="security_hash_test",
                         email="hash@test.com", 
