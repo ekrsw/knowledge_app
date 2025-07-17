@@ -62,7 +62,7 @@ Note: Currently runs as a demo script, not as an API server.
 ### Testing
 
 #### Comprehensive Test Suite
-The application features an extensive test suite with **216 test methods** across **21 test files**, achieving high test coverage:
+The application features an extensive test suite with **242 test methods** across **22 test files**, achieving high test coverage:
 
 **Test Categories:**
 - **Core Tests**:
@@ -70,6 +70,7 @@ The application features an extensive test suite with **216 test methods** acros
   - `test_core_logging.py` - Logging functionality
   - `test_crud_config.py` - Configuration classes (28 tests)
   - `test_security_service.py` - Security service functionality (29 tests)
+  - `test_logging_service.py` - Logging service functionality (26 tests)
   - `test_crud_exceptions.py` - CRUD exception handling
 
 - **CRUD User Tests**:
@@ -94,12 +95,13 @@ The application features an extensive test suite with **216 test methods** acros
 
 #### Running Tests
 ```bash
-pytest                          # Run all tests (216 tests)
+pytest                          # Run all tests (242 tests)
 pytest -v                       # Verbose output
 pytest --cov=app                # Run with coverage report
 pytest --cov=app --cov-report=html  # Generate HTML coverage report
 pytest tests/test_crud_user_security.py  # Run specific test file
 pytest tests/test_security_service.py    # Run security service tests
+pytest tests/test_logging_service.py     # Run logging service tests
 pytest tests/test_crud_config.py         # Run configuration tests
 pytest -k "test_create_user"    # Run tests matching pattern
 pytest -x                       # Stop at first failure
@@ -125,6 +127,7 @@ The application follows a clean service-oriented architecture with dependency in
 - **CRUD** (`app/crud/`) - Data access layer with async operations
 - **Core Services** (`app/core/`) - Business logic services with clean separation:
   - `security_service.py` - Security operations (password hashing, timing attack protection)
+  - `logging_service.py` - Unified logging service for structured logging and performance monitoring
   - `crud_config.py` - Configuration management with validation
   - `logging.py` - Structured logging utilities
   - `config.py` - Environment configuration
@@ -136,12 +139,14 @@ The application uses constructor-based dependency injection:
 
 ```python
 from app.core.security_service import SecurityService
+from app.core.logging_service import LoggingService
 from app.core.crud_config import CRUDConfig
 
 # Configure services
 config = CRUDConfig(timing_attack_min_delay=0.1)
 security_service = SecurityService(config.security_config)
-crud_user = CRUDUser(config=config, security_service=security_service)
+logging_service = LoggingService(config.logging_config, config.performance_config)
+crud_user = CRUDUser(config=config, security_service=security_service, logging_service=logging_service)
 ```
 
 ### Async Pattern
@@ -176,6 +181,14 @@ crud_user = CRUDUser(config=config, security_service=security_service)
 - `hash_user_id()` - Secure user ID hashing for logging
 - `apply_timing_attack_protection()` - Configurable timing attack prevention
 - **Configurable** through SecurityConfig with sensible defaults
+
+### Logging Service
+**LoggingService** (`app/core/logging_service.py`):
+- `log_operation()` - Structured logging for CRUD operations
+- `log_performance()` - Performance monitoring with configurable thresholds
+- `performance_monitor()` - Context manager for automatic performance tracking
+- `hash_user_id()` - Secure user ID hashing for logging
+- **Configurable** through LoggingConfig and PerformanceConfig
 
 ### User Management
 The `CRUDUser` class in `app/crud/user.py` provides:
@@ -232,6 +245,7 @@ User model (`app/models/user.py`) includes:
 4. Add comprehensive unit tests
 5. Update CRUDUser or other classes to use the service
 6. Ensure backward compatibility with default instances
+7. Follow the established pattern (SecurityService, LoggingService)
 
 ### Database Schema Changes
 1. Modify the model in `app/models/`
@@ -259,11 +273,12 @@ The application currently serves as a **CRUD operations demonstration** with a s
 - **Service-oriented architecture** with dependency injection
 - **External configuration system** with validation
 - **Dedicated security service** with timing attack protection
+- **Dedicated logging service** with unified logging and performance monitoring
 - **Pagination support** for scalable data retrieval
 - **Comprehensive error handling** with custom exceptions
 - **Database migrations** with Alembic
 - **Performance-optimized database indexes**
-- **Extensive test suite** with 216 tests
+- **Extensive test suite** with 242 tests
 - **Structured logging** with operation tracking and performance monitoring
 - **PostgreSQL-specific optimizations** and TOCTOU race condition fixes
 - **Advanced security features** (timing attack resistance, information leak prevention)
@@ -297,6 +312,16 @@ The application currently serves as a **CRUD operations demonstration** with a s
 - Type hints throughout the codebase for better IDE support
 
 ## Recent Changes
+
+### Phase 3.4.3 - Logging Service Separation (2025-07-17)
+- **LoggingService Architecture**: Separated logging concerns into dedicated service
+  - Unified logging operations (log_operation, log_performance)
+  - Context manager for automatic performance tracking
+  - Configurable performance thresholds and logging behavior
+  - Secure user ID hashing for logging
+- **CRUDUser Integration**: Migrated all logging operations to use LoggingService
+- **26 New Tests**: Added comprehensive LoggingService test suite
+- **Full Integration**: All 242 tests pass with zero regressions
 
 ### Phase 3.4.2 - Security Service Separation (2025-07-16)
 - **SecurityService Architecture**: Separated security concerns into dedicated service
@@ -336,10 +361,11 @@ The application currently serves as a **CRUD operations demonstration** with a s
 
 ## Important Notes
 - **Module Execution**: Run the application using `python -m app.main` for proper module resolution
-- **Service Configuration**: Use dependency injection for services, defaults available for backward compatibility
+- **Service Configuration**: Use dependency injection for services (SecurityService, LoggingService), defaults available for backward compatibility
 - **Session Management**: The `CRUDUser` class automatically handles commits; avoid manual commit/rollback
 - **Testing**: All tests use independent sessions; use appropriate fixtures for different scenarios
 - **Performance**: Database indexes are optimized for common query patterns
 - **Security**: Timing attack protection is configurable through SecurityConfig
+- **Logging**: All logging operations use LoggingService with structured format and performance monitoring
 - **Architecture**: The codebase follows service-oriented architecture with clean separation of concerns
-- **Refactoring Progress**: Phase 3.4.2 complete (Security Service Separation) - significant architecture improvements implemented
+- **Refactoring Progress**: Phase 3.4.3 complete (Logging Service Separation) - comprehensive service-oriented architecture implemented
