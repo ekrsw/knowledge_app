@@ -19,8 +19,8 @@ async def main():
      # アクセストークン生成
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = await create_access_token(
-        data={"sub": str(db_user.id),
-              "username": db_user.username},
+        data={"sub": str(id_str),
+              "username": username_str},
         expires_delta=access_token_expires
     )
     
