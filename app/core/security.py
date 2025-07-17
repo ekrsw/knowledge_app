@@ -1,16 +1,21 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
+import json
+import secrets
 from typing import Dict, Any, Optional
 import uuid
-import jwt
-from app.core.config import settings
-from datetime import UTC
 
 from passlib.context import CryptContext
+from jose import jwt, JWTError
+import redis.asyncio as redis
+
+from app.core.config import settings
+from app.core.logging import app_logger
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password: str) -> str:
+
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

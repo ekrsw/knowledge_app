@@ -25,6 +25,23 @@ class Settings(BaseSettings):
     # SQLAlchemyのログ出力設定
     SQLALCHEMY_ECHO: bool = True
 
+    # Redis設定
+    AUTH_REDIS_HOST: str = "auth_redis"
+    AUTH_REDIS_PORT: str = "6379"
+    AUTH_REDIS_USER: str = "admin"
+    AUTH_REDIS_PASSWORD: str = "my_password"
+
+    # トークン設定
+    ALGORITHM: str = "RS256"
+    PRIVATE_KEY_PATH: str = "keys/private.pem"  # 秘密鍵のパス
+    PUBLIC_KEY_PATH: str = "keys/public.pem"   # 公開鍵のパス
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # トークンブラックリスト関連の設定
+    TOKEN_BLACKLIST_ENABLED: bool = True
+
+
     @property
     def DATABASE_URL(self) -> str:
         return (
@@ -33,6 +50,29 @@ class Settings(BaseSettings):
             f"{self.USER_POSTGRES_HOST}:{self.USER_POSTGRES_PORT}/"
             f"{self.USER_POSTGRES_DB}"
         )
+    
+    @property
+    def AUTH_REDIS_URL(self) -> str:
+        return f"redis://{self.AUTH_REDIS_USER}:{self.AUTH_REDIS_PASSWORD}@{self.AUTH_REDIS_HOST}:{self.AUTH_REDIS_PORT}/0"
+    
+    @property
+    def PRIVATE_KEY(self) -> str:
+        """秘密鍵の内容を読み込む"""
+        try:
+            with open(self.PRIVATE_KEY_PATH, "r") as f:
+                return f.read()
+        except FileNotFoundError:
+            # 開発環境では環境変数から直接読み込む選択肢も
+            return os.environ.get("PRIVATE_KEY", "")
+    
+    @property
+    def PUBLIC_KEY(self) -> str:
+        """公開鍵の内容を読み込む"""
+        try:
+            with open(self.PUBLIC_KEY_PATH, "r") as f:
+                return f.read()
+        except FileNotFoundError:
+            return os.environ.get("PUBLIC_KEY", "")
     
     model_config = ConfigDict(
         env_file=".env",
