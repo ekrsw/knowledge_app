@@ -17,7 +17,9 @@
       "Bash(touch:*)",
       "Bash(timeout:*)",
       "Bash(pip show:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
