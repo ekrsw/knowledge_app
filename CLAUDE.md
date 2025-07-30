@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Guidelines
 
 This document defines the project's rules, objectives, and progress management methods. Please proceed with the project according to the following content.
@@ -70,3 +74,46 @@ When receiving development tasks, please follow the 4-stage workflow below. This
 - Please obtain user confirmation before proceeding to the next stage
 - Always use this workflow for complex tasks or new feature development
 - Simple fixes or clear bug fixes can be implemented directly
+
+## Project: Knowledge Revision Approval System
+
+### Architecture Overview
+
+This is a knowledge revision proposal and approval system built with:
+
+**Backend**: Python 3.12+ with FastAPI 0.115.8, SQLAlchemy 2.0.40, PostgreSQL 17
+**Frontend**: Next.js 14 with TypeScript, Tailwind CSS
+**Infrastructure**: Windows Server 2019, Redis 3.0.504 (legacy constraints)
+
+The system uses a layered architecture:
+- API Gateway Layer (authentication, rate limiting, error handling)
+- Business Logic Layer (ProposalService, ApprovalService, DiffService, NotificationService)
+- Data Access Layer (Repository pattern)
+- Data Layer (PostgreSQL + Redis caching)
+
+### Core Database Schema
+
+The system manages 6 core tables:
+- `users` - User management with approval group membership
+- `approval_groups` - Approval responsibility assignment  
+- `info_categories` - 26 real business categories (01-26)
+- `articles` - Reference-only existing knowledge articles
+- `revisions` - Revision proposals with 5-status lifecycle (draft → submitted → approved/rejected/deleted)
+- `simple_notifications` - Basic notification system
+
+### Development Environment Constraints
+
+- **Windows Server 2019**: No Docker, Windows Service deployment
+- **Redis 3.0.504**: Limited to basic key-value, Hash, List operations (no Streams, Modules)
+- **PostgreSQL 17**: Can use latest features (partitioning, parallel queries)
+
+### Key Design Principles
+
+- Independent system (no existing knowledge base integration)
+- Simplified workflow (5 statuses instead of complex multi-stage approval)
+- After-only revision tracking (no before/after comparison, just proposed changes)
+- Approval group-based routing (users belong to groups, articles require specific group approval)
+
+### Common Development Commands
+
+Currently no build/test commands are established. Implementation follows the 24-task breakdown in `.tmp/tasks.md` across 7 phases.

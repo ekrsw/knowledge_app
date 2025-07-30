@@ -1,0 +1,69 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "knowledge-revision-system"
+version = "0.1.0"
+description = "Knowledge revision proposal and approval system"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Knowledge App Team"},
+]
+keywords = ["knowledge", "revision", "approval", "fastapi"]
+
+dependencies = [
+    "asyncpg==0.30.0",
+    "aiosqlite==0.21.0",
+    "alembic==1.14.1",
+    "asgi-lifespan==2.1.0",
+    "bcrypt==3.2.2",
+    "fastapi==0.115.8",
+    "greenlet==3.1.1",
+    "httpx==0.28.1",
+    "itsdangerous==2.2.0",
+    "Jinja2==3.1.6",
+    "passlib==1.7.4",
+    "pydantic_settings==2.8.1",
+    "pydantic==2.10.6",
+    "python-jose[cryptography]==3.4.0",
+    "python-multipart==0.0.20",
+    "redis==5.0.1",
+    "sqladmin==0.20.1",
+    "SQLAlchemy==2.0.40",
+    "ulid-py==1.1.0",
+    "uvicorn==0.34.0",
+    "apscheduler==3.10.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.26.0",
+    "fakeredis==2.20.1",
+    "freezegun==1.4.0",
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
