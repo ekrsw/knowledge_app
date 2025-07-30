@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(alembic init:*)",
+      "Bash(python test:*)",
+      "Bash(python:*)",
+      "Bash(venvScripts:*)",
+      "Bash(pip install:*)",
+      "Bash(powershell:*)",
+      "Bash(curl:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "Bash(ls:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(touch:*)",
+      "Bash(timeout:*)",
+      "Bash(pip show:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
