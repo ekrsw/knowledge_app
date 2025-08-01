@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
   typescript: {
     // Dangerously allow production builds to successfully complete even if type errors exist
     ignoreBuildErrors: false,
