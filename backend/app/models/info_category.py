@@ -28,7 +28,7 @@ class InfoCategory(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
-    articles = relationship("Article", back_populates="info_category")
+    articles = relationship("Article", back_populates="info_category_obj")
     revisions = relationship("Revision", back_populates="after_info_category_obj")
     
     def __repr__(self) -> str:

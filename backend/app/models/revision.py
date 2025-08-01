@@ -73,7 +73,8 @@ class Revision(Base):
     proposer = relationship("User", back_populates="submitted_revisions", foreign_keys=[proposer_id])
     approver = relationship("User", back_populates="approved_revisions", foreign_keys=[approver_id])
     after_info_category_obj = relationship("InfoCategory", back_populates="revisions")
-    target_article = relationship("Article", back_populates="revisions")
+    # Note: Since target_article_id is not a foreign key (for flexibility),
+    # we don't define a relationship here. Use repository methods to fetch related articles.
     notifications = relationship("SimpleNotification", back_populates="revision", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:

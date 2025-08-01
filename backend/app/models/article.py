@@ -53,7 +53,7 @@ class Article(Base):
     # Relationships
     approval_group_obj = relationship("ApprovalGroup", back_populates="articles")
     info_category_obj = relationship("InfoCategory", back_populates="articles")
-    revisions = relationship("Revision", back_populates="target_article")
+    # Note: revisions relationship is handled from Revision model side only to avoid circular reference issues
     
     def __repr__(self) -> str:
         return f"<Article(article_id='{self.article_id}', title='{self.title}')>"

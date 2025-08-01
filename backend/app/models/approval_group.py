@@ -29,7 +29,7 @@ class ApprovalGroup(Base):
     
     # Relationships
     members = relationship("User", back_populates="approval_group")
-    articles = relationship("Article", back_populates="approval_group")
+    articles = relationship("Article", back_populates="approval_group_obj")
     
     def __repr__(self) -> str:
         return f"<ApprovalGroup(group_id='{self.group_id}', name='{self.group_name}')>"
