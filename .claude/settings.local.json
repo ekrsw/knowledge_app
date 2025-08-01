@@ -27,7 +27,8 @@
       "Bash(npm ci:*)",
       "Bash(npm run type-check:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
