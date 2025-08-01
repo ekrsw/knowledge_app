@@ -15,8 +15,9 @@ from app.models import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the SQLAlchemy URL from settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Set the SQLAlchemy URL from settings (convert async URL to sync for Alembic)
+sync_db_url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+config.set_main_option("sqlalchemy.url", sync_db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

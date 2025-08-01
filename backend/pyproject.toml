@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "knowledge-revision-system"
 version = "0.1.0"
 description = "Knowledge revision proposal and approval system"
-readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
@@ -49,6 +48,7 @@ dev = [
     "isort",
     "flake8",
     "mypy",
+    "psycopg2-binary==2.9.9",
 ]
 
 [tool.hatch.build.targets.wheel]
