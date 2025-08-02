@@ -1,9 +1,31 @@
 """
 SQLAlchemy models for Knowledge Revision System
 """
-from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from sqlalchemy import DateTime
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.sql import func
 
-Base = declarative_base()
+from app.core.config import settings
+
+
+class Base(DeclarativeBase):
+    """Base class for all models with common timestamp fields"""
+    
+    # Common timestamp fields for all models
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo(settings.TZ)),
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo(settings.TZ)),
+        onupdate=lambda: datetime.now(ZoneInfo(settings.TZ)),
+        nullable=False
+    )
+
 
 # Import all models to ensure they are registered with SQLAlchemy
 from .user import User

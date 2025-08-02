@@ -1,11 +1,10 @@
 """
 Notification model for the Knowledge Revision System
 """
-from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-import uuid
+from typing import Optional
+from uuid import UUID, uuid4
+from sqlalchemy import String, Text, Boolean, ForeignKey, Index
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import Base
 
@@ -16,36 +15,36 @@ class SimpleNotification(Base):
     __tablename__ = "simple_notifications"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     
     # User information
-    user_id = Column(
-        UUID(as_uuid=True), 
+    user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True
     )
     
     # Notification content
-    message = Column(Text, nullable=False)
-    type = Column(String(50), nullable=False, index=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     
     # Related entity (optional)
-    revision_id = Column(
-        UUID(as_uuid=True), 
+    revision_id: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey("revisions.revision_id", ondelete="CASCADE"),
         nullable=True
     )
     
     # Status
-    is_read = Column(Boolean, default=False, nullable=False, index=True)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     
     # Relationships
-    user = relationship("User", back_populates="notifications")
-    revision = relationship("Revision", back_populates="notifications")
+    user: Mapped["User"] = relationship("User", back_populates="notifications")
+    revision: Mapped[Optional["Revision"]] = relationship("Revision", back_populates="notifications")
+    
+    # Table indexes
+    __table_args__ = (
+        Index('idx_notification_created_at', 'created_at'),
+    )
     
     def __repr__(self) -> str:
-        return f"<SimpleNotification(id={self.id}, type='{self.type}', read={self.is_read})>"
+        return f"<SimpleNotification(id={self.id}, type='{self.type}', read={self.is_read}')"

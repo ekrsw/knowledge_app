@@ -1,9 +1,9 @@
 """
 Approval Group model for the Knowledge Revision System
 """
-from sqlalchemy import Column, String, Text, Boolean, DateTime
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from typing import Optional, List
+from sqlalchemy import String, Text, Boolean
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import Base
 
@@ -14,22 +14,18 @@ class ApprovalGroup(Base):
     __tablename__ = "approval_groups"
     
     # Primary key
-    group_id = Column(String(50), primary_key=True)
+    group_id: Mapped[str] = mapped_column(String(50), primary_key=True)
     
     # Group information
-    group_name = Column(String(100), nullable=False)
-    description = Column(Text, nullable=True)
+    group_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Status
-    is_active = Column(Boolean, default=True, nullable=False, index=True)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
     
     # Relationships
-    members = relationship("User", back_populates="approval_group")
-    articles = relationship("Article", back_populates="approval_group_obj")
+    members: Mapped[List["User"]] = relationship("User", back_populates="approval_group")
+    articles: Mapped[List["Article"]] = relationship("Article", back_populates="approval_group_obj")
     
     def __repr__(self) -> str:
-        return f"<ApprovalGroup(group_id='{self.group_id}', name='{self.group_name}')>"
+        return f"<ApprovalGroup(group_id='{self.group_id}', name='{self.group_name}')"

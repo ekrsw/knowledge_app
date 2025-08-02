@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: str = "development"
+    TZ: str = "Asia/Tokyo"  # Timezone for timestamps
     
     # Security
     SECRET_KEY: str = "development-secret-key-change-in-production"

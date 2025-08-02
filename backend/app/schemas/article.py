@@ -2,7 +2,7 @@
 Article Pydantic schemas
 """
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel, Field
 
 
@@ -17,8 +17,8 @@ class ArticleBase(BaseModel):
     info_category: Optional[str] = Field(None, max_length=50)
     keywords: Optional[str] = None
     importance: Optional[bool] = None
-    publish_start: Optional[datetime] = None
-    publish_end: Optional[datetime] = None
+    publish_start: Optional[date] = None
+    publish_end: Optional[date] = None
     target: Optional[str] = Field(None, max_length=100)
     question: Optional[str] = None
     answer: Optional[str] = None
@@ -40,8 +40,8 @@ class ArticleUpdate(BaseModel):
     info_category: Optional[str] = Field(None, max_length=50)
     keywords: Optional[str] = None
     importance: Optional[bool] = None
-    publish_start: Optional[datetime] = None
-    publish_end: Optional[datetime] = None
+    publish_start: Optional[date] = None
+    publish_end: Optional[date] = None
     target: Optional[str] = Field(None, max_length=100)
     question: Optional[str] = None
     answer: Optional[str] = None
