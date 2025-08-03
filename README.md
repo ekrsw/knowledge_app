@@ -44,6 +44,7 @@ knowledge_app/
 - Node.js 18+
 - PostgreSQL 17
 - Redis 3.0.504
+- uv (Python package manager)
 
 ### Backend Setup
 
@@ -52,15 +53,14 @@ knowledge_app/
    cd backend
    ```
 
-2. Create virtual environment:
+2. Install dependencies with uv:
    ```bash
-   python -m venv venv
-   venv\Scripts\activate  # Windows
+   uv sync --dev
    ```
 
-3. Install dependencies:
+3. Activate virtual environment:
    ```bash
-   pip install -e .[dev]
+   uv run
    ```
 
 4. Copy environment configuration:
@@ -70,12 +70,12 @@ knowledge_app/
 
 5. Run database migrations:
    ```bash
-   alembic upgrade head
+   uv run alembic upgrade head
    ```
 
 6. Start development server:
    ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
 
 ### Frontend Setup
