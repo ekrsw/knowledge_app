@@ -2,6 +2,7 @@
 Approval Group repository for database operations
 """
 from typing import Optional, List
+from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +17,7 @@ class ApprovalGroupRepository(BaseRepository[ApprovalGroup, ApprovalGroupCreate,
     def __init__(self):
         super().__init__(ApprovalGroup)
     
-    async def get_by_id(self, db: AsyncSession, *, group_id: str) -> Optional[ApprovalGroup]:
+    async def get_by_id(self, db: AsyncSession, *, group_id: UUID) -> Optional[ApprovalGroup]:
         """Get approval group by group_id"""
         result = await db.execute(select(ApprovalGroup).where(ApprovalGroup.group_id == group_id))
         return result.scalars().first()

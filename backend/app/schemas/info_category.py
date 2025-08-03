@@ -3,12 +3,12 @@ Information Category Pydantic schemas
 """
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 
 class InfoCategoryBase(BaseModel):
     """Base information category schema"""
-    category_id: str = Field(..., min_length=1, max_length=50)
     category_name: str = Field(..., min_length=1, max_length=100)
     display_order: int = Field(default=0, ge=0)
     is_active: bool = True
@@ -16,7 +16,7 @@ class InfoCategoryBase(BaseModel):
 
 class InfoCategoryCreate(InfoCategoryBase):
     """Schema for creating information categories"""
-    pass
+    # category_id is auto-generated UUID, not provided in create
 
 
 class InfoCategoryUpdate(BaseModel):
@@ -28,6 +28,7 @@ class InfoCategoryUpdate(BaseModel):
 
 class InfoCategory(InfoCategoryBase):
     """Schema for information category response"""
+    category_id: UUID  # UUID field for response
     created_at: datetime
     updated_at: datetime
     

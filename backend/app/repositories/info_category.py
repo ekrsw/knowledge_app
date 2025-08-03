@@ -2,6 +2,7 @@
 Information Category repository for database operations
 """
 from typing import Optional, List
+from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +17,7 @@ class InfoCategoryRepository(BaseRepository[InfoCategory, InfoCategoryCreate, In
     def __init__(self):
         super().__init__(InfoCategory)
     
-    async def get_by_id(self, db: AsyncSession, *, category_id: str) -> Optional[InfoCategory]:
+    async def get_by_id(self, db: AsyncSession, *, category_id: UUID) -> Optional[InfoCategory]:
         """Get information category by category_id"""
         result = await db.execute(select(InfoCategory).where(InfoCategory.category_id == category_id))
         return result.scalars().first()

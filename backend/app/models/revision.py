@@ -20,7 +20,6 @@ class Revision(Base):
     
     # Target article information
     target_article_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)  # Not FK to allow flexibility
-    target_article_pk: Mapped[str] = mapped_column(String(200), nullable=False)
     
     # Proposer information
     proposer_id: Mapped[UUID] = mapped_column(
@@ -31,8 +30,7 @@ class Revision(Base):
     
     # Revision content (after-only fields, all nullable)
     after_title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    after_info_category: Mapped[Optional[str]] = mapped_column(
-        String(50), 
+    after_info_category: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey("info_categories.category_id", ondelete="SET NULL"),
         nullable=True
     )

@@ -1,0 +1,20 @@
+Rev: e70510a1099e (head)
+Parent: b0964a48ee11
+Path: C:\Users\eisuke_koresawa\project\knowledge_app\backend\alembic\versions\e70510a1099e_change_article_publish_start_and_.py
+
+    Change article publish_start and publish_end from DateTime to Date
+    
+    Revision ID: e70510a1099e
+    Revises: b0964a48ee11
+    Create Date: 2025-08-02 23:38:54.688246
+
+Rev: b0964a48ee11
+Parent: <base>
+Path: C:\Users\eisuke_koresawa\project\knowledge_app\backend\alembic\versions\b0964a48ee11_create_all_tables.py
+
+    create all tables
+    
+    Revision ID: b0964a48ee11
+    Revises: 
+    Create Date: 2025-08-02 00:40:13.852845
+

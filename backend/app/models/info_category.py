@@ -2,6 +2,7 @@
 Information Category model for the Knowledge Revision System
 """
 from typing import List
+from uuid import UUID, uuid4
 from sqlalchemy import String, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,7 +15,7 @@ class InfoCategory(Base):
     __tablename__ = "info_categories"
     
     # Primary key
-    category_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    category_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     
     # Category information
     category_name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -28,4 +29,4 @@ class InfoCategory(Base):
     revisions: Mapped[List["Revision"]] = relationship("Revision", back_populates="after_info_category_obj")
     
     def __repr__(self) -> str:
-        return f"<InfoCategory(category_id='{self.category_id}', name='{self.category_name}')"
+        return f"<InfoCategory(category_id={self.category_id}, name='{self.category_name}')"

@@ -2,6 +2,7 @@
 Article repository for database operations
 """
 from typing import Optional, List
+from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +31,7 @@ class ArticleRepository(BaseRepository[Article, ArticleCreate, ArticleUpdate]):
         self, 
         db: AsyncSession, 
         *, 
-        approval_group: str
+        approval_group: UUID
     ) -> List[Article]:
         """Get articles by approval group"""
         result = await db.execute(
@@ -42,7 +43,7 @@ class ArticleRepository(BaseRepository[Article, ArticleCreate, ArticleUpdate]):
         self, 
         db: AsyncSession, 
         *, 
-        info_category: str
+        info_category: UUID
     ) -> List[Article]:
         """Get articles by information category"""
         result = await db.execute(

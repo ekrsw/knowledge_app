@@ -2,6 +2,7 @@
 User repository for database operations
 """
 from typing import Optional, List
+from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +31,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         self, 
         db: AsyncSession, 
         *, 
-        approval_group_id: str
+        approval_group_id: UUID
     ) -> List[User]:
         """Get users by approval group"""
         result = await db.execute(

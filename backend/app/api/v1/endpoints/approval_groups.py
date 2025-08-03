@@ -2,6 +2,7 @@
 Approval Group endpoints
 """
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,7 +26,7 @@ async def get_approval_groups(
 
 @router.get("/{group_id}", response_model=ApprovalGroup)
 async def get_approval_group(
-    group_id: str,
+    group_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     """Get approval group by ID"""
@@ -44,21 +45,14 @@ async def create_approval_group(
     db: AsyncSession = Depends(get_db)
 ):
     """Create new approval group"""
-    # Check if group_id already exists
-    existing_group = await approval_group_repository.get_by_id(db, group_id=group_in.group_id)
-    if existing_group:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Group ID already exists"
-        )
-    
+    # group_id は自動生成されるため、重複チェック不要
     group = await approval_group_repository.create(db, obj_in=group_in)
     return group
 
 
 @router.put("/{group_id}", response_model=ApprovalGroup)
 async def update_approval_group(
-    group_id: str,
+    group_id: UUID,
     group_in: ApprovalGroupUpdate,
     db: AsyncSession = Depends(get_db)
 ):

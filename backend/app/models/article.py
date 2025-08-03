@@ -3,6 +3,7 @@ Article model for the Knowledge Revision System
 """
 from typing import Optional
 from datetime import date
+from uuid import UUID
 from sqlalchemy import String, Text, Boolean, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,13 +19,11 @@ class Article(Base):
     article_id: Mapped[str] = mapped_column(String(100), primary_key=True)
     
     # Reference information
-    article_pk: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     article_number: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     article_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Approval group assignment
-    approval_group: Mapped[Optional[str]] = mapped_column(
-        String(50), 
+    approval_group: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey("approval_groups.group_id", ondelete="SET NULL"),
         nullable=True,
         index=True
@@ -32,8 +31,7 @@ class Article(Base):
     
     # Article content fields
     title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    info_category: Mapped[Optional[str]] = mapped_column(
-        String(50), 
+    info_category: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey("info_categories.category_id", ondelete="SET NULL"),
         nullable=True,
         index=True

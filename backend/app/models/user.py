@@ -34,8 +34,7 @@ class User(Base):
         default="user",
         server_default="user"
     )
-    approval_group_id: Mapped[Optional[str]] = mapped_column(
-        String(50), 
+    approval_group_id: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey("approval_groups.group_id", ondelete="SET NULL"),
         nullable=True,
         index=True

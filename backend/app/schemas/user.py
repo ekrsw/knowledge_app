@@ -3,6 +3,7 @@ User Pydantic schemas
 """
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field
 import uuid
 
@@ -15,7 +16,7 @@ class UserBase(BaseModel):
     sweet_name: Optional[str] = Field(None, max_length=50)
     ctstage_name: Optional[str] = Field(None, max_length=50)
     role: str = Field(default="user", pattern="^(user|approver|admin)$")
-    approval_group_id: Optional[str] = Field(None, max_length=50)
+    approval_group_id: Optional[UUID] = None
     is_active: bool = True
 
 
@@ -32,7 +33,7 @@ class UserUpdate(BaseModel):
     sweet_name: Optional[str] = Field(None, max_length=50)
     ctstage_name: Optional[str] = Field(None, max_length=50)
     role: Optional[str] = Field(None, pattern="^(user|approver|admin)$")
-    approval_group_id: Optional[str] = Field(None, max_length=50)
+    approval_group_id: Optional[UUID] = None
     is_active: Optional[bool] = None
     password: Optional[str] = Field(None, min_length=8)
 

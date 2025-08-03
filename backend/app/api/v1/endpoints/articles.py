@@ -2,6 +2,7 @@
 Article endpoints
 """
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,7 +59,7 @@ async def create_article(
 
 @router.get("/by-category/{info_category}", response_model=List[Article])
 async def get_articles_by_category(
-    info_category: str,
+    info_category: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     """Get articles by information category"""
@@ -68,7 +69,7 @@ async def get_articles_by_category(
 
 @router.get("/by-group/{approval_group}", response_model=List[Article])
 async def get_articles_by_group(
-    approval_group: str,
+    approval_group: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     """Get articles by approval group"""

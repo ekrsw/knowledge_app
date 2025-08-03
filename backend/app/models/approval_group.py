@@ -2,6 +2,7 @@
 Approval Group model for the Knowledge Revision System
 """
 from typing import Optional, List
+from uuid import UUID, uuid4
 from sqlalchemy import String, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,7 +15,7 @@ class ApprovalGroup(Base):
     __tablename__ = "approval_groups"
     
     # Primary key
-    group_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    group_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     
     # Group information
     group_name: Mapped[str] = mapped_column(String(100), nullable=False)

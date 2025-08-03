@@ -3,19 +3,19 @@ Revision Pydantic schemas
 """
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, Field
-import uuid
 
 
 class RevisionBase(BaseModel):
     """Base revision schema"""
     target_article_id: str = Field(..., min_length=1, max_length=100)
-    target_article_pk: str = Field(..., min_length=1, max_length=200)
+    # target_article_pk: removed field
     reason: str = Field(..., min_length=1)
     
     # After fields (all optional)
     after_title: Optional[str] = None
-    after_info_category: Optional[str] = Field(None, max_length=50)
+    after_info_category: Optional[UUID] = None  # Changed to UUID type
     after_keywords: Optional[str] = None
     after_importance: Optional[bool] = None
     after_publish_start: Optional[datetime] = None
@@ -38,7 +38,7 @@ class RevisionUpdate(BaseModel):
     
     # After fields (all optional)
     after_title: Optional[str] = None
-    after_info_category: Optional[str] = Field(None, max_length=50)
+    after_info_category: Optional[UUID] = None  # Changed to UUID type
     after_keywords: Optional[str] = None
     after_importance: Optional[bool] = None
     after_publish_start: Optional[datetime] = None
@@ -51,10 +51,10 @@ class RevisionUpdate(BaseModel):
 
 class RevisionInDB(RevisionBase):
     """Schema for revision in database"""
-    revision_id: uuid.UUID
-    proposer_id: uuid.UUID
+    revision_id: UUID
+    proposer_id: UUID
     status: str
-    approver_id: Optional[uuid.UUID] = None
+    approver_id: Optional[UUID] = None
     processed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

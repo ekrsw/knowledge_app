@@ -2,6 +2,7 @@
 Information Category endpoints
 """
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,7 +35,7 @@ async def get_active_info_categories(
 
 @router.get("/{category_id}", response_model=InfoCategory)
 async def get_info_category(
-    category_id: str,
+    category_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     """Get information category by ID"""
@@ -53,21 +54,14 @@ async def create_info_category(
     db: AsyncSession = Depends(get_db)
 ):
     """Create new information category"""
-    # Check if category_id already exists
-    existing_category = await info_category_repository.get_by_id(db, category_id=category_in.category_id)
-    if existing_category:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Category ID already exists"
-        )
-    
+    # category_id is auto-generated UUID, no need to check for duplicates
     category = await info_category_repository.create(db, obj_in=category_in)
     return category
 
 
 @router.put("/{category_id}", response_model=InfoCategory)
 async def update_info_category(
-    category_id: str,
+    category_id: UUID,
     category_in: InfoCategoryUpdate,
     db: AsyncSession = Depends(get_db)
 ):
