@@ -2,9 +2,9 @@
 Revision model for the Knowledge Revision System
 """
 from typing import Optional, List
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID, uuid4
-from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import String, Text, Boolean, Date, DateTime, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import Base
@@ -36,8 +36,8 @@ class Revision(Base):
     )
     after_keywords: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     after_importance: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    after_publish_start: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    after_publish_end: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    after_publish_start: Mapped[Optional[date]] = mapped_column(Date, default=None, nullable=True)
+    after_publish_end: Mapped[Optional[date]] = mapped_column(Date, default=None, nullable=True)
     after_target: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     after_question: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     after_answer: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

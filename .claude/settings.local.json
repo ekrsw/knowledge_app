@@ -41,7 +41,10 @@
       "Bash(uvicorn:*)",
       "Bash(.\\venv\\Scripts\\pip.exe install email-validator)",
       "Bash(.venvScriptsactivate)",
-      "Bash(.venvScriptsalembic.exe revision --autogenerate -m \"Change article publish_start and publish_end from DateTime to Date\")"
+      "Bash(.venvScriptsalembic.exe revision --autogenerate -m \"Change article publish_start and publish_end from DateTime to Date\")",
+      "Bash(uv run:*)",
+      "Bash(set DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision_system)",
+      "Bash(del check_alembic.py)"
     ],
     "deny": []
   }
