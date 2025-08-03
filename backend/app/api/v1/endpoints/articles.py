@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_db
 from app.repositories.article import article_repository
 from app.schemas.article import Article, ArticleCreate, ArticleUpdate
+from app.models.article import Article as ArticleModel
 
 router = APIRouter()
 
@@ -18,7 +19,7 @@ async def get_articles(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db)
-):
+) -> List[ArticleModel]:
     """Get all articles"""
     articles = await article_repository.get_multi(db, skip=skip, limit=limit)
     return articles
@@ -28,7 +29,7 @@ async def get_articles(
 async def get_article(
     article_id: str,
     db: AsyncSession = Depends(get_db)
-):
+) -> ArticleModel:
     """Get article by ID"""
     article = await article_repository.get_by_id(db, article_id=article_id)
     if not article:
@@ -43,7 +44,7 @@ async def get_article(
 async def create_article(
     article_in: ArticleCreate,
     db: AsyncSession = Depends(get_db)
-):
+) -> ArticleModel:
     """Create new article"""
     # Check if article_id already exists
     existing_article = await article_repository.get_by_id(db, article_id=article_in.article_id)
@@ -61,7 +62,7 @@ async def create_article(
 async def get_articles_by_category(
     info_category: UUID,
     db: AsyncSession = Depends(get_db)
-):
+) -> List[ArticleModel]:
     """Get articles by information category"""
     articles = await article_repository.get_by_category(db, info_category=info_category)
     return articles
@@ -71,7 +72,27 @@ async def get_articles_by_category(
 async def get_articles_by_group(
     approval_group: UUID,
     db: AsyncSession = Depends(get_db)
-):
+) -> List[ArticleModel]:
     """Get articles by approval group"""
     articles = await article_repository.get_by_approval_group(db, approval_group=approval_group)
     return articles
+
+
+@router.put("/{article_id}", response_model=Article)
+async def update_article(
+    article_id: str,
+    article_in: ArticleUpdate,
+    db: AsyncSession = Depends(get_db)
+) -> ArticleModel:
+    """Update article by ID"""
+    # Get existing article
+    article = await article_repository.get_by_id(db, article_id=article_id)
+    if not article:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Article not found"
+        )
+    
+    # Update article
+    updated_article = await article_repository.update(db, db_obj=article, obj_in=article_in)
+    return updated_article
