@@ -28,7 +28,7 @@ class RevisionBase(BaseModel):
 
 class RevisionCreate(RevisionBase):
     """Schema for creating revisions"""
-    pass
+    approver_id: UUID
 
 
 class RevisionUpdate(BaseModel):
@@ -54,7 +54,7 @@ class RevisionInDB(RevisionBase):
     revision_id: UUID
     proposer_id: UUID
     status: str
-    approver_id: Optional[UUID] = None
+    approver_id: UUID
     processed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
