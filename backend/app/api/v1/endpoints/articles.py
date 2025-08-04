@@ -6,10 +6,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_db
+from app.api.dependencies import get_db, get_current_admin_user
 from app.repositories.article import article_repository
 from app.schemas.article import Article, ArticleCreate, ArticleUpdate
 from app.models.article import Article as ArticleModel
+from app.models.user import User
 
 router = APIRouter()
 
@@ -43,7 +44,8 @@ async def get_article(
 @router.post("/", response_model=Article, status_code=status.HTTP_201_CREATED)
 async def create_article(
     article_in: ArticleCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
 ) -> ArticleModel:
     """Create new article"""
     # Check if article_id already exists
@@ -82,7 +84,8 @@ async def get_articles_by_group(
 async def update_article(
     article_id: str,
     article_in: ArticleUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
 ) -> ArticleModel:
     """Update article by ID"""
     # Get existing article
