@@ -85,21 +85,58 @@ This is a knowledge revision proposal and approval system built with:
 **Frontend**: Next.js 14 with TypeScript, Tailwind CSS
 **Infrastructure**: Windows Server 2019, Redis 3.0.504 (legacy constraints)
 
-The system uses a layered architecture:
-- API Gateway Layer (authentication, rate limiting, error handling)
-- Business Logic Layer (ProposalService, ApprovalService, DiffService, NotificationService)
-- Data Access Layer (Repository pattern)
-- Data Layer (PostgreSQL + Redis caching)
+The system uses a layered architecture following FastAPI best practices:
+
+**API Layer** (`app/api/v1/endpoints/`):
+- RESTful endpoints organized by domain (articles, revisions, users, etc.)
+- JWT authentication with role-based access control
+- Request/response validation with Pydantic schemas
+
+**Business Logic Layer** (`app/services/`):
+- `ProposalService`: Revision proposal lifecycle management
+- `ApprovalService`: Approval workflow and status transitions
+- `DiffService`: Change detection and comparison logic
+- `NotificationService`: User notification and communication
+
+**Data Access Layer** (`app/repositories/`):
+- Repository pattern with async SQLAlchemy 2.0
+- Generic base repository with common CRUD operations
+- Domain-specific repositories for complex queries
+
+**Models & Schemas** (`app/models/`, `app/schemas/`):
+- SQLAlchemy 2.0 models with modern Mapped types
+- Pydantic schemas for API validation and serialization
+- Clear separation between database models and API schemas
+
+**Core Infrastructure** (`app/core/`, `app/database.py`):
+- Configuration management with Pydantic Settings
+- JWT security implementation
+- Database connection and session management
+- Custom exception handling
 
 ### Core Database Schema
 
-The system manages 6 core tables:
-- `users` - User management with approval group membership
-- `approval_groups` - Approval responsibility assignment  
-- `info_categories` - 26 real business categories (01-26)
-- `articles` - Reference-only existing knowledge articles
-- `revisions` - Revision proposals with 5-status lifecycle (draft → submitted → approved/rejected/deleted)
-- `simple_notifications` - Basic notification system
+The system manages 6 core tables with the following relationships:
+
+**Core Entities:**
+- `users` (UUID PK): User management with role-based access (user/approver/admin)
+- `approval_groups` (UUID PK): Group-based approval responsibility assignment
+- `info_categories` (UUID PK): Business knowledge categories for content classification
+- `articles` (string PK): Reference-only existing knowledge articles (independent of external systems)
+
+**Workflow Entities:**
+- `revisions` (UUID PK): Revision proposals with 5-status lifecycle:
+  - `draft` → `submitted` → `approved`/`rejected`/`deleted`
+  - Required `approver_id` field (not nullable)
+  - After-only change tracking (no before/after comparison)
+  - Links to target article via `target_article_id` (non-FK for flexibility)
+- `simple_notifications` (UUID PK): Basic notification system for workflow updates
+
+**Key Relationships:**
+- Users belong to approval groups (many-to-many potential)
+- Articles are assigned to specific approval groups for routing
+- Revisions require both proposer and approver (both link to users table)
+- Notifications track revision status changes
 
 ### Development Environment Constraints
 
@@ -116,4 +153,44 @@ The system manages 6 core tables:
 
 ### Common Development Commands
 
-Currently no build/test commands are established. Implementation follows the 24-task breakdown in `.tmp/tasks.md` across 7 phases.
+**Environment Setup:**
+```bash
+# Install dependencies with uv
+uv install
+
+# Set up environment variables
+cp .env.example .env  # Edit with actual values
+
+# Database migrations
+DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic upgrade head
+
+# Generate new migration
+DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic revision --autogenerate -m "Migration description"
+```
+
+**Development:**
+```bash
+# Run development server
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run tests
+uv run pytest
+
+# Run tests with coverage
+uv run pytest --cov=app
+
+# Code formatting and linting
+uv run black app/
+uv run isort app/
+uv run flake8 app/
+uv run mypy app/
+```
+
+**Database Access:**
+```bash
+# Connect to PostgreSQL database
+psql "postgresql://postgres:password@localhost:5432/knowledge_revision"
+
+# Check database tables
+psql "postgresql://postgres:password@localhost:5432/knowledge_revision" -c "\d"
+```

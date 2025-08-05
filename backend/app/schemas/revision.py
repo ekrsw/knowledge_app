@@ -2,7 +2,7 @@
 Revision Pydantic schemas
 """
 from typing import Optional
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
 
@@ -18,8 +18,8 @@ class RevisionBase(BaseModel):
     after_info_category: Optional[UUID] = None  # Changed to UUID type
     after_keywords: Optional[str] = None
     after_importance: Optional[bool] = None
-    after_publish_start: Optional[datetime] = None
-    after_publish_end: Optional[datetime] = None
+    after_publish_start: Optional[date] = None
+    after_publish_end: Optional[date] = None
     after_target: Optional[str] = Field(None, max_length=100)
     after_question: Optional[str] = None
     after_answer: Optional[str] = None
