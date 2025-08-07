@@ -1,4 +1,4 @@
-# 詳細設計書 - ナレッジの修正案を提出・承認する機能
+# 詳細設計書 - ナレッジ修正案承認システム
 
 ## 1. アーキテクチャ概要
 
@@ -8,15 +8,18 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        フロントエンド                             │
 ├─────────────────────────────────────────────────────────────────┤
-│  修正案管理UI    │   承認ワークフローUI   │   通知・ダッシュボード   │
+│    Next.js 14 + TypeScript + Tailwind CSS + NextAuth.js        │
+│  修正案管理UI │ 承認ワークフローUI │ 差分表示UI │ 通知・ダッシュボード   │
 └─────────────────────────────────────────────────────────────────┘
                                  │
                                  │ REST API
                                  ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                      APIゲートウェイ層                            │
+│                      APIレイヤー                                │
 ├─────────────────────────────────────────────────────────────────┤
-│   認証・認可   │   レート制限   │   ロギング   │   エラーハンドリング  │
+│   認証・認可   │   入力検証   │   レスポンス生成   │   エラーハンドリング  │
+│ /revisions     │ /approvals   │ /diffs           │ /notifications    │
+│ /users         │ /articles    │ /approval-groups │ /info-categories  │
 └─────────────────────────────────────────────────────────────────┘
                                  │
                                  ▼
@@ -31,6 +34,7 @@
 │                       データアクセス層                           │
 ├─────────────────────────────────────────────────────────────────┤
 │ RevisionRepository │ UserRepository │ ArticleRepository │ NotificationRepository │
+│ ApprovalGroupRepository │ InfoCategoryRepository                       │
 └─────────────────────────────────────────────────────────────────┘
                                  │
                                  ▼
@@ -41,328 +45,412 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 技術スタック
+### 1.2 技術スタック（実装済み）
 
 **バックエンド**:
 - 言語: Python 3.12+
 - フレームワーク: FastAPI 0.115.8
-- ORM: SQLAlchemy 2.0.40（Mapped/mapped_column使用） + Alembic 1.14.1
-- データベース: PostgreSQL 17 (asyncpg 0.30.0), Redis 3.0.504
-- 認証: python-jose[cryptography] 3.4.0 + passlib 1.7.4 + bcrypt 3.2.2
-- バックグラウンドタスク: APScheduler（定期処理）
-- テスト: pytest 8.3.4 + pytest-asyncio 0.26.0 + fakeredis 2.20.1
-- その他: 
-  - pydantic 2.10.6 + pydantic_settings 2.8.1
-  - uvicorn 0.34.0 (ASGI server)
-  - ulid-py 1.1.0 (ID生成)
+- ORM: SQLAlchemy 2.0.40 + Alembic
+- データベース: PostgreSQL 17, Redis 3.0.504
+- 認証: python-jose + passlib + bcrypt
+- テスト: pytest + pytest-asyncio + fakeredis
+- 依存関係管理: uv
 
 **フロントエンド**:
 - 言語: TypeScript 5.0+
-- フレームワーク: React 18+ with Next.js 14
+- フレームワーク: React 18 + Next.js 14
 - 認証: NextAuth.js
 - UI: Tailwind CSS + Shadcn/ui
 - 差分表示: react-diff-viewer
-- 通知: Socket.io
 - バリデーション: Zod
-- テスト: Jest, React Testing Library, Playwright
 
-**ツール**: ESLint, Prettier
+## 2. データベース設計（実装済み）
 
-## 2. コンポーネント設計
-
-### 2.1 コンポーネント一覧
-
-| コンポーネント名 | 責務 | 依存関係 |
-|----------------|-----|---------|
-| ProposalService | 修正案の作成・管理・検索・ライフサイクル管理 | RevisionRepository, ArticleRepository, NotificationService |
-| ApprovalService | 承認ワークフローの管理・承認/却下処理 | RevisionRepository, UserRepository, NotificationService |
-| DiffService | 修正差分の生成・表示・比較機能 | ArticleRepository, RevisionRepository |
-| NotificationService | 通知・アラートの送信・管理 | UserRepository, SimpleNotificationRepository |
-| UserService | ユーザー認証・認可・権限管理 | UserRepository |
-
-### 2.2 各コンポーネントの詳細
-
-#### ProposalService
-
-- **目的**: 修正案のライフサイクル全体を管理
-- **公開インターフェース**:
-  ```python
-  class ProposalService:
-      async def create_proposal(self, db: AsyncSession, *, proposal_data: RevisionCreate, proposer: User) -> Revision:
-      async def submit_proposal(self, db: AsyncSession, *, revision_id: UUID, proposer: User) -> Revision:
-      async def withdraw_proposal(self, db: AsyncSession, *, revision_id: UUID, proposer: User) -> Revision:
-      async def update_proposal(self, db: AsyncSession, *, revision_id: UUID, update_data: RevisionUpdate, proposer: User) -> Revision:
-      async def delete_proposal(self, db: AsyncSession, *, revision_id: UUID, proposer: User) -> None:
-      async def get_user_proposals(self, db: AsyncSession, *, user_id: UUID, status: Optional[str] = None) -> List[Revision]:
-      async def get_proposals_for_approval(self, db: AsyncSession, *, approver: User) -> List[Revision]:
-      async def validate_proposal_data(self, db: AsyncSession, *, proposal_data: RevisionCreate) -> dict:
-  ```
-- **内部実装方針**: 
-  - After-only方式による修正案データ管理
-  - 5段階ステータス（draft→submitted→approved/rejected/deleted）管理
-  - 承認グループベースの権限制御
-
-#### ApprovalService
-
-- **目的**: 承認ワークフローの統制管理
-- **公開インターフェース**:
-  ```python
-  class ApprovalService:
-      async def approve_proposal(self, db: AsyncSession, *, revision_id: UUID, approver: User, comment: Optional[str] = None) -> Revision:
-      async def reject_proposal(self, db: AsyncSession, *, revision_id: UUID, approver: User, reason: str) -> Revision:
-      async def get_approval_status(self, db: AsyncSession, *, revision_id: UUID) -> dict:
-      async def can_approve(self, db: AsyncSession, *, revision: Revision, user: User) -> bool:
-      async def escalate_approval(self, db: AsyncSession, *, revision_id: UUID) -> None:
-  ```
-- **内部実装方針**:
-  - 承認グループベースの権限管理
-  - 単一承認者による承認・却下
-  - 承認履歴の完全な記録
-
-#### DiffService
-
-- **目的**: 修正前後の差分生成と視覚化
-- **公開インターフェース**:
-  ```python
-  class DiffService:
-      async def generate_field_diff(self, db: AsyncSession, *, revision: Revision) -> dict:
-      async def preview_changes(self, db: AsyncSession, *, revision_id: UUID) -> dict:
-      async def validate_changes(self, revision: Revision) -> dict:
-      async def get_change_summary(self, revision: Revision) -> dict:
-  ```
-- **内部実装方針**:
-  - フィールド単位での差分比較
-  - After-only方式に対応した差分表示
-  - 構造化データの階層差分表示
-
-#### NotificationService
-
-- **目的**: システム内通知の管理
-- **公開インターフェース**:
-  ```python
-  class NotificationService:
-      async def notify_proposal_submitted(self, db: AsyncSession, *, revision: Revision, approvers: List[User]) -> None:
-      async def notify_proposal_approved(self, db: AsyncSession, *, revision: Revision, proposer: User) -> None:
-      async def notify_proposal_rejected(self, db: AsyncSession, *, revision: Revision, proposer: User, reason: str) -> None:
-      async def get_user_notifications(self, db: AsyncSession, *, user_id: UUID, unread_only: bool = False) -> List[SimpleNotification]:
-      async def mark_as_read(self, db: AsyncSession, *, notification_id: UUID, user: User) -> None:
-  ```
-- **内部実装方針**:
-  - シンプルな通知システム（Redis 3.0.504制約対応）
-  - データベースベースの通知履歴管理
-
-## 3. データフロー
-
-### 3.1 データフロー図
+### 2.1 エンティティ関係図
 
 ```
-修正案提出フロー:
-ユーザー → UI → ProposalService → RevisionRepository → PostgreSQL
-                      ↓
-               NotificationService → 承認者通知
-                      ↓
-                 Redis (キャッシュ)
-
-承認フロー:
-承認者 → UI → ApprovalService → RevisionRepository → PostgreSQL
-                   ↓
-            NotificationService → 提出者通知
-                   ↓
-              ProposalService → ステータス更新
+Users ─┐
+       │  ┌── approval_group_id
+       │  │
+       ├──┼── ApprovalGroups
+       │  │
+       │  └── group_id ──┐
+       │                │
+       │                ├── Articles (approval_group)
+       │                │
+       ├── id (proposer_id) ──┐
+       │                      │
+       ├── id (approver_id) ──┼── Revisions
+       │                      │    │
+       │                      │    ├── target_article_id (not FK)
+       │                      │    │
+       │                      │    └── after_info_category ──┐
+       │                      │                              │
+       └── id (user_id) ──────┼── SimpleNotifications        │
+                              │    │                         │
+                              │    └── revision_id           │
+                              │                              │
+                              └──────────────────────────────┼── InfoCategories
+                                                             │
+                                 Articles (info_category) ───┘
 ```
 
-### 3.2 データ変換
+### 2.2 テーブル定義（実装済み）
 
-- **入力データ形式**: 
-  - 修正案: After-onlyフィールド + メタデータ（JSON/Pydantic）
-  - 承認データ: ステータス + コメント（JSON/Pydantic）
-- **処理過程**: 
-  - Pydanticによるデータバリデーション
-  - SQLAlchemyによるORM変換
-  - 承認ワークフロー状態の更新
-- **出力データ形式**: 
-  - フロントエンド向けJSON（Pydanticシリアライゼーション）
-  - 通知用構造化データ
-  - 差分表示用比較データ
+#### users テーブル
+```sql
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    sweet_name VARCHAR(50) UNIQUE,
+    ctstage_name VARCHAR(50) UNIQUE,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    approval_group_id UUID REFERENCES approval_groups(group_id) ON DELETE SET NULL,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-## 4. APIインターフェース
+#### revisions テーブル（核心部分）
+```sql
+CREATE TABLE revisions (
+    revision_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    target_article_id VARCHAR(100) NOT NULL,  -- 柔軟性のためFKではない
+    proposer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- After-only フィールド（全てnullable）
+    after_title TEXT,
+    after_info_category UUID REFERENCES info_categories(category_id) ON DELETE SET NULL,
+    after_keywords TEXT,
+    after_importance BOOLEAN,
+    after_publish_start DATE,
+    after_publish_end DATE,
+    after_target VARCHAR(100),
+    after_question TEXT,
+    after_answer TEXT,
+    after_additional_comment TEXT,
+    
+    -- メタデータ
+    reason TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    approver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,  -- 必須
+    processed_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-### 4.1 内部API
+### 2.3 重要な設計方針
 
+#### After-only設計
+- **修正前データは保持しない**: 元データは articles テーブルから取得
+- **修正後データのみ保存**: revisions テーブルの after_* フィールド
+- **差分表示**: 現在値（article）vs 提案値（revision）で動的生成
+
+#### 承認者事前指定
+- **approver_id が必須**: 修正案作成時に承認者を指定
+- **責任の明確化**: 誰が承認するかが事前に決定
+- **通知の効率化**: 適切な承認者にのみ通知
+
+## 3. API設計（実装済み）
+
+### 3.1 RESTful エンドポイント
+
+#### 修正案管理 (/api/v1/revisions)
 ```python
-# 修正案API（既存実装済み）
-POST   /api/v1/proposals/                    # 修正案作成
-GET    /api/v1/proposals/{proposal_id}       # 修正案取得
-PUT    /api/v1/proposals/{proposal_id}       # 修正案更新
-DELETE /api/v1/proposals/{proposal_id}       # 修正案削除
-POST   /api/v1/proposals/{proposal_id}/submit   # 修正案提出
-POST   /api/v1/proposals/{proposal_id}/withdraw # 修正案撤回
-GET    /api/v1/proposals/my-proposals        # 自分の修正案一覧
-GET    /api/v1/proposals/for-approval        # 承認待ち修正案一覧
-GET    /api/v1/proposals/statistics          # 修正案統計
-
-# 承認API（新規実装必要）
-POST   /api/v1/approvals/{proposal_id}/approve    # 承認
-POST   /api/v1/approvals/{proposal_id}/reject     # 却下
-GET    /api/v1/approvals/{proposal_id}/status     # 承認状況取得
-
-# 差分API（新規実装必要）
-GET    /api/v1/diffs/{proposal_id}           # 差分取得
-GET    /api/v1/diffs/{proposal_id}/preview   # プレビュー
-
-# 通知API（既存実装済み）
-GET    /api/v1/notifications                 # 通知一覧
-POST   /api/v1/notifications/{id}/read       # 既読マーク
+GET    /api/v1/revisions/                    # 修正案一覧（権限ベース表示）
+GET    /api/v1/revisions/{revision_id}       # 修正案詳細取得
+POST   /api/v1/revisions/                    # 修正案作成
+PUT    /api/v1/revisions/{revision_id}       # 修正案更新（draft状態のみ）
+DELETE /api/v1/revisions/{revision_id}       # 修正案削除（draft状態のみ）
+POST   /api/v1/revisions/{revision_id}/submit    # 修正案提出（draft→submitted）
+POST   /api/v1/revisions/{revision_id}/withdraw  # 修正案撤回（submitted→draft）
 ```
 
-### 4.2 データモデル
-
+#### 承認管理 (/api/v1/approvals)
 ```python
-# 修正案データモデル（既存）
-class Revision(Base):
-    revision_id: Mapped[UUID]
-    target_article_id: Mapped[str]
-    target_article_pk: Mapped[str]
-    proposer_id: Mapped[UUID]
-    after_title: Mapped[Optional[str]]  # After-onlyフィールド
-    after_info_category: Mapped[Optional[str]]
-    # ... 他のafterフィールド
-    reason: Mapped[str]
-    status: Mapped[str]  # draft/submitted/approved/rejected/deleted
-    approver_id: Mapped[Optional[UUID]]
-    processed_at: Mapped[Optional[datetime]]
-
-# 承認結果データモデル（新規）
-class ApprovalResult:
-    proposal_id: UUID
-    approver: User
-    status: str  # approved/rejected
-    comment: Optional[str]
-    processed_at: datetime
-
-# 差分表示データモデル（新規）
-class FieldDiff:
-    field_name: str
-    current_value: Optional[str]
-    proposed_value: Optional[str]
-    change_type: str  # added/modified/deleted
+POST   /api/v1/approvals/{revision_id}/decide     # 承認・却下処理
+GET    /api/v1/approvals/{revision_id}/status     # 承認状況取得
+GET    /api/v1/approvals/queue                    # 承認待ち一覧
+GET    /api/v1/approvals/my-queue                 # 自分の承認待ち一覧
+GET    /api/v1/approvals/metrics                  # 承認統計
+POST   /api/v1/approvals/batch                    # 一括承認・却下
 ```
 
-## 5. エラーハンドリング
+#### 差分表示 (/api/v1/diffs)
+```python
+GET    /api/v1/diffs/{revision_id}           # 差分データ取得
+GET    /api/v1/diffs/{revision_id}/preview   # プレビュー表示用データ
+GET    /api/v1/diffs/{revision_id}/summary   # 変更サマリー
+```
 
-### 5.1 エラー分類
+### 3.2 認証・認可（実装済み）
 
-- **ProposalNotFoundError**: 修正案が見つからない → 404 Not Found
-- **ProposalPermissionError**: 修正案操作権限なし → 403 Forbidden
-- **ProposalStatusError**: 無効な状態遷移 → 400 Bad Request
-- **ProposalValidationError**: 修正案データ不正 → 400 Bad Request
-- **ArticleNotFoundError**: 対象記事が見つからない → 404 Not Found
-- **ApprovalPermissionError**: 承認権限なし → 403 Forbidden
+#### JWT トークンベース認証
+```python
+# 依存関数による権限チェック
+get_current_active_user()      # 認証済みアクティブユーザー
+get_current_approver_user()    # 承認者権限チェック
+get_current_admin_user()       # 管理者権限チェック
+```
 
-### 5.2 エラー通知
+#### 権限ベースアクセス制御
+- **一般ユーザー**: 自分の修正案のみ操作可能
+- **承認者**: 担当グループの修正案承認可能 + 自分の修正案操作
+- **管理者**: 全修正案の操作・閲覧可能
 
-- **ユーザー向け**: 分かりやすいメッセージでUI表示
-- **開発者向け**: 詳細なスタックトレースとコンテキスト情報をログ出力
-- **監視**: 重要エラーは即座にアラート通知
+## 4. ビジネスロジック設計（実装済み）
 
-## 6. セキュリティ設計
+### 4.1 サービスクラス構成
 
-### 6.1 認証・認可
+#### ProposalService（修正案サービス）
+```python
+class ProposalService:
+    async def create_proposal(self, db: AsyncSession, *, proposal_data: RevisionCreate, proposer: User, approver_id: UUID) -> Revision:
+        """修正案作成（approver_id必須）"""
+        
+    async def submit_proposal(self, db: AsyncSession, *, revision_id: UUID, proposer: User) -> Revision:
+        """修正案提出（draft → submitted）"""
+        
+    async def withdraw_proposal(self, db: AsyncSession, *, revision_id: UUID, proposer: User) -> Revision:
+        """修正案撤回（submitted → draft）"""
+        
+    async def update_proposal(self, db: AsyncSession, *, revision_id: UUID, update_data: RevisionUpdate, proposer: User) -> Revision:
+        """修正案更新（draft状態のみ）"""
+        
+    async def validate_at_least_one_change(self, proposal_data: RevisionCreate, article: Article) -> bool:
+        """少なくとも1つの変更があることを検証"""
+```
 
-- **JWT トークンベース認証**: 既存実装済み
-- **RBAC（Role-Based Access Control）**: user/approver/admin
-- **修正案レベルでの細粒度アクセス制御**:
-  - 提案者：自分の修正案のみ操作可能
-  - 承認者：担当グループの修正案のみ承認可能
-  - 管理者：全修正案の操作・閲覧可能
+#### ApprovalService（承認サービス）
+```python
+class ApprovalService:
+    async def process_approval_decision(self, db: AsyncSession, *, revision_id: UUID, approver: User, decision: ApprovalDecision) -> Revision:
+        """承認・却下処理"""
+        
+    async def can_user_approve(self, revision: Revision, user: User) -> bool:
+        """ユーザーが承認可能かチェック"""
+        
+    async def get_approval_queue(self, db: AsyncSession, *, approver: User) -> List[Revision]:
+        """承認待ち一覧取得"""
+```
+
+#### DiffService（差分サービス）
+```python
+class DiffService:
+    async def generate_field_diff(self, db: AsyncSession, *, revision: Revision) -> Dict[str, FieldDiff]:
+        """フィールドレベル差分生成"""
+        
+    async def preview_changes(self, db: AsyncSession, *, revision_id: UUID) -> Dict[str, Any]:
+        """プレビュー用データ生成"""
+```
+
+### 4.2 ステータス遷移（実装済み）
+
+```
+draft ──┐
+        │ submit_proposal()
+        ▼
+    submitted ──┐
+        │       │ approve_proposal()
+        │       ├─────────────────► approved
+        │       │ reject_proposal()
+        │       ├─────────────────► rejected  
+        │       │ delete_proposal() (admin only)
+        │       └─────────────────► deleted
+        │ withdraw_proposal()
+        ▼
+    draft ◄─────┘
+```
+
+## 5. フロントエンド設計
+
+### 5.1 コンポーネント構成
+
+```
+/src
+├── components/
+│   ├── revision/
+│   │   ├── revision-list.tsx          # 修正案一覧
+│   │   ├── revision-form.tsx          # 修正案作成・編集フォーム
+│   │   ├── revision-detail.tsx        # 修正案詳細表示
+│   │   └── revision-status-badge.tsx  # ステータスバッジ
+│   ├── approval/
+│   │   ├── approval-queue.tsx         # 承認待ち一覧
+│   │   ├── approval-form.tsx          # 承認・却下フォーム
+│   │   └── approval-history.tsx       # 承認履歴
+│   ├── diff/
+│   │   ├── field-diff.tsx            # フィールド差分表示
+│   │   ├── diff-viewer.tsx           # 統合差分ビューアー
+│   │   └── change-summary.tsx        # 変更サマリー
+│   └── common/
+│       ├── data-table.tsx            # 汎用テーブル
+│       ├── status-filter.tsx         # ステータスフィルター
+│       └── permission-guard.tsx      # 権限制御コンポーネント
+```
+
+### 5.2 画面設計
+
+#### メイン画面
+- **ダッシュボード**: 自分の修正案・承認待ち案件の概要
+- **修正案一覧**: 権限に応じた修正案の表示・検索・フィルタリング
+- **修正案詳細**: 修正案の詳細情報と差分表示
+- **承認キュー**: 承認待ち案件の一覧（承認者のみ）
+
+#### データフロー
+```
+ユーザー操作
+    ↓
+Reactコンポーネント
+    ↓
+API Client (axios)
+    ↓
+FastAPI エンドポイント
+    ↓
+ビジネスロジック（Service）
+    ↓
+データアクセス（Repository）
+    ↓
+データベース（PostgreSQL）
+```
+
+## 6. セキュリティ設計（実装済み）
+
+### 6.1 認証・認可フロー
+```
+1. ユーザーログイン → JWT トークン発行
+2. API リクエスト → JWT トークン検証
+3. 権限チェック → ロール・承認グループベース制御
+4. リソースアクセス → 個別権限チェック
+```
 
 ### 6.2 データ保護
+- **入力検証**: Pydantic スキーマによる厳格な検証
+- **SQL インジェクション対策**: SQLAlchemy ORM使用
+- **XSS対策**: フロントエンド側でのサニタイゼーション
+- **CSRF対策**: トークンベース認証で防止
 
-- **入力データのサニタイゼーション**: XSS対策
-- **SQLインジェクション対策**: SQLAlchemy ORM使用
-- **CSRF対策**: トークンベース防止
-- **機密レベル分類**: 修正案内容に応じた暗号化保存
+## 7. パフォーマンス設計
 
-## 7. テスト戦略
+### 7.1 データベース最適化（実装済み）
+- **適切なインデックス**: 検索頻度の高いカラムにインデックス設定
+- **クエリ最適化**: SQLAlchemy によるN+1問題対策
+- **コネクションプール**: 非同期接続プールによる効率化
 
-### 7.1 単体テスト
+### 7.2 Redis活用（制約対応）
+```python
+# Redis 3.0.504 で利用可能な機能のみ使用
+- 基本操作: SET, GET, DEL, EXPIRE
+- Hash操作: HSET, HGET, HDEL  
+- List操作: LPUSH, RPUSH, LPOP, RPOP
+- 使用用途: セッション、カウンター、簡単なキャッシュ
+```
 
-- **カバレッジ目標**: 90%以上
-- **テストフレームワーク**: pytest 8.3.4 + pytest-asyncio 0.26.0
-- **モックとスタブ**: fakeredis 2.20.1, freezegun 1.4.0
-- **重点テスト項目**:
-  - ProposalServiceの状態遷移ロジック
-  - ApprovalServiceの権限制御
-  - バリデーション機能の境界値テスト
+## 8. エラーハンドリング設計（実装済み）
 
-### 7.2 統合テスト
+### 8.1 カスタム例外
+```python
+class ProposalNotFoundError(Exception): pass          # 404
+class ProposalPermissionError(Exception): pass       # 403  
+class ProposalStatusError(Exception): pass           # 400
+class ApprovalPermissionError(Exception): pass       # 403
+class ApprovalStatusError(Exception): pass           # 400
+```
 
-- **APIエンドポイントテスト**: httpx 0.28.1 + pytest
-- **データベース統合テスト**: aiosqlite 0.21.0 + alembic
-- **シナリオテスト**: 修正案提出→承認→完了の完全フロー
+### 8.2 エラーレスポンス標準化
+```json
+{
+  "detail": "エラーメッセージ",
+  "error_code": "PROPOSAL_NOT_FOUND",
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
 
-## 8. パフォーマンス最適化
+## 9. テスト設計
 
-### 8.1 想定される負荷
+### 9.1 テスト階層
+- **単体テスト**: Service、Repository、Utils の個別機能テスト
+- **統合テスト**: API エンドポイントのE2Eテスト
+- **機能テスト**: ビジネスフロー全体のシナリオテスト
 
-- **同時ユーザー数**: 100人
-- **修正案検索応答時間**: 3秒以内
-- **差分表示時間**: 5秒以内（大容量対応）
-- **データベース接続プール**: 20接続
+### 9.2 テストデータ管理
+```python
+# conftest.py でのフィクスチャ設計
+@pytest.fixture
+async def test_user() -> User:
+    """テスト用ユーザー"""
 
-### 8.2 最適化方針
+@pytest.fixture  
+async def test_revision() -> Revision:
+    """テスト用修正案"""
+```
 
-- **Redis 3.0.504制約対応**:
-  - 基本的なkey-value操作によるキャッシュ
-  - セッション情報のキャッシュ
-  - 通知カウントのキャッシュ
-- **PostgreSQL 17活用**:
-  - パーティションテーブル（時系列データ）
-  - 並列クエリ実行
-  - 適切なインデックス設計
-- **大容量コンテンツ対応**:
-  - 差分計算の非同期処理
-  - ページネーション実装
+## 10. デプロイメント設計
 
-## 9. デプロイメント
+### 10.1 Windows Server 2019 対応
+- **プロセス管理**: Windows Service化またはIIS統合
+- **設定管理**: 環境変数またはWindows資格情報マネージャー
+- **ログ管理**: Windows Event Logとの統合
 
-### 9.1 デプロイ構成
+### 10.2 CI/CD設計
+```yaml
+# GitHub Actions でのWindows対応
+- Windows runners使用
+- uv による依存関係管理
+- pytest による自動テスト
+- 環境別デプロイメント
+```
 
-- **ターゲット環境**: Windows Server 2019
-- **プロセス管理**: Windows Service または IIS統合
-- **CI/CD**: GitHub Actions（Windows runners）
-- **環境分離**: development / staging / production
+## 11. 実装上の重要な設計決定
 
-### 9.2 設定管理
+### 11.1 After-only設計の実装詳細
+```python
+# 差分生成アルゴリズム
+def generate_diff(article: Article, revision: Revision) -> Dict[str, FieldDiff]:
+    diffs = {}
+    for field in DIFFABLE_FIELDS:
+        current_value = getattr(article, field, None)
+        proposed_value = getattr(revision, f"after_{field}", None)
+        
+        if current_value != proposed_value:
+            diffs[field] = FieldDiff(
+                field_name=field,
+                current_value=current_value,
+                proposed_value=proposed_value,
+                change_type=determine_change_type(current_value, proposed_value)
+            )
+    return diffs
+```
 
-- **環境変数による設定外部化**: pydantic_settings使用
-- **機密情報管理**: Windows資格情報マネージャーまたは環境変数
-- **設定値バリデーション**: Pydanticスキーマ
-- **ログローテーション**: Windows Event Log統合
+### 11.2 承認者必須指定の実装
+```python
+# 修正案作成時のバリデーション
+class RevisionCreate(BaseModel):
+    target_article_id: str
+    approver_id: UUID  # 必須フィールド
+    reason: str
+    # ... after フィールド
+    
+    @validator('approver_id')
+    def validate_approver(cls, v, values):
+        # 承認者の権限チェックは Service層で実行
+        return v
+```
 
-## 10. 実装上の注意事項
+### 11.3 権限ベースクエリの実装
+```python
+async def get_revisions_for_user(db: AsyncSession, user: User) -> List[Revision]:
+    if user.role == "admin":
+        return await revision_repository.get_all(db)
+    elif user.role == "approver":
+        return await revision_repository.get_by_approval_group(db, user.approval_group_id)
+    else:
+        return await revision_repository.get_by_proposer(db, user.id)
+```
 
-### 10.1 Article IDの手入力対応
-- **現状**: 既にarticle_idは手入力で設定可能（自動生成なし）
-- **利点**: 既存システムとの連携で既存IDを使用可能
-- **注意点**: 重複チェックの実装が必要（API側で実装済み）
-
-### 10.2 Windows Server 2019固有対応
-- **パスセパレータ**: 適切なクロスプラットフォーム対応
-- **サービス化**: FastAPIアプリケーションのWindows Service化
-- **ファイルロック**: Windows特有のファイルロック動作への対応
-
-### 10.3 Redis 3.0.504制約
-- **使用可能機能**: 基本操作（SET/GET/DEL/HSET/HGET等）
-- **使用不可機能**: Streams、Modules、UNLINK等
-- **キャッシュ戦略**: シンプルなkey-value中心の設計
-
-### 10.4 SQLAlchemy 2.0対応
-- **型安全性**: Mapped/mapped_columnによる静的型チェック
-- **継承構造**: Baseクラスでのタイムスタンプ共通化
-- **関係性定義**: 前方参照文字列の適切な使用
-
-### 10.5 After-only設計
-- **差分表示**: 現在値は元記事から、修正後値は修正案から取得
-- **バリデーション**: at least one changeの検証
-- **プレビュー**: 元記事データとの合成表示
+これらの設計により、実装済みのシステムは要件を満たし、効率的で保守可能な構造を実現している。
