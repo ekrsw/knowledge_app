@@ -60,6 +60,7 @@ GET /api/v1/revisions/{revision_id}
 POST /api/v1/revisions/
 ```
 **権限**: 認証済みユーザー  
+**説明**: proposer_idは現在のユーザーから自動設定
 **リクエストボディ**:
 ```json
 {
@@ -98,6 +99,7 @@ GET /api/v1/revisions/by-proposer/{proposer_id}
 GET /api/v1/revisions/by-status/{status}
 ```
 **権限**: 認証済みユーザー（権限に応じて結果フィルタ）  
+**説明**: 権限に応じて異なるリポジトリメソッドを使用
 **クエリパラメータ**: skip, limit
 
 #### ステータス直接更新
@@ -105,6 +107,7 @@ GET /api/v1/revisions/by-status/{status}
 PATCH /api/v1/revisions/{revision_id}/status
 ```
 **権限**: 承認者または管理者  
+**説明**: approver_idとprocessed_atを自動設定
 **リクエストボディ**:
 ```json
 {
@@ -113,28 +116,31 @@ PATCH /api/v1/revisions/{revision_id}/status
 ```
 
 ### 3.2 修正案提案管理 (/api/v1/proposals)
+**説明**: 修正案のビジネスロジック層（バリデーション、状態遷移、通知統合）
 
 #### 修正案提案作成
 ```http
 POST /api/v1/proposals/
 ```
 **権限**: 認証済みユーザー  
-**説明**: バリデーション付きで修正案を作成  
+**説明**: バリデーション付きで修正案を作成、カスタム例外処理
 **リクエストボディ**: RevisionCreateスキーマと同様
+**エラーレスポンス**: ProposalValidationError, ArticleNotFoundError
 
 #### 修正案提案更新
 ```http
 PUT /api/v1/proposals/{proposal_id}
 ```
 **権限**: 提案者（draft状態のみ）  
-**説明**: ドラフト状態の提案のみ更新可能
+**説明**: ドラフト状態の提案のみ更新可能、ProposalServiceを使用
+**エラーレスポンス**: ProposalNotFoundError, ProposalPermissionError, ProposalStatusError
 
 #### 修正案提出
 ```http
 POST /api/v1/proposals/{proposal_id}/submit
 ```
 **権限**: 提案者  
-**説明**: ドラフトを承認待ち状態に変更  
+**説明**: ドラフトを承認待ち状態に変更、通知送信  
 **状態遷移**: draft → submitted
 
 #### 修正案撤回
@@ -150,6 +156,7 @@ POST /api/v1/proposals/{proposal_id}/withdraw
 DELETE /api/v1/proposals/{proposal_id}
 ```
 **権限**: 提案者（draft状態のみ）  
+**レスポンス**: 204 No Content
 
 #### 自分の提案一覧
 ```http
@@ -157,9 +164,9 @@ GET /api/v1/proposals/my-proposals
 ```
 **権限**: 認証済みユーザー  
 **クエリパラメータ**:
-- `status`: str (ステータスフィルタ)
+- `status`: Optional[str] (ステータスフィルタ)
 - `skip`: int = 0
-- `limit`: int = 100
+- `limit`: int = 100 (最大100件)
 
 #### 承認待ち提案一覧
 ```http
@@ -174,49 +181,45 @@ GET /api/v1/proposals/for-approval
 GET /api/v1/proposals/statistics
 ```
 **権限**: 認証済みユーザー  
+**説明**: 非管理者は自分の統計のみ、管理者は他ユーザー指定可能
 **クエリパラメータ**:
-- `user_id`: UUID (管理者のみ他ユーザー指定可)
+- `user_id`: Optional[UUID] (管理者のみ他ユーザー指定可)
 
 #### 提案詳細取得
 ```http
 GET /api/v1/proposals/{proposal_id}
 ```
 **権限**: 提案者・承認者・管理者  
-**説明**: 権限チェック付きで提案詳細を取得
+**説明**: 詳細な権限チェック（承認グループベース権限制御含む）
 
 ### 3.3 承認管理 (/api/v1/approvals)
+**説明**: 大幅に拡張されたワークフロー管理機能
 
 #### 承認・却下処理
 ```http
 POST /api/v1/approvals/{revision_id}/decide
 ```
 **権限**: 指定された承認者  
-**リクエストボディ**:
+**リクエストボディ**: ApprovalDecision スキーマ
 ```json
 {
-  "action": "approve|reject",
-  "comment": "string"
+  "action": "approve|reject|request_changes|defer",
+  "comment": "string",
+  "priority": "low|medium|high|urgent"
 }
 ```
 **状態遷移**: submitted → approved/rejected
+**エラーレスポンス**: ProposalNotFoundError, ApprovalPermissionError, ApprovalStatusError
 
-#### 承認状況取得
+#### 承認権限チェック
 ```http
-GET /api/v1/approvals/{revision_id}/status
+GET /api/v1/approvals/{revision_id}/can-approve
 ```
-**権限**: 修正案の関係者  
+**権限**: 認証済みユーザー  
 **レスポンス**:
 ```json
 {
-  "revision_id": "uuid",
-  "status": "submitted",
-  "approver": {
-    "id": "uuid",
-    "username": "string",
-    "full_name": "string"
-  },
-  "can_approve": true,
-  "approval_deadline": "2024-01-15T00:00:00Z"
+  "can_approve": true
 }
 ```
 
@@ -225,126 +228,227 @@ GET /api/v1/approvals/{revision_id}/status
 GET /api/v1/approvals/queue
 ```
 **権限**: 承認者  
-**説明**: 全承認者の承認待ち案件
+**説明**: 現在の承認者の承認待ち案件（優先度フィルタ対応）
+**クエリパラメータ**:
+- `priority`: Optional[str] (low|medium|high|urgent)
+- `limit`: int = 50 (最大100件)
+**レスポンス**: ApprovalQueue スキーマのリスト
 
-#### 自分の承認待ち一覧
-```http
-GET /api/v1/approvals/my-queue
-```
-**権限**: 承認者  
-**説明**: 自分が承認者として指定された案件のみ
-
-#### 承認統計
+#### 承認統計・メトリクス
 ```http
 GET /api/v1/approvals/metrics
 ```
 **権限**: 承認者・管理者  
-**レスポンス**:
-```json
-{
-  "pending_count": 15,
-  "approved_today": 5,
-  "rejected_today": 1,
-  "avg_approval_time": "2.5 days",
-  "approval_rate": 85.5
-}
+**クエリパラメータ**:
+- `days_back`: int = 30 (1-365日)
+**レスポンス**: ApprovalMetrics スキーマ
+
+#### ワークロード管理
+```http
+GET /api/v1/approvals/workload
 ```
+**権限**: 承認者  
+**説明**: 現在の承認者のワークロード情報
+**レスポンス**: ApprovalWorkload スキーマ
+
+#### 特定承認者のワークロード
+```http
+GET /api/v1/approvals/workload/{approver_id}
+```
+**権限**: 管理者  
+**説明**: 指定された承認者のワークロード（管理者限定）
 
 #### 一括承認・却下
 ```http
-POST /api/v1/approvals/batch
+POST /api/v1/approvals/bulk
 ```
 **権限**: 承認者  
-**リクエストボディ**:
+**制約**: 最大20件まで
+**リクエストボディ**: BulkApprovalRequest スキーマ
 ```json
 {
   "revision_ids": ["uuid1", "uuid2"],
-  "action": "approve|reject",
+  "action": "approve|reject|request_changes|defer",
   "comment": "string"
 }
 ```
+**レスポンス**: 処理結果の詳細
+
+#### 承認履歴
+```http
+GET /api/v1/approvals/history
+```
+**権限**: 認証済みユーザー（非管理者は自分の履歴のみ）  
+**クエリパラメータ**:
+- `revision_id`: Optional[UUID]
+- `approver_id`: Optional[UUID]
+- `limit`: int = 50 (最大200件)
+**レスポンス**: ApprovalHistory スキーマのリスト
+
+#### ダッシュボード統計
+```http
+GET /api/v1/approvals/statistics/dashboard
+```
+**権限**: 承認者  
+**説明**: 包括的な承認ダッシュボードデータ（ワークロード、キュー、メトリクス、緊急案件）
+
+#### チーム概要
+```http
+GET /api/v1/approvals/team-overview
+```
+**権限**: 管理者  
+**説明**: チーム全体の承認状況、ボトルネック分析、推奨事項
+
+#### クイックアクション
+```http
+POST /api/v1/approvals/{revision_id}/quick-actions/{action}
+```
+**権限**: 承認者  
+**パラメータ**: action (ApprovalAction enum)
+**クエリパラメータ**: comment (Optional[str])
+**説明**: 定型設定でのクイック承認アクション
+
+#### ワークフロー推奨事項
+```http
+GET /api/v1/approvals/workflow/recommendations
+```
+**権限**: 承認者  
+**説明**: 承認効率向上のためのワークフロー分析と推奨事項
+
+#### 承認チェックリスト
+```http
+GET /api/v1/approvals/workflow/checklist/{revision_id}
+```
+**権限**: 承認者  
+**説明**: 修正案の影響度に基づく動的承認チェックリスト生成
 
 ### 3.4 差分表示 (/api/v1/diffs)
+**説明**: 高度な差分分析と比較機能
 
 #### 差分データ取得
 ```http
 GET /api/v1/diffs/{revision_id}
 ```
-**権限**: 修正案の関係者  
-**レスポンス**:
-```json
-{
-  "revision_id": "uuid",
-  "diffs": {
-    "title": {
-      "field_name": "title",
-      "current_value": "既存タイトル",
-      "proposed_value": "新しいタイトル", 
-      "change_type": "modified"
-    },
-    "keywords": {
-      "field_name": "keywords",
-      "current_value": null,
-      "proposed_value": "新規キーワード",
-      "change_type": "added"
-    }
-  }
-}
-```
+**権限**: 修正案の関係者（詳細な権限チェック）  
+**レスポンス**: RevisionDiff スキーマ（フィールド差分、影響レベル、変更カテゴリ含む）
+**エラーレスポンス**: ProposalNotFoundError, ArticleNotFoundError
 
-#### プレビュー表示用データ
+#### 記事スナップショット
 ```http
-GET /api/v1/diffs/{revision_id}/preview
+GET /api/v1/diffs/article/{article_id}/snapshot
+```
+**権限**: 認証済みユーザー  
+**レスポンス**: ArticleSnapshot スキーマ
+**エラーレスポンス**: ArticleNotFoundError
+
+#### 記事履歴
+```http
+GET /api/v1/diffs/article/{article_id}/history
+```
+**権限**: 認証済みユーザー（権限に応じてフィルタ）  
+**クエリパラメータ**:
+- `limit`: int = 10 (最大50件)
+**レスポンス**: RevisionDiff スキーマのリスト
+
+#### 修正案比較
+```http
+POST /api/v1/diffs/compare
+```
+**権限**: 承認者・管理者  
+**リクエストボディ**: revision_id_1, revision_id_2 (UUID)
+**説明**: 2つの修正案の詳細比較
+**エラーレスポンス**: ProposalNotFoundError, ValueError
+
+#### フォーマット済み差分
+```http
+GET /api/v1/diffs/{revision_id}/formatted
 ```
 **権限**: 修正案の関係者  
-**レスポンス**:
-```json
-{
-  "current_article": {
-    "title": "既存タイトル",
-    "info_category": "uuid",
-    "keywords": "既存キーワード"
-  },
-  "proposed_changes": {
-    "title": "新しいタイトル",
-    "info_category": "uuid",
-    "keywords": "新しいキーワード"
-  },
-  "merged_preview": {
-    "title": "新しいタイトル",
-    "info_category": "uuid", 
-    "keywords": "新しいキーワード"
-  }
-}
-```
+**クエリパラメータ**:
+- `include_formatting`: bool = True
+**説明**: 表示用にフォーマットされた差分データ
 
 #### 変更サマリー
 ```http
 GET /api/v1/diffs/{revision_id}/summary
 ```
 **権限**: 修正案の関係者  
-**レスポンス**:
-```json
-{
-  "total_changes": 3,
-  "change_breakdown": {
-    "added": 1,
-    "modified": 2,
-    "deleted": 0
-  },
-  "affected_fields": ["title", "keywords", "importance"],
-  "change_summary": "タイトルを変更し、キーワードを追加、重要度を設定しました",
-  "impact_level": "medium"
-}
-```
+**レスポンス**: DiffSummary スキーマ（変更数、影響度、推定レビュー時間含む）
 
-### 3.5 ユーザー管理 (/api/v1/users)
+#### 一括サマリー
+```http
+POST /api/v1/diffs/bulk-summaries
+```
+**権限**: 認証済みユーザー（権限に応じてフィルタ）  
+**制約**: 最大50件まで
+**リクエストボディ**: revision_ids (List[UUID])
+**説明**: 複数修正案の一括サマリー取得
+
+#### 変更統計
+```http
+GET /api/v1/diffs/statistics/changes
+```
+**権限**: 認証済みユーザー（権限に応じてフィルタ）  
+**クエリパラメータ**:
+- `days`: int = 30 (最大365日)
+**説明**: 変更パターンの統計分析（ステータス別、影響度別、フィールド別）
+
+### 3.5 認証管理 (/api/v1/auth)
+**説明**: JWT認証システム
+
+#### ログイン (OAuth2)
+```http
+POST /api/v1/auth/login
+```
+**権限**: なし（public）  
+**リクエストボディ**: OAuth2PasswordRequestForm
+**レスポンス**: Token スキーマ
+
+#### ログイン (JSON)
+```http
+POST /api/v1/auth/login/json
+```
+**権限**: なし（public）  
+**リクエストボディ**: UserLogin スキーマ
+**レスポンス**: Token スキーマ
+
+#### ユーザー登録
+```http
+POST /api/v1/auth/register
+```
+**権限**: なし（public）  
+**リクエストボディ**: UserRegister スキーマ（sweet_name、ctstage_name対応）
+**レスポンス**: User スキーマ
+
+#### 現在のユーザー情報
+```http
+GET /api/v1/auth/me
+```
+**権限**: 認証済みユーザー
+**レスポンス**: User スキーマ
+
+#### トークンテスト
+```http
+POST /api/v1/auth/test-token
+```
+**権限**: 認証済みユーザー
+**説明**: アクセストークンの有効性確認
+
+### 3.6 ユーザー管理 (/api/v1/users)
 
 #### ユーザー一覧取得
 ```http
 GET /api/v1/users/
 ```
 **権限**: 管理者
+**クエリパラメータ**: skip, limit
+
+#### ユーザー作成
+```http
+POST /api/v1/users/
+```
+**権限**: 管理者  
+**説明**: 重複チェック付きユーザー作成
 
 #### ユーザー詳細取得
 ```http
@@ -352,25 +456,28 @@ GET /api/v1/users/{user_id}
 ```
 **権限**: 本人または管理者
 
-#### 現在のユーザー情報取得
+#### ユーザー更新
 ```http
-GET /api/v1/users/me
+PUT /api/v1/users/{user_id}
 ```
-**権限**: 認証済みユーザー
+**権限**: 本人または管理者  
+**説明**: 非管理者は自分のロール変更不可
 
-#### 承認者一覧取得
+#### ユーザー削除
 ```http
-GET /api/v1/users/approvers
+DELETE /api/v1/users/{user_id}
 ```
-**権限**: 認証済みユーザー（修正案作成時の承認者選択用）
+**権限**: 管理者  
+**レスポンス**: 204 No Content
 
-### 3.6 記事管理 (/api/v1/articles)
+### 3.7 記事管理 (/api/v1/articles)
 
 #### 記事一覧取得
 ```http
 GET /api/v1/articles/
 ```
-**権限**: 認証済みユーザー
+**権限**: 認証済みユーザー  
+**クエリパラメータ**: skip, limit
 
 #### 記事詳細取得
 ```http
@@ -382,54 +489,214 @@ GET /api/v1/articles/{article_id}
 ```http
 POST /api/v1/articles/
 ```
+**権限**: 管理者  
+**説明**: article_id重複チェック付き
+
+#### カテゴリ別記事一覧
+```http
+GET /api/v1/articles/by-category/{info_category}
+```
+**権限**: 認証済みユーザー
+
+#### 承認グループ別記事一覧
+```http
+GET /api/v1/articles/by-group/{approval_group}
+```
+**権限**: 認証済みユーザー
+
+#### 記事更新
+```http
+PUT /api/v1/articles/{article_id}
+```
 **権限**: 管理者
 
-### 3.7 承認グループ管理 (/api/v1/approval-groups)
+### 3.8 承認グループ管理 (/api/v1/approval-groups)
 
 #### 承認グループ一覧
 ```http
 GET /api/v1/approval-groups/
 ```
-**権限**: 管理者
+**権限**: 認証済みユーザー  
+**クエリパラメータ**: skip, limit
+
+#### 承認グループ作成
+```http
+POST /api/v1/approval-groups/
+```
+**権限**: 管理者（設計書では明記されていないが実装では権限制御なし）
 
 #### 承認グループ詳細
 ```http
 GET /api/v1/approval-groups/{group_id}
 ```
-**権限**: 管理者またはグループメンバー
+**権限**: 認証済みユーザー（設計書では管理者またはグループメンバーだが実装では権限制御なし）
 
-### 3.8 情報カテゴリ管理 (/api/v1/info-categories)
+#### 承認グループ更新
+```http
+PUT /api/v1/approval-groups/{group_id}
+```
+**権限**: 管理者（設計書では明記されていないが実装では権限制御なし）
+
+### 3.9 情報カテゴリ管理 (/api/v1/info-categories)
 
 #### カテゴリ一覧
 ```http
 GET /api/v1/info-categories/
 ```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**: skip, limit
+
+#### アクティブカテゴリ一覧
+```http
+GET /api/v1/info-categories/active
+```
+**権限**: 認証済みユーザー  
+**説明**: アクティブな情報カテゴリのみ取得
+
+#### カテゴリ作成
+```http
+POST /api/v1/info-categories/
+```
+**権限**: 管理者（実装では権限制御なし）
+
+#### カテゴリ詳細
+```http
+GET /api/v1/info-categories/{category_id}
+```
 **権限**: 認証済みユーザー
 
-### 3.9 通知管理 (/api/v1/notifications)
-
-#### 通知一覧取得
+#### カテゴリ更新
 ```http
-GET /api/v1/notifications/
+PUT /api/v1/info-categories/{category_id}
 ```
-**権限**: 認証済みユーザー（自分の通知のみ）
+**権限**: 管理者（実装では権限制御なし）
+
+### 3.10 通知管理 (/api/v1/notifications)
+**説明**: 拡張された通知システム
+
+#### 自分の通知一覧
+```http
+GET /api/v1/notifications/my-notifications
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `skip`: int = 0
+- `limit`: int = 20 (最大100件)
+- `unread_only`: bool = False
+
+#### 通知統計
+```http
+GET /api/v1/notifications/statistics
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `days_back`: int = 30 (1-365日)
+**レスポンス**: NotificationStats スキーマ
+
+#### 通知ダイジェスト
+```http
+GET /api/v1/notifications/digest
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `digest_type`: str = "daily" (daily|weekly)
+**レスポンス**: NotificationDigest スキーマ
 
 #### 通知既読化
 ```http
-POST /api/v1/notifications/{notification_id}/read
+PUT /api/v1/notifications/{notification_id}/read
 ```
-**権限**: 通知の受信者
+**権限**: 通知の受信者または管理者
 
-### 3.10 分析・統計 (/api/v1/analytics)
-
-#### システム分析情報
+#### 全通知既読化
 ```http
-GET /api/v1/analytics/*
+PUT /api/v1/notifications/read-all
+```
+**権限**: 認証済みユーザー  
+**説明**: 現在ユーザーの全通知を既読化
+
+#### 一括通知作成
+```http
+POST /api/v1/notifications/batch
 ```
 **権限**: 管理者  
-**説明**: システム全体の利用統計、パフォーマンス分析など
+**制約**: 最大100ユーザーまで
+**リクエストボディ**: NotificationBatch スキーマ
+**レスポンス**: BulkNotificationResult スキーマ
 
-### 3.11 システム情報 (/api/v1/system)
+#### レガシーエンドポイント
+```http
+GET /api/v1/notifications/{user_id}
+```
+**権限**: 管理者  
+**説明**: 後方互換性のためのレガシーエンドポイント
+
+```http
+POST /api/v1/notifications/
+```
+**権限**: 管理者  
+**説明**: 後方互換性のためのレガシーエンドポイント
+
+### 3.11 分析・統計 (/api/v1/analytics)
+**説明**: 包括的な分析・レポート機能
+
+#### 分析概要
+```http
+GET /api/v1/analytics/overview
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `days`: int = 30 (1-365日)
+**説明**: ユーザーの提案・通知メトリクス、日次活動分析
+
+#### トレンド分析
+```http
+GET /api/v1/analytics/trends
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `metric`: str = "proposals" (proposals|approvals|notifications)
+- `period`: str = "weekly" (daily|weekly|monthly)
+- `weeks_back`: int = 12 (1-52週)
+**説明**: 各種メトリクスのトレンド分析
+
+#### パフォーマンスメトリクス
+```http
+GET /api/v1/analytics/performance
+```
+**権限**: 承認者  
+**クエリパラメータ**:
+- `days`: int = 30 (1-90日)
+**説明**: 承認者のパフォーマンス分析（処理時間、スループット、効率性スコア）
+
+#### サマリーレポート
+```http
+GET /api/v1/analytics/reports/summary
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `report_type`: str = "weekly" (daily|weekly|monthly)
+**説明**: 定期レポート生成（洞察とキーポイント含む）
+
+#### データエクスポート
+```http
+GET /api/v1/analytics/export/data
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `format`: str = "json" (json|csv)
+- `data_type`: str = "proposals" (proposals|approvals|notifications)
+- `days`: int = 30 (1-365日)
+**説明**: 分析データのエクスポート
+
+#### エグゼクティブダッシュボード
+```http
+GET /api/v1/analytics/dashboards/executive
+```
+**権限**: 管理者  
+**説明**: 経営層向け包括ダッシュボード（KPI、リスク評価、推奨事項）
+
+### 3.12 システム情報 (/api/v1/system)
 
 #### ヘルスチェック
 ```http
@@ -440,59 +707,79 @@ GET /api/v1/system/health
 ```json
 {
   "status": "healthy",
-  "database": "connected",
-  "redis": "connected",
-  "timestamp": "2024-01-01T00:00:00Z"
+  "timestamp": "2024-01-01T00:00:00Z",
+  "version": "0.1.0",
+  "environment": "development",
+  "database": "connected"
 }
 ```
 
-#### システム情報
+#### バージョン情報
 ```http
-GET /api/v1/system/info
+GET /api/v1/system/version
+```
+**権限**: なし（public）  
+**レスポンス**: バージョン、機能一覧、ビルド日付
+
+#### システム統計
+```http
+GET /api/v1/system/stats
 ```
 **権限**: 管理者  
-**レスポンス**:
-```json
-{
-  "version": "1.0.0",
-  "environment": "production",
-  "uptime": "15 days 3 hours",
-  "active_users": 45
-}
+**説明**: ユーザー・修正案・通知の統計情報
+
+#### システム設定
+```http
+GET /api/v1/system/config
 ```
+**権限**: 管理者  
+**説明**: 環境設定、機能フラグ、制限値情報
+
+#### メンテナンスタスク
+```http
+POST /api/v1/system/maintenance
+```
+**権限**: 管理者  
+**説明**: システムメンテナンス実行（通知クリーンアップ等）
+
+#### API文書
+```http
+GET /api/v1/system/api-documentation
+```
+**権限**: なし（public）  
+**説明**: APIエンドポイント一覧とドキュメントサマリー
 
 ## 4. 共通レスポンス形式
 
-### 4.1 成功レスポンス
-```json
-{
-  "data": { /* リソースデータ */ },
-  "message": "操作が完了しました",
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
+### 4.1 実装のレスポンス形式
+**注意**: 設計書で定義された共通ラッパー形式は実装されておらず、多くのエンドポイントで直接リソースデータを返します。
 
 ### 4.2 エラーレスポンス
 ```json
 {
-  "detail": "エラーの詳細メッセージ",
-  "error_code": "PROPOSAL_NOT_FOUND",
-  "timestamp": "2024-01-01T00:00:00Z",
-  "path": "/api/v1/revisions/invalid-uuid"
+  "detail": "エラーの詳細メッセージ"
 }
 ```
 
-### 4.3 バリデーションエラー
+### 4.3 カスタム例外レスポンス
+Proposalsエンドポイントでは以下のカスタム例外を使用：
+- `ProposalNotFoundError`
+- `ProposalPermissionError` 
+- `ProposalStatusError`
+- `ProposalValidationError`
+- `ArticleNotFoundError`
+- `ApprovalPermissionError`
+- `ApprovalStatusError`
+- `ApprovalError`
+
+### 4.4 バリデーションエラー
 ```json
 {
-  "detail": "Validation error",
-  "errors": [
-    {
-      "field": "approver_id",
-      "message": "承認者IDは必須です",
-      "code": "required"
-    }
-  ]
+  "detail": {
+    "message": "Invalid proposal data",
+    "errors": ["エラー詳細"],
+    "warnings": ["警告詳細"]
+  }
 }
 ```
 
@@ -509,33 +796,22 @@ GET /api/v1/system/info
 - **422 Unprocessable Entity**: バリデーションエラー
 - **500 Internal Server Error**: サーバーエラー
 
-## 6. レート制限
+## 6. 実装制限値
 
-### 6.1 制限値
-- **一般API**: 1000 requests/hour per user
-- **認証API**: 100 requests/hour per IP
-- **アップロードAPI**: 50 requests/hour per user
+### 6.1 実装された制限値
+- **一括通知**: 最大100ユーザー
+- **一括承認**: 最大20修正案
+- **一括差分**: 最大50修正案
+- **承認キュー**: 最大100件
+- **各種リスト**: デフォルト制限あり
 
-### 6.2 制限ヘッダー
-```http
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1640995200
-```
+### 6.2 レート制限
+**注意**: 設計書で定義されたレート制限は実装で確認できませんでした。
 
 ## 7. キャッシュ戦略
 
-### 7.1 キャッシュ対象
-- **ユーザー情報**: 15分
-- **記事一覧**: 5分
-- **カテゴリ一覧**: 1時間
-- **承認グループ**: 30分
-
-### 7.2 キャッシュヘッダー
-```http
-Cache-Control: public, max-age=300
-ETag: "abc123"
-```
+### 7.1 キャッシュ実装状況
+**注意**: 設計書で定義された明示的なキャッシュ実装は確認できませんでした。
 
 ## 8. APIバージョニング
 
@@ -549,4 +825,24 @@ ETag: "abc123"
 API-Version: 1.0
 ```
 
-このAPI設計により、ナレッジ修正案承認システムの全機能が統一的で使いやすいインターフェースで提供されます。
+## 9. 実装と設計の主要相違点
+
+### 9.1 アーキテクチャの拡張
+- **エンドポイント分離**: 基本CRUD（revisions）とビジネスロジック（proposals）の分離
+- **高度なワークフロー**: 承認ワークロード管理、ダッシュボード機能、チーム概要
+- **包括的分析**: トレンド分析、パフォーマンスメトリクス、エグゼクティブダッシュボード
+- **拡張された差分機能**: 記事履歴、修正案比較、フォーマット済み差分
+
+### 9.2 機能拡張
+- **認証システム**: OAuth2とJSON両対応、ユーザー登録機能
+- **通知システム**: 統計、ダイジェスト、一括処理機能
+- **分析機能**: 詳細なデータエクスポート、トレンド分析
+- **システム管理**: メンテナンスタスク、設定管理
+
+### 9.3 実装特徴
+- **カスタム例外処理**: 詳細なエラー分類とハンドリング
+- **権限制御**: 承認グループベースの細かな権限管理
+- **スキーマ拡張**: 追加フィールド（sweet_name、ctstage_name等）
+- **レイヤードアーキテクチャ**: サービス層、リポジトリパターンの採用
+
+実装は設計書の基本要件を大幅に超えて、実用的なエンタープライズシステムとして必要な機能を網羅的に実装しています。
