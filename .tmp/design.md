@@ -159,35 +159,16 @@ CREATE TABLE revisions (
 
 ## 3. API設計（実装済み）
 
-### 3.1 RESTful エンドポイント
+### 3.1 API設計詳細
 
-#### 修正案管理 (/api/v1/revisions)
-```python
-GET    /api/v1/revisions/                    # 修正案一覧（権限ベース表示）
-GET    /api/v1/revisions/{revision_id}       # 修正案詳細取得
-POST   /api/v1/revisions/                    # 修正案作成
-PUT    /api/v1/revisions/{revision_id}       # 修正案更新（draft状態のみ）
-DELETE /api/v1/revisions/{revision_id}       # 修正案削除（draft状態のみ）
-POST   /api/v1/revisions/{revision_id}/submit    # 修正案提出（draft→submitted）
-POST   /api/v1/revisions/{revision_id}/withdraw  # 修正案撤回（submitted→draft）
-```
+**詳細なAPI仕様は別ファイルを参照**: `api_design.md`
 
-#### 承認管理 (/api/v1/approvals)
-```python
-POST   /api/v1/approvals/{revision_id}/decide     # 承認・却下処理
-GET    /api/v1/approvals/{revision_id}/status     # 承認状況取得
-GET    /api/v1/approvals/queue                    # 承認待ち一覧
-GET    /api/v1/approvals/my-queue                 # 自分の承認待ち一覧
-GET    /api/v1/approvals/metrics                  # 承認統計
-POST   /api/v1/approvals/batch                    # 一括承認・却下
-```
-
-#### 差分表示 (/api/v1/diffs)
-```python
-GET    /api/v1/diffs/{revision_id}           # 差分データ取得
-GET    /api/v1/diffs/{revision_id}/preview   # プレビュー表示用データ
-GET    /api/v1/diffs/{revision_id}/summary   # 変更サマリー
-```
+主要エンドポイント:
+- 修正案管理: `/api/v1/revisions/*`
+- 承認管理: `/api/v1/approvals/*`
+- 差分表示: `/api/v1/diffs/*`
+- ユーザー管理: `/api/v1/users/*`
+- その他管理系: `/api/v1/articles/*`, `/api/v1/approval-groups/*`, etc.
 
 ### 3.2 認証・認可（実装済み）
 
