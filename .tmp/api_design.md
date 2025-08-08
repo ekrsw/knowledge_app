@@ -45,30 +45,8 @@ GET /api/v1/revisions/
 **クエリパラメータ**:
 - `skip`: int = 0 (オフセット)
 - `limit`: int = 100 (取得件数)
-- `status`: str (ステータスフィルタ)
-- `proposer_id`: UUID (提出者フィルタ、管理者のみ)
 
-**レスポンス**:
-```json
-{
-  "items": [
-    {
-      "revision_id": "uuid",
-      "target_article_id": "string",
-      "proposer_id": "uuid",
-      "approver_id": "uuid",
-      "status": "draft|submitted|approved|rejected|deleted",
-      "reason": "string",
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z",
-      "processed_at": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "total": 150,
-  "skip": 0,
-  "limit": 100
-}
-```
+**レスポンス**: 修正案オブジェクトの配列
 
 #### 修正案詳細取得
 ```http
@@ -108,27 +86,105 @@ PUT /api/v1/revisions/{revision_id}
 **権限**: 修正案の提出者（draft状態のみ）  
 **制約**: ステータスが'draft'の場合のみ更新可能
 
-#### 修正案削除
+#### 提案者別修正案取得
 ```http
-DELETE /api/v1/revisions/{revision_id}
+GET /api/v1/revisions/by-proposer/{proposer_id}
 ```
-**権限**: 修正案の提出者または管理者（draft状態のみ）  
+**権限**: 管理者または本人  
+**クエリパラメータ**: skip, limit
+
+#### ステータス別修正案取得
+```http
+GET /api/v1/revisions/by-status/{status}
+```
+**権限**: 認証済みユーザー（権限に応じて結果フィルタ）  
+**クエリパラメータ**: skip, limit
+
+#### ステータス直接更新
+```http
+PATCH /api/v1/revisions/{revision_id}/status
+```
+**権限**: 承認者または管理者  
+**リクエストボディ**:
+```json
+{
+  "status": "submitted|approved|rejected|deleted"
+}
+```
+
+### 3.2 修正案提案管理 (/api/v1/proposals)
+
+#### 修正案提案作成
+```http
+POST /api/v1/proposals/
+```
+**権限**: 認証済みユーザー  
+**説明**: バリデーション付きで修正案を作成  
+**リクエストボディ**: RevisionCreateスキーマと同様
+
+#### 修正案提案更新
+```http
+PUT /api/v1/proposals/{proposal_id}
+```
+**権限**: 提案者（draft状態のみ）  
+**説明**: ドラフト状態の提案のみ更新可能
 
 #### 修正案提出
 ```http
-POST /api/v1/revisions/{revision_id}/submit
+POST /api/v1/proposals/{proposal_id}/submit
 ```
-**権限**: 修正案の提出者  
+**権限**: 提案者  
+**説明**: ドラフトを承認待ち状態に変更  
 **状態遷移**: draft → submitted
 
 #### 修正案撤回
 ```http
-POST /api/v1/revisions/{revision_id}/withdraw
+POST /api/v1/proposals/{proposal_id}/withdraw
 ```
-**権限**: 修正案の提出者  
+**権限**: 提案者  
+**説明**: 提出済みをドラフト状態に戻す  
 **状態遷移**: submitted → draft
 
-### 3.2 承認管理 (/api/v1/approvals)
+#### 修正案削除
+```http
+DELETE /api/v1/proposals/{proposal_id}
+```
+**権限**: 提案者（draft状態のみ）  
+
+#### 自分の提案一覧
+```http
+GET /api/v1/proposals/my-proposals
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `status`: str (ステータスフィルタ)
+- `skip`: int = 0
+- `limit`: int = 100
+
+#### 承認待ち提案一覧
+```http
+GET /api/v1/proposals/for-approval
+```
+**権限**: 承認者  
+**説明**: 自分が承認者として指定された提案一覧
+**クエリパラメータ**: skip, limit
+
+#### 提案統計
+```http
+GET /api/v1/proposals/statistics
+```
+**権限**: 認証済みユーザー  
+**クエリパラメータ**:
+- `user_id`: UUID (管理者のみ他ユーザー指定可)
+
+#### 提案詳細取得
+```http
+GET /api/v1/proposals/{proposal_id}
+```
+**権限**: 提案者・承認者・管理者  
+**説明**: 権限チェック付きで提案詳細を取得
+
+### 3.3 承認管理 (/api/v1/approvals)
 
 #### 承認・却下処理
 ```http
@@ -208,7 +264,7 @@ POST /api/v1/approvals/batch
 }
 ```
 
-### 3.3 差分表示 (/api/v1/diffs)
+### 3.4 差分表示 (/api/v1/diffs)
 
 #### 差分データ取得
 ```http
@@ -282,7 +338,7 @@ GET /api/v1/diffs/{revision_id}/summary
 }
 ```
 
-### 3.4 ユーザー管理 (/api/v1/users)
+### 3.5 ユーザー管理 (/api/v1/users)
 
 #### ユーザー一覧取得
 ```http
@@ -308,7 +364,7 @@ GET /api/v1/users/approvers
 ```
 **権限**: 認証済みユーザー（修正案作成時の承認者選択用）
 
-### 3.5 記事管理 (/api/v1/articles)
+### 3.6 記事管理 (/api/v1/articles)
 
 #### 記事一覧取得
 ```http
@@ -328,7 +384,7 @@ POST /api/v1/articles/
 ```
 **権限**: 管理者
 
-### 3.6 承認グループ管理 (/api/v1/approval-groups)
+### 3.7 承認グループ管理 (/api/v1/approval-groups)
 
 #### 承認グループ一覧
 ```http
@@ -342,7 +398,7 @@ GET /api/v1/approval-groups/{group_id}
 ```
 **権限**: 管理者またはグループメンバー
 
-### 3.7 情報カテゴリ管理 (/api/v1/info-categories)
+### 3.8 情報カテゴリ管理 (/api/v1/info-categories)
 
 #### カテゴリ一覧
 ```http
@@ -350,7 +406,7 @@ GET /api/v1/info-categories/
 ```
 **権限**: 認証済みユーザー
 
-### 3.8 通知管理 (/api/v1/notifications)
+### 3.9 通知管理 (/api/v1/notifications)
 
 #### 通知一覧取得
 ```http
@@ -364,7 +420,16 @@ POST /api/v1/notifications/{notification_id}/read
 ```
 **権限**: 通知の受信者
 
-### 3.9 システム情報 (/api/v1/system)
+### 3.10 分析・統計 (/api/v1/analytics)
+
+#### システム分析情報
+```http
+GET /api/v1/analytics/*
+```
+**権限**: 管理者  
+**説明**: システム全体の利用統計、パフォーマンス分析など
+
+### 3.11 システム情報 (/api/v1/system)
 
 #### ヘルスチェック
 ```http
