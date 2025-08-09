@@ -82,31 +82,114 @@ graph TB
 
 ### 2.1 エンティティ関係図
 
-```
-Users ─┐
-       │  ┌── approval_group_id
-       │  │
-       ├──┼── ApprovalGroups
-       │  │
-       │  └── group_id ──┐
-       │                │
-       │                ├── Articles (approval_group)
-       │                │
-       ├── id (proposer_id) ──┐
-       │                      │
-       ├── id (approver_id) ──┼── Revisions
-       │                      │    │
-       │                      │    ├── target_article_id (not FK)
-       │                      │    │
-       │                      │    └── after_info_category ──┐
-       │                      │                              │
-       └── id (user_id) ──────┼── SimpleNotifications        │
-                              │    │                         │
-                              │    └── revision_id           │
-                              │                              │
-                              └──────────────────────────────┼── InfoCategories
-                                                             │
-                                 Articles (info_category) ───┘
+```mermaid
+erDiagram
+    %% ユーザー管理
+    Users {
+        UUID id PK
+        string username UK
+        string email UK
+        string password_hash
+        string full_name
+        string sweet_name UK
+        string ctstage_name UK
+        string role
+        UUID approval_group_id FK
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% 承認グループ
+    ApprovalGroups {
+        UUID group_id PK
+        string group_name UK
+        string description
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% 情報カテゴリ
+    InfoCategories {
+        UUID category_id PK
+        string category_name UK
+        string description
+        integer display_order
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% 記事管理
+    Articles {
+        string article_id PK
+        string title
+        UUID info_category FK
+        string keywords
+        boolean importance
+        date publish_start
+        date publish_end
+        string target
+        text question
+        text answer
+        text additional_comment
+        UUID approval_group FK
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% 修正案管理（コアテーブル）
+    Revisions {
+        UUID revision_id PK
+        string target_article_id
+        UUID proposer_id FK
+        UUID approver_id FK
+        text after_title
+        UUID after_info_category FK
+        text after_keywords
+        boolean after_importance
+        date after_publish_start
+        date after_publish_end
+        string after_target
+        text after_question
+        text after_answer
+        text after_additional_comment
+        text reason
+        string status
+        timestamp processed_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% 通知管理
+    SimpleNotifications {
+        UUID notification_id PK
+        UUID user_id FK
+        UUID revision_id FK
+        string notification_type
+        string title
+        text message
+        boolean is_read
+        timestamp created_at
+        timestamp read_at
+    }
+
+    %% リレーションシップ
+    Users ||--o{ Revisions : "proposer_id"
+    Users ||--o{ Revisions : "approver_id"
+    Users ||--o{ SimpleNotifications : "user_id"
+    Users }o--|| ApprovalGroups : "approval_group_id"
+    
+    ApprovalGroups ||--o{ Articles : "approval_group"
+    
+    InfoCategories ||--o{ Articles : "info_category"
+    InfoCategories ||--o{ Revisions : "after_info_category"
+    
+    Articles ||..o{ Revisions : "target_article_id (not FK)"
+    
+    Revisions ||--o{ SimpleNotifications : "revision_id"
 ```
 
 ### 2.2 テーブル定義（実装済み）
