@@ -3,29 +3,35 @@ Test configuration and shared fixtures
 """
 import asyncio
 import pytest
-from typing import AsyncGenerator
+import pytest_asyncio
+from typing import AsyncGenerator, Dict
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 
+# FakeRedis for mocking Redis
+try:
+    import fakeredis.aioredis as fakeredis
+except ImportError:
+    fakeredis = None
+
 from app.core.config import settings
-from app.core.database import Base, get_db
+from app.database import get_db
+from app.models import Base
+from app.models.user import User
+from app.models.approval_group import ApprovalGroup
 from app.main import app
+
+# Import test factories
+from tests.factories.user_factory import UserFactory
+from tests.factories.approval_group_factory import ApprovalGroupFactory
 
 
 # Test database URL (using in-memory SQLite for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def test_engine():
     """Create test database engine"""
     engine = create_async_engine(
@@ -48,7 +54,7 @@ async def test_engine():
     await engine.dispose()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def test_session_maker(test_engine):
     """Create test session maker"""
     return async_sessionmaker(
@@ -58,15 +64,26 @@ async def test_session_maker(test_engine):
     )
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def db_session(test_session_maker) -> AsyncGenerator[AsyncSession, None]:
     """Create database session for each test"""
     async with test_session_maker() as session:
         yield session
 
 
-@pytest.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+@pytest_asyncio.fixture
+async def fake_redis():
+    """Create fake Redis for testing"""
+    if fakeredis is None:
+        pytest.skip("fakeredis not installed")
+    
+    redis = fakeredis.FakeRedis()
+    yield redis
+    await redis.aclose()
+
+
+@pytest_asyncio.fixture
+async def client(db_session: AsyncSession, fake_redis) -> AsyncGenerator[AsyncClient, None]:
     """Create HTTP client for API testing"""
     
     async def override_get_db():
@@ -74,7 +91,126 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     
     app.dependency_overrides[get_db] = override_get_db
     
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    from httpx import ASGITransport
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        follow_redirects=True
+    ) as ac:
         yield ac
     
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def test_approval_groups(db_session: AsyncSession) -> Dict[str, ApprovalGroup]:
+    """Create test approval groups for all tests"""
+    # Create different types of approval groups
+    dev_group = await ApprovalGroupFactory.create_development_group(db_session)
+    qa_group = await ApprovalGroupFactory.create_quality_group(db_session)
+    mgmt_group = await ApprovalGroupFactory.create_management_group(db_session)
+    
+    return {
+        "development": dev_group,
+        "quality": qa_group,
+        "management": mgmt_group
+    }
+
+
+@pytest_asyncio.fixture
+async def test_users(
+    db_session: AsyncSession, 
+    test_approval_groups: Dict[str, ApprovalGroup]
+) -> Dict[str, User]:
+    """Create test users with different roles for all tests"""
+    
+    # Create admin user
+    admin_user = await UserFactory.create_admin(
+        db_session,
+        username="testadmin",
+        email="admin@test.com",
+        full_name="Test Admin User"
+    )
+    
+    # Create approver user with development group
+    approver_user = await UserFactory.create_approver(
+        db_session,
+        approval_group=test_approval_groups["development"],
+        username="testapprover",
+        email="approver@test.com",
+        full_name="Test Approver User"
+    )
+    
+    # Create approver user with quality group
+    qa_approver = await UserFactory.create_approver(
+        db_session,
+        approval_group=test_approval_groups["quality"],
+        username="qaapprover",
+        email="qaapprover@test.com",
+        full_name="QA Approver User"
+    )
+    
+    # Create regular user
+    regular_user = await UserFactory.create_user(
+        db_session,
+        username="testuser",
+        email="user@test.com",
+        full_name="Test Regular User"
+    )
+    
+    # Create inactive user for testing
+    inactive_user = await UserFactory.create_user(
+        db_session,
+        username="inactiveuser",
+        email="inactive@test.com",
+        full_name="Inactive Test User",
+        is_active=False
+    )
+    
+    return {
+        "admin": admin_user,
+        "approver": approver_user,
+        "qa_approver": qa_approver,
+        "user": regular_user,
+        "inactive": inactive_user
+    }
+
+
+@pytest_asyncio.fixture
+async def authenticated_client(
+    client: AsyncClient, 
+    test_users: Dict[str, User]
+) -> AsyncClient:
+    """Create authenticated client with admin user"""
+    from tests.utils.auth import create_auth_headers
+    
+    headers = await create_auth_headers(test_users["admin"])
+    client.headers.update(headers)
+    return client
+
+
+@pytest_asyncio.fixture
+async def user_client(
+    client: AsyncClient, 
+    test_users: Dict[str, User]
+) -> AsyncClient:
+    """Create authenticated client with regular user"""
+    from tests.utils.auth import create_auth_headers
+    
+    headers = await create_auth_headers(test_users["user"])
+    client.headers.update(headers)
+    return client
+
+
+@pytest_asyncio.fixture
+async def approver_client(
+    client: AsyncClient, 
+    test_users: Dict[str, User]
+) -> AsyncClient:
+    """Create authenticated client with approver user"""
+    from tests.utils.auth import create_auth_headers
+    
+    headers = await create_auth_headers(test_users["approver"])
+    client.headers.update(headers)
+    return client
