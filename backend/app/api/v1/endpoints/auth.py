@@ -5,6 +5,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import ValidationError
 
 from app.api.dependencies import get_db, get_current_active_user
 from app.core.config import settings
@@ -51,8 +52,8 @@ async def login_json(
     db: AsyncSession = Depends(get_db)
 ):
     """JSON login endpoint"""
-    user = await user_repository.authenticate(
-        db, username=user_credentials.username, password=user_credentials.password
+    user = await user_repository.authenticate_by_email(
+        db, email=user_credentials.email, password=user_credentials.password
     )
     if not user:
         raise HTTPException(
@@ -96,14 +97,20 @@ async def register_user(
         )
     
     # Create user with hashed password
-    user_create = UserCreate(
-        username=user_in.username,
-        email=user_in.email,
-        password=user_in.password,
-        full_name=user_in.full_name,
-        sweet_name=user_in.sweet_name,
-        ctstage_name=user_in.ctstage_name
-    )
+    try:
+        user_create = UserCreate(
+            username=user_in.username,
+            email=user_in.email,
+            password=user_in.password,
+            full_name=user_in.full_name,
+            sweet_name=user_in.sweet_name,
+            ctstage_name=user_in.ctstage_name
+        )
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
     
     user = await user_repository.create_with_password(db, obj_in=user_create)
     return user

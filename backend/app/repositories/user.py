@@ -60,6 +60,17 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
             return None
         return user
     
+    async def authenticate_by_email(self, db: AsyncSession, *, email: str, password: str) -> Optional[User]:
+        """Authenticate user with email and password"""
+        from app.core.security import verify_password
+        
+        user = await self.get_by_email(db, email=email)
+        if not user:
+            return None
+        if not verify_password(password, user.password_hash):
+            return None
+        return user
+    
     async def create_with_password(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
         """Create user with hashed password"""
         from app.core.security import get_password_hash

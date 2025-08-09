@@ -47,7 +47,9 @@
       "Bash(del check_alembic.py)",
       "Bash(DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic revision --autogenerate -m \"Make approver_id required in revisions table\")",
       "Bash(DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic upgrade head)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(set DATABASE_URL=sqlite+aiosqlite:///:memory:)",
+      "Bash(set ENVIRONMENT=test)"
     ],
     "deny": []
   }

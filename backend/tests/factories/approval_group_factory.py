@@ -73,6 +73,18 @@ class ApprovalGroupFactory:
     @classmethod
     async def create_development_group(cls, db: AsyncSession) -> ApprovalGroup:
         """Create a development team approval group"""
+        # Check if already exists first
+        from sqlalchemy import select
+        try:
+            result = await db.execute(
+                select(ApprovalGroup).where(ApprovalGroup.group_name == "Development Team")
+            )
+            existing = result.scalar_one_or_none()
+            if existing:
+                return existing
+        except:
+            pass
+            
         return await cls.create(
             db=db,
             group_name="Development Team",
@@ -82,6 +94,18 @@ class ApprovalGroupFactory:
     @classmethod
     async def create_quality_group(cls, db: AsyncSession) -> ApprovalGroup:
         """Create a quality assurance approval group"""
+        # Check if already exists first
+        from sqlalchemy import select
+        try:
+            result = await db.execute(
+                select(ApprovalGroup).where(ApprovalGroup.group_name == "Quality Assurance")
+            )
+            existing = result.scalar_one_or_none()
+            if existing:
+                return existing
+        except:
+            pass
+            
         return await cls.create(
             db=db,
             group_name="Quality Assurance",
@@ -91,6 +115,18 @@ class ApprovalGroupFactory:
     @classmethod
     async def create_management_group(cls, db: AsyncSession) -> ApprovalGroup:
         """Create a management approval group"""
+        # Check if already exists first
+        from sqlalchemy import select
+        try:
+            result = await db.execute(
+                select(ApprovalGroup).where(ApprovalGroup.group_name == "Management Team")
+            )
+            existing = result.scalar_one_or_none()
+            if existing:
+                return existing
+        except:
+            pass
+            
         return await cls.create(
             db=db,
             group_name="Management Team",

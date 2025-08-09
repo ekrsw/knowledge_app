@@ -16,11 +16,11 @@ except ImportError:
     fakeredis = None
 
 from app.core.config import settings
-from app.database import get_db
+from app.database import get_db as database_get_db
+from app.api.dependencies import get_db as dependencies_get_db
 from app.models import Base
 from app.models.user import User
 from app.models.approval_group import ApprovalGroup
-from app.main import app
 
 # Import test factories
 from tests.factories.user_factory import UserFactory
@@ -83,24 +83,41 @@ async def fake_redis():
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession, fake_redis) -> AsyncGenerator[AsyncClient, None]:
+async def client(test_engine, db_session: AsyncSession, fake_redis) -> AsyncGenerator[AsyncClient, None]:
     """Create HTTP client for API testing"""
     
+    # Import app modules individually to avoid importing the pre-configured app
+    from fastapi import FastAPI
+    from app.api.v1.api import api_router
+    from app.core.config import settings
+    from httpx import ASGITransport
+    
+    # Create a new FastAPI app instance for testing
+    test_app = FastAPI(
+        title=settings.PROJECT_NAME,
+        openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    )
+    
+    # Include the API router
+    test_app.include_router(api_router, prefix=settings.API_V1_STR)
+    
+    # Override the database dependency for this test app
     async def override_get_db():
         yield db_session
     
-    app.dependency_overrides[get_db] = override_get_db
-    
-    from httpx import ASGITransport
+    # Override both database dependency functions
+    test_app.dependency_overrides[database_get_db] = override_get_db
+    test_app.dependency_overrides[dependencies_get_db] = override_get_db
     
     async with AsyncClient(
-        transport=ASGITransport(app=app),
+        transport=ASGITransport(app=test_app),
         base_url="http://test",
         follow_redirects=True
     ) as ac:
         yield ac
     
-    app.dependency_overrides.clear()
+    # Clean up after test
+    test_app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture

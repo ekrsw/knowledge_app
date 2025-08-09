@@ -18,7 +18,7 @@ class TokenData(BaseModel):
 
 class UserLogin(BaseModel):
     """User login schema"""
-    username: str
+    email: EmailStr
     password: str
 
 

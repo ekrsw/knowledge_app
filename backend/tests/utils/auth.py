@@ -52,18 +52,16 @@ async def create_authenticated_client(client: AsyncClient, user: User) -> AsyncC
     return client
 
 
-def create_expired_token(user: User) -> str:
+async def create_expired_token() -> str:
     """
     Create an expired JWT token for testing
-    
-    Args:
-        user: User object to create token for
     
     Returns:
         Expired JWT token string
     """
     # Create token that expired 1 hour ago
-    return create_access_token(subject=str(user.id), expires_delta=timedelta(hours=-1))
+    from uuid import uuid4
+    return create_access_token(subject=str(uuid4()), expires_delta=timedelta(hours=-1))
 
 
 def create_invalid_token() -> str:

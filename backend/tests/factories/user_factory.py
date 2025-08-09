@@ -5,13 +5,9 @@ import asyncio
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from passlib.context import CryptContext
-
 from app.models.user import User
 from app.models.approval_group import ApprovalGroup
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.core.security import get_password_hash
 
 
 class UserFactory:
@@ -78,7 +74,7 @@ class UserFactory:
             pass
         
         # Hash password
-        password_hash = pwd_context.hash(password)
+        password_hash = get_password_hash(password)
         
         user = User(
             username=username,
