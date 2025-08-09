@@ -98,9 +98,32 @@ async def update_user(
             detail="User not found"
         )
     
-    # Non-admin users cannot change their role
-    if current_user.role != "admin" and user_in.role is not None:
-        user_in.role = None
+    # Check if username is being changed and if it already exists
+    if user_in.username is not None and user_in.username != user.username:
+        existing_user = await user_repository.get_by_username(db, username=user_in.username)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already registered"
+            )
+    
+    # Check if email is being changed and if it already exists
+    if user_in.email is not None and user_in.email != user.email:
+        existing_user = await user_repository.get_by_email(db, email=user_in.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+    
+    # Non-admin users cannot change their role - exclude it from update
+    if current_user.role != "admin":
+        # Create a copy of user_in without role field
+        from app.schemas.user import UserUpdate
+        update_dict = user_in.model_dump(exclude_unset=True)
+        if 'role' in update_dict:
+            del update_dict['role']
+        user_in = UserUpdate(**update_dict)
     
     user = await user_repository.update(db, db_obj=user, obj_in=user_in)
     return user

@@ -2,6 +2,7 @@
 Integration tests for ApprovalGroup API endpoints
 """
 import pytest
+import pytest_asyncio
 from uuid import uuid4
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,10 +13,14 @@ from app.repositories.approval_group import approval_group_repository
 from app.schemas.approval_group import ApprovalGroupCreate
 
 
+# Mark all tests in this module as async
+pytestmark = pytest.mark.asyncio
+
+
 class TestApprovalGroupAPI:
     """Test cases for ApprovalGroup API endpoints"""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def clean_approval_groups(self, db_session: AsyncSession):
         """Clean approval_groups table before each test"""
         await db_session.execute(delete(ApprovalGroup))
@@ -24,7 +29,7 @@ class TestApprovalGroupAPI:
         await db_session.execute(delete(ApprovalGroup))
         await db_session.commit()
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def sample_approval_group(self, db_session: AsyncSession):
         """Create a sample approval group for testing"""
         group_data = ApprovalGroupCreate(

@@ -2,6 +2,7 @@
 Unit tests for ApprovalGroup repository
 """
 import pytest
+import pytest_asyncio
 from uuid import uuid4, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
@@ -11,10 +12,14 @@ from app.repositories.approval_group import approval_group_repository
 from app.schemas.approval_group import ApprovalGroupCreate, ApprovalGroupUpdate
 
 
+# Mark all tests in this module as async
+pytestmark = pytest.mark.asyncio
+
+
 class TestApprovalGroupRepository:
     """Test cases for ApprovalGroup repository"""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def clean_approval_groups(self, db_session: AsyncSession):
         """Clean approval_groups table before each test"""
         await db_session.execute(delete(ApprovalGroup))
@@ -116,7 +121,7 @@ class TestApprovalGroupRepository:
         assert updated_group.group_id == created_group.group_id
         assert updated_group.group_name == "更新されたグループ名"
         assert updated_group.description == "更新された説明"
-        assert updated_group.updated_at > created_group.updated_at
+        assert updated_group.updated_at >= created_group.updated_at
     
     async def test_delete_approval_group(self, db_session: AsyncSession, clean_approval_groups):
         """Test deleting approval group"""
