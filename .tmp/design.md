@@ -22,7 +22,7 @@ graph TB
 
     %% ビジネスロジック層
     subgraph Business["ビジネスロジック層"]
-        Services["ProposalService | ApprovalService<br/>NotificationService | DiffService"]
+        Services["ProposalService<br/>ApprovalService<br/>NotificationService<br/>DiffService"]
     end
 
     %% データアクセス層
