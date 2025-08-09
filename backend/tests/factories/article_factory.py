@@ -210,6 +210,31 @@ class ArticleFactory:
         )
     
     @classmethod
+    async def create_with_minimal_category(
+        cls,
+        db: AsyncSession,
+        approval_group: ApprovalGroup,
+        **kwargs
+    ) -> Article:
+        """Create an article with minimal info category setup"""
+        from .info_category_factory import InfoCategoryFactory
+        
+        # Create a minimal info category
+        info_category = await InfoCategoryFactory.create(
+            db=db,
+            category_name="Minimal Category",
+            display_order=1,
+            is_active=True
+        )
+        
+        return await cls.create(
+            db=db,
+            info_category=info_category,
+            approval_group=approval_group,
+            **kwargs
+        )
+    
+    @classmethod
     async def create_batch(
         cls,
         db: AsyncSession,

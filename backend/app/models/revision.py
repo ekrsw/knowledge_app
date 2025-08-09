@@ -74,5 +74,10 @@ class Revision(Base):
         Index('idx_revision_created_at', 'created_at'),
     )
     
+    @property
+    def id(self) -> UUID:
+        """Alias for revision_id to maintain compatibility with BaseRepository"""
+        return self.revision_id
+    
     def __repr__(self) -> str:
         return f"<Revision(revision_id={self.revision_id}, status='{self.status}', target='{self.target_article_id}')"

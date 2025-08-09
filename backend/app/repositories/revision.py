@@ -19,6 +19,13 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
     def __init__(self):
         super().__init__(Revision)
     
+    async def get(self, db: AsyncSession, id: UUID) -> Optional[Revision]:
+        """Get a single revision by ID - override to use revision_id"""
+        result = await db.execute(
+            select(Revision).where(Revision.revision_id == id)
+        )
+        return result.scalars().first()
+    
     async def get_by_status(
         self, 
         db: AsyncSession, 

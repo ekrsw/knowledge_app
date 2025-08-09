@@ -31,10 +31,13 @@ async def get_revisions(
     if current_user.role == "admin":
         revisions = await revision_repository.get_multi(db, skip=skip, limit=limit)
     elif current_user.role == "approver":
-        # Get revisions for articles that belong to user's approval groups
-        revisions = await revision_repository.get_by_approver_groups(
-            db, approval_group_ids=current_user.approval_groups, skip=skip, limit=limit
-        )
+        # Get revisions for articles that belong to user's approval group
+        if current_user.approval_group_id:
+            revisions = await revision_repository.get_by_approver_groups(
+                db, approval_group_ids=[current_user.approval_group_id], skip=skip, limit=limit
+            )
+        else:
+            revisions = []
     else:
         # Regular users only see their own revisions
         revisions = await revision_repository.get_by_proposer(
@@ -64,7 +67,7 @@ async def get_revision(
     elif current_user.role == "approver" and revision.after_info_category_obj:
         # Approver can see revisions for their approval groups
         article = await revision_repository.get_target_article(db, revision_id=revision_id)
-        if article and article.approval_group not in current_user.approval_groups:
+        if article and article.approval_group != current_user.approval_group_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No permission to view this revision"
@@ -164,10 +167,13 @@ async def get_revisions_by_status(
         )
     elif current_user.role == "approver":
         # Approvers see revisions for their approval groups
-        revisions = await revision_repository.get_by_status_and_approver_groups(
-            db, status=status, approval_group_ids=current_user.approval_groups, 
-            skip=skip, limit=limit
-        )
+        if current_user.approval_group_id:
+            revisions = await revision_repository.get_by_status_and_approver_groups(
+                db, status=status, approval_group_ids=[current_user.approval_group_id], 
+                skip=skip, limit=limit
+            )
+        else:
+            revisions = []
     else:
         # Regular users only see their own revisions
         revisions = await revision_repository.get_by_status_and_proposer(
@@ -205,7 +211,7 @@ async def update_revision_status(
     # Check if approver has permission for this revision's article
     if current_user.role == "approver":
         article = await revision_repository.get_target_article(db, revision_id=revision_id)
-        if article and article.approval_group not in current_user.approval_groups:
+        if article and article.approval_group != current_user.approval_group_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have permission to approve revisions for this article's approval group"
