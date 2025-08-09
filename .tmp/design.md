@@ -4,45 +4,59 @@
 
 ### 1.1 システム構成図
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        フロントエンド                             │
-├─────────────────────────────────────────────────────────────────┤
-│    Next.js 14 + TypeScript + Tailwind CSS + NextAuth.js        │
-│  修正案管理UI │ 承認ワークフローUI │ 差分表示UI │ 通知・ダッシュボード   │
-└─────────────────────────────────────────────────────────────────┘
-                                 │
-                                 │ REST API
-                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      APIレイヤー                                │
-├─────────────────────────────────────────────────────────────────┤
-│   認証・認可   │   入力検証   │   レスポンス生成   │   エラーハンドリング  │
-│ /revisions     │ /approvals   │ /diffs           │ /notifications    │
-│ /users         │ /articles    │ /approval-groups │ /info-categories  │
-└─────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       ビジネスロジック層                          │
-├─────────────────────────────────────────────────────────────────┤
-│ ProposalService │ ApprovalService │ NotificationService │ DiffService │
-└─────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       データアクセス層                           │
-├─────────────────────────────────────────────────────────────────┤
-│ RevisionRepository │ UserRepository │ ArticleRepository │ NotificationRepository │
-│ ApprovalGroupRepository │ InfoCategoryRepository                       │
-└─────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         データ層                                │
-├─────────────────────────────────────────────────────────────────┤
-│   PostgreSQL 17   │   Redis 3.0.504   │   ファイルストレージ    │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    %% フロントエンド層
+    subgraph Frontend["フロントエンド層"]
+        UI_Framework["Next.js 14 + TypeScript + Tailwind CSS + NextAuth.js"]
+        UI_Components["修正案管理UI | 承認ワークフローUI | 差分表示UI | 通知・ダッシュボード"]
+        UI_Framework --- UI_Components
+    end
+
+    %% APIレイヤー層
+    subgraph API["APIレイヤー層"]
+        Auth["認証・認可 | 入力検証 | レスポンス生成 | エラーハンドリング"]
+        Endpoints["<b>エンドポイント:</b><br/>/revisions | /approvals | /diffs | /notifications<br/>/users | /articles | /approval-groups | /info-categories"]
+        Auth --- Endpoints
+    end
+
+    %% ビジネスロジック層
+    subgraph Business["ビジネスロジック層"]
+        Services["ProposalService | ApprovalService<br/>NotificationService | DiffService"]
+    end
+
+    %% データアクセス層
+    subgraph DataAccess["データアクセス層"]
+        Repositories["RevisionRepository | UserRepository | ArticleRepository<br/>NotificationRepository | ApprovalGroupRepository | InfoCategoryRepository"]
+    end
+
+    %% データ層
+    subgraph Data["データ層"]
+        PostgreSQL["PostgreSQL 17"]
+        Redis["Redis 3.0.504"]
+        FileStorage["ファイルストレージ"]
+    end
+
+    %% 接続
+    Frontend -->|REST API| API
+    API --> Business
+    Business --> DataAccess
+    DataAccess --> PostgreSQL
+    DataAccess --> Redis
+    DataAccess --> FileStorage
+
+    %% スタイリング
+    classDef frontendStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef apiStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef businessStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef dataAccessStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef dataStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class Frontend frontendStyle
+    class API apiStyle
+    class Business businessStyle
+    class DataAccess dataAccessStyle
+    class Data dataStyle
 ```
 
 ### 1.2 技術スタック（実装済み）
