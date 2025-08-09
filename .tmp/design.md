@@ -260,12 +260,19 @@ CREATE TABLE revisions (
 
 **詳細なAPI仕様は別ファイルを参照**: `api_design.md`
 
-主要エンドポイント:
-- 修正案管理: `/api/v1/revisions/*`
-- 承認管理: `/api/v1/approvals/*`
-- 差分表示: `/api/v1/diffs/*`
-- ユーザー管理: `/api/v1/users/*`
-- その他管理系: `/api/v1/articles/*`, `/api/v1/approval-groups/*`, etc.
+主要エンドポイント（実装済み）:
+- 認証管理: `/api/v1/auth/*` - JWT認証、ユーザー登録
+- ユーザー管理: `/api/v1/users/*` - ユーザーCRUD操作
+- 修正案提案管理: `/api/v1/proposals/*` - ビジネスロジック層（バリデーション、状態遷移）
+- 承認管理: `/api/v1/approvals/*` - ワークフロー管理、一括承認、統計
+- 差分表示: `/api/v1/diffs/*` - 高度な差分分析と比較
+- 修正案管理: `/api/v1/revisions/*` - 基本CRUD操作
+- 記事管理: `/api/v1/articles/*` - 記事CRUD操作
+- 情報カテゴリ: `/api/v1/info-categories/*` - カテゴリ管理
+- 承認グループ: `/api/v1/approval-groups/*` - グループ管理
+- 通知管理: `/api/v1/notifications/*` - 拡張された通知システム
+- システム情報: `/api/v1/system/*` - ヘルスチェック、バージョン情報、メンテナンス
+- 分析・統計: `/api/v1/analytics/*` - 包括的な分析・レポート機能
 
 ### 3.2 認証・認可（実装済み）
 
@@ -285,6 +292,12 @@ get_current_admin_user()       # 管理者権限チェック
 ## 4. ビジネスロジック設計（実装済み）
 
 ### 4.1 サービスクラス構成
+
+実装されているサービスクラス:
+- **ProposalService**: 修正案の作成・更新・状態遷移管理
+- **ApprovalService**: 承認ワークフロー・権限チェック・統計管理
+- **DiffService**: 差分生成・比較・変更分析
+- **NotificationService**: 通知の作成・送信・管理
 
 #### ProposalService（修正案サービス）
 ```python
@@ -316,6 +329,12 @@ class ApprovalService:
         
     async def get_approval_queue(self, db: AsyncSession, *, approver: User) -> List[Revision]:
         """承認待ち一覧取得"""
+        
+    async def get_approval_metrics(self, db: AsyncSession, *, approver: User, days: int) -> Dict:
+        """承認メトリクス取得"""
+        
+    async def bulk_approve(self, db: AsyncSession, *, revision_ids: List[UUID], approver: User, action: str, comment: str) -> Dict:
+        """一括承認処理"""
 ```
 
 #### DiffService（差分サービス）
@@ -326,6 +345,28 @@ class DiffService:
         
     async def preview_changes(self, db: AsyncSession, *, revision_id: UUID) -> Dict[str, Any]:
         """プレビュー用データ生成"""
+        
+    async def compare_revisions(self, db: AsyncSession, *, revision_id_1: UUID, revision_id_2: UUID) -> Dict:
+        """2つの修正案を比較"""
+        
+    async def get_article_history(self, db: AsyncSession, *, article_id: str, limit: int) -> List[Dict]:
+        """記事の変更履歴取得"""
+```
+
+#### NotificationService（通知サービス）
+```python
+class NotificationService:
+    async def create_notification(self, db: AsyncSession, *, user_id: UUID, revision_id: UUID, type: str, title: str, message: str) -> SimpleNotification:
+        """通知作成"""
+        
+    async def mark_as_read(self, db: AsyncSession, *, notification_id: UUID, user_id: UUID) -> SimpleNotification:
+        """通知を既読化"""
+        
+    async def get_user_notifications(self, db: AsyncSession, *, user_id: UUID, unread_only: bool) -> List[SimpleNotification]:
+        """ユーザーの通知取得"""
+        
+    async def batch_create(self, db: AsyncSession, *, user_ids: List[UUID], type: str, title: str, message: str) -> Dict:
+        """一括通知作成"""
 ```
 
 ### 4.2 ステータス遷移（実装済み）
