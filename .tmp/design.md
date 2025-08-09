@@ -8,8 +8,8 @@
 graph TB
     %% フロントエンド層
     subgraph Frontend["フロントエンド層"]
-        UI_Framework["Next.js 14 + TypeScript + Tailwind CSS + NextAuth.js"]
-        UI_Components["修正案管理UI | 承認ワークフローUI | 差分表示UI | 通知・ダッシュボード"]
+        UI_Framework["Next.js 14<br/>TypeScript<br/>Tailwind CSS<br/>NextAuth.js"]
+        UI_Components["修正案管理UI<br/>承認ワークフローUI<br/>差分表示UI<br/>通知・ダッシュボード"]
         UI_Framework --- UI_Components
     end
 
