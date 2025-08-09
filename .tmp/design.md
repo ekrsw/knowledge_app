@@ -45,12 +45,12 @@ graph TB
     DataAccess --> Redis
     DataAccess --> FileStorage
 
-    %% スタイリング
-    classDef frontendStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef apiStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef businessStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-    classDef dataAccessStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef dataStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    %% スタイリング（落ち着いた配色）
+    classDef frontendStyle fill:#f0f4f8,stroke:#2d3748,stroke-width:2px
+    classDef apiStyle fill:#e6f2ff,stroke:#2c5282,stroke-width:2px
+    classDef businessStyle fill:#f0fdf4,stroke:#166534,stroke-width:2px
+    classDef dataAccessStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px
+    classDef dataStyle fill:#fef2f2,stroke:#991b1b,stroke-width:2px
 
     class Frontend frontendStyle
     class API apiStyle
