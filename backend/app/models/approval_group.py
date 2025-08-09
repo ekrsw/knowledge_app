@@ -17,6 +17,12 @@ class ApprovalGroup(Base):
     # Primary key
     group_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     
+    # Alias for BaseRepository compatibility
+    @property
+    def id(self) -> UUID:
+        """Alias for group_id to maintain compatibility with BaseRepository"""
+        return self.group_id
+    
     # Group information
     group_name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

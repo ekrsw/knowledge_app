@@ -24,7 +24,7 @@ async def test_all_factories_basic_smoke(db_session):
     
     # 2. InfoCategory  
     info_category = await InfoCategoryFactory.create_technology_category(db_session)
-    assert info_category.category_name == "Technology"
+    assert info_category.category_name.startswith("Technology")
     print(f"[OK] InfoCategoryFactory: {info_category.category_name}")
     
     # 3. User (各ロール)

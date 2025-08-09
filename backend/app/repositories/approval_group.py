@@ -30,6 +30,25 @@ class ApprovalGroupRepository(BaseRepository[ApprovalGroup, ApprovalGroupCreate,
             .order_by(ApprovalGroup.group_name)
         )
         return result.scalars().all()
+    
+    async def get_by_name(self, db: AsyncSession, *, group_name: str) -> Optional[ApprovalGroup]:
+        """Get approval group by group name"""
+        result = await db.execute(
+            select(ApprovalGroup)
+            .where(ApprovalGroup.group_name == group_name)
+        )
+        return result.scalars().first()
+    
+    async def remove(self, db: AsyncSession, *, id: UUID) -> Optional[ApprovalGroup]:
+        """Delete approval group by ID (overrides base method to use group_id)"""
+        result = await db.execute(
+            select(ApprovalGroup).where(ApprovalGroup.group_id == id)
+        )
+        obj = result.scalars().first()
+        if obj:
+            await db.delete(obj)
+            await db.commit()
+        return obj
 
 
 # Create a singleton instance

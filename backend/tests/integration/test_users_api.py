@@ -115,14 +115,18 @@ class TestUserCreate:
         # Create approval group first
         approval_group = await ApprovalGroupFactory.create_development_group(db_session)
         
+        # Use dynamic names to avoid conflicts
+        import uuid
+        unique_id = str(uuid.uuid4())[:8]
+        
         user_data = {
-            "username": "newuser",
-            "email": "newuser@example.com",
+            "username": f"newuser_{unique_id}",
+            "email": f"newuser_{unique_id}@example.com",
             "password": "newpassword123",
             "full_name": "New User",
             "role": "user",
-            "sweet_name": "newsweet",
-            "ctstage_name": "newctstage"
+            "sweet_name": f"newsweet_{unique_id}",
+            "ctstage_name": f"newctstage_{unique_id}"
         }
         
         response = await authenticated_client.post(
@@ -133,8 +137,8 @@ class TestUserCreate:
         assert response.status_code == 201
         created_user = response.json()
         
-        assert created_user["username"] == "newuser"
-        assert created_user["email"] == "newuser@example.com"
+        assert created_user["username"] == f"newuser_{unique_id}"
+        assert created_user["email"] == f"newuser_{unique_id}@example.com"
         assert created_user["full_name"] == "New User"
         assert created_user["role"] == "user"
         assert "password_hash" not in created_user
