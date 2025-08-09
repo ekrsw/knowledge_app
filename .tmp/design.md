@@ -27,7 +27,7 @@ graph TB
 
     %% データアクセス層
     subgraph DataAccess["データアクセス層"]
-        Repositories["RevisionRepository | UserRepository | ArticleRepository<br/>NotificationRepository | ApprovalGroupRepository | InfoCategoryRepository"]
+        Repositories["RevisionRepository<br/>UserRepository<br/>ArticleRepository<br/>NotificationRepository<br/>ApprovalGroupRepository<br/>InfoCategoryRepository"]
     end
 
     %% データ層
