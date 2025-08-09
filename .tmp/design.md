@@ -16,7 +16,7 @@ graph TB
     %% APIレイヤー層
     subgraph API["APIレイヤー層"]
         Auth["認証・認可<br/>入力検証<br/>レスポンス生成<br/>エラーハンドリング"]
-        Endpoints["<b>エンドポイント:</b><br/>/revisions<br/>/approvals<br/>/diffs<br/>/notifications<br/>/users<br/>/articles<br/>/approval-groups<br/>/info-categories"]
+        Endpoints["<b>エンドポイント:</b><br/>/auth<br/>/users<br/>/proposals<br/>/approvals<br/>/diffs<br/>/revisions<br/>/articles<br/>/info-categories<br/>/approval-groups<br/>/notifications<br/>/system<br/>/analytics"]
         Auth --- Endpoints
     end
 
