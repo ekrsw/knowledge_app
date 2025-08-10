@@ -97,8 +97,10 @@ class DiffService:
         revision_id: str
     ) -> RevisionDiff:
         """Generate complete diff for a revision proposal"""
-        # Get the revision
-        revision = await revision_repository.get(db, id=revision_id)
+        # Get the revision - convert string ID to UUID
+        from uuid import UUID
+        revision_uuid = UUID(revision_id) if isinstance(revision_id, str) else revision_id
+        revision = await revision_repository.get(db, id=revision_uuid)
         if not revision:
             raise ProposalNotFoundError("Revision not found")
         
@@ -131,7 +133,7 @@ class DiffService:
         return RevisionDiff(
             revision_id=str(revision.revision_id),
             target_article_id=revision.target_article_id,
-            target_article_pk=revision.target_article_pk,
+            target_article_pk=article.article_id if article else revision.target_article_id,
             proposer_name=proposer_name,
             reason=revision.reason,
             status=revision.status,
@@ -312,7 +314,7 @@ class DiffService:
         
         return ArticleSnapshot(
             article_id=article.article_id,
-            article_pk=article.article_pk,
+            article_pk=article.article_id,
             title=article.title,
             info_category=article.info_category,
             keywords=article.keywords,
@@ -334,9 +336,12 @@ class DiffService:
         revision_id_2: str
     ) -> Dict[str, Any]:
         """Compare two revisions of the same article"""
-        # Get both revisions
-        revision1 = await revision_repository.get(db, id=revision_id_1)
-        revision2 = await revision_repository.get(db, id=revision_id_2)
+        # Get both revisions - convert string IDs to UUID
+        from uuid import UUID
+        revision1_uuid = UUID(revision_id_1) if isinstance(revision_id_1, str) else revision_id_1
+        revision2_uuid = UUID(revision_id_2) if isinstance(revision_id_2, str) else revision_id_2
+        revision1 = await revision_repository.get(db, id=revision1_uuid)
+        revision2 = await revision_repository.get(db, id=revision2_uuid)
         
         if not revision1 or not revision2:
             raise ProposalNotFoundError("One or both revisions not found")

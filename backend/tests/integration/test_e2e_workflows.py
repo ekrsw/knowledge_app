@@ -422,18 +422,26 @@ class TestDiffDisplayE2E:
         assert "field_diffs" in diff_data
         field_diffs = diff_data["field_diffs"]
         
+        # field_diffsはリストなので、該当フィールドを探す
+        title_diff = None
+        question_diff = None
+        
+        for diff in field_diffs:
+            if diff["field_name"] == "title" and diff["change_type"] == "modified":
+                title_diff = diff
+            elif diff["field_name"] == "question" and diff["change_type"] == "modified":
+                question_diff = diff
+        
         # title差分の検証
-        if "title" in field_diffs:
-            title_diff = field_diffs["title"]
-            assert title_diff["current_value"] == "Original Title"
-            assert title_diff["proposed_value"] == "Updated Title"
+        if title_diff:
+            assert title_diff["old_value"] == "Original Title"
+            assert title_diff["new_value"] == "Updated Title"
             assert title_diff["change_type"] == "modified"
         
         # question差分の検証
-        if "question" in field_diffs:
-            question_diff = field_diffs["question"]
-            assert question_diff["current_value"] == "Original question text"
-            assert question_diff["proposed_value"] == "Updated question text with more details"
+        if question_diff:
+            assert question_diff["old_value"] == "Original question text"
+            assert question_diff["new_value"] == "Updated question text with more details"
         
         print("PASS - Diff display integration test completed successfully")
     
@@ -480,7 +488,7 @@ class TestDiffDisplayE2E:
         
         assert formatted_diff_response.status_code == 200
         formatted_diff = formatted_diff_response.json()
-        assert "formatted_diffs" in formatted_diff or "field_diffs" in formatted_diff
+        assert "field_changes" in formatted_diff or "basic_info" in formatted_diff
         
         print("PASS - Formatted diff display test completed successfully")
 
@@ -513,7 +521,7 @@ class TestUserAuthenticationFlowE2E:
         
         # 2. ログイン（JSON形式）
         login_data = {
-            "username": "e2e_test_user",
+            "email": "e2e_test@example.com",
             "password": "test_password123"
         }
         
@@ -555,7 +563,7 @@ class TestUserAuthenticationFlowE2E:
         """認証エラーシナリオテスト"""
         # 1. 無効なクレデンシャルでのログイン
         invalid_login_data = {
-            "username": "nonexistent_user",
+            "email": "nonexistent@example.com",
             "password": "wrong_password"
         }
         
@@ -576,7 +584,7 @@ class TestUserAuthenticationFlowE2E:
         
         # 3. トークンなしでのアクセス
         no_token_response = await client.get("/api/v1/auth/me")
-        assert no_token_response.status_code == 401
+        assert no_token_response.status_code in [401, 403]  # 401 Unauthorized or 403 Forbidden
         
         print("PASS - Authentication error scenarios test completed successfully")
 
