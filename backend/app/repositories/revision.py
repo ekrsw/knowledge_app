@@ -235,6 +235,74 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
             .where(Article.article_id == revision.target_article_id)
         )
         return result.scalar_one_or_none()
+    
+    async def get_public_revisions(
+        self,
+        db: AsyncSession,
+        *,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Revision]:
+        """Get publicly accessible revisions (submitted and approved)"""
+        result = await db.execute(
+            select(Revision)
+            .where(Revision.status.in_(["submitted", "approved"]))
+            .offset(skip)
+            .limit(limit)
+            .order_by(Revision.created_at.desc())
+        )
+        return result.scalars().all()
+    
+    async def get_user_private_revisions(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: UUID,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Revision]:
+        """Get user's private revisions (draft and rejected)"""
+        result = await db.execute(
+            select(Revision)
+            .where(
+                and_(
+                    Revision.proposer_id == user_id,
+                    Revision.status.in_(["draft", "rejected"])
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+            .order_by(Revision.created_at.desc())
+        )
+        return result.scalars().all()
+    
+    async def get_mixed_access_revisions(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: UUID,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Revision]:
+        """Get revisions with mixed access control - public + user's private"""
+        result = await db.execute(
+            select(Revision)
+            .where(
+                or_(
+                    # Public revisions (submitted/approved)
+                    Revision.status.in_(["submitted", "approved"]),
+                    # User's private revisions (draft/rejected)
+                    and_(
+                        Revision.proposer_id == user_id,
+                        Revision.status.in_(["draft", "rejected"])
+                    )
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+            .order_by(Revision.created_at.desc())
+        )
+        return result.scalars().all()
 
 
 # Create a singleton instance

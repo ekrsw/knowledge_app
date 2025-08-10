@@ -8,7 +8,7 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete
+from sqlalchemy import delete, text
 from uuid import uuid4
 
 from app.models.info_category import InfoCategory
@@ -22,17 +22,17 @@ pytestmark = pytest.mark.asyncio
 @pytest_asyncio.fixture
 async def clean_info_categories(db_session: AsyncSession):
     """Clean info_categories table before each test"""
-    await db_session.execute(delete(InfoCategory))
+    await db_session.execute(text("DELETE FROM info_categories"))
     await db_session.commit()
     yield
-    await db_session.execute(delete(InfoCategory))
+    await db_session.execute(text("DELETE FROM info_categories"))
     await db_session.commit()
 
 
 class TestInfoCategoryList:
     """Test info category list endpoint (GET /api/v1/info-categories/)"""
     
-    async def test_list_info_categories_empty(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_list_info_categories_empty(self, client: AsyncClient, db_session: AsyncSession, clean_info_categories):
         """Test listing info categories when none exist"""
         response = await client.get("/api/v1/info-categories/")
         
@@ -41,7 +41,7 @@ class TestInfoCategoryList:
         assert isinstance(data, list)
         assert len(data) == 0
     
-    async def test_list_info_categories_with_data(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_list_info_categories_with_data(self, client: AsyncClient, db_session: AsyncSession, clean_info_categories):
         """Test listing info categories with existing data"""
         # Create test info categories
         category1 = await InfoCategoryFactory.create_technology_category(db_session)

@@ -25,23 +25,17 @@ async def get_revisions(
 ):
     """Get revisions based on user permissions
     - Admin: can see all revisions
-    - Approver: can see revisions for their approval groups
-    - Regular user: can only see their own revisions
+    - All authenticated users: can see submitted/approved revisions + their own draft/rejected
     """
     if current_user.role == "admin":
+        # Admin can see all revisions
         revisions = await revision_repository.get_multi(db, skip=skip, limit=limit)
-    elif current_user.role == "approver":
-        # Get revisions for articles that belong to user's approval group
-        if current_user.approval_group_id:
-            revisions = await revision_repository.get_by_approver_groups(
-                db, approval_group_ids=[current_user.approval_group_id], skip=skip, limit=limit
-            )
-        else:
-            revisions = []
     else:
-        # Regular users only see their own revisions
-        revisions = await revision_repository.get_by_proposer(
-            db, proposer_id=current_user.id, skip=skip, limit=limit
+        # All users can see:
+        # 1. Public revisions (submitted/approved by anyone)
+        # 2. Their own private revisions (draft/rejected)
+        revisions = await revision_repository.get_mixed_access_revisions(
+            db, user_id=current_user.id, skip=skip, limit=limit
         )
     return revisions
 
@@ -64,28 +58,22 @@ async def get_revision(
     if current_user.role == "admin":
         # Admin can see all revisions
         pass
-    elif current_user.role == "approver":
-        # Approver can see revisions:
-        # 1. If they are the designated approver
-        # 2. If revision is for their approval group
-        if revision.approver_id == current_user.id:
-            # Designated approver can always see the revision
-            pass
-        else:
-            # Check if revision is for their approval group
-            article = await revision_repository.get_target_article(db, revision_id=revision_id)
-            if not article or article.approval_group != current_user.approval_group_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="No permission to view this revision"
-                )
-    else:
-        # Regular users can only see their own revisions
+    elif revision.status in ["submitted", "approved"]:
+        # All authenticated users can see submitted/approved revisions
+        pass
+    elif revision.status in ["draft", "rejected"]:
+        # Only the proposer can see draft/rejected revisions
         if revision.proposer_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No permission to view this revision"
             )
+    else:
+        # Unknown status - deny access
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No permission to view this revision"
+        )
     
     return revision
 
@@ -204,24 +192,24 @@ async def get_revisions_by_status(
 ):
     """Get revisions by status with permission filtering"""
     if current_user.role == "admin":
+        # Admin can see all revisions with any status
         revisions = await revision_repository.get_by_status(
             db, status=status, skip=skip, limit=limit
         )
-    elif current_user.role == "approver":
-        # Approvers see revisions for their approval groups
-        if current_user.approval_group_id:
-            revisions = await revision_repository.get_by_status_and_approver_groups(
-                db, status=status, approval_group_ids=[current_user.approval_group_id], 
-                skip=skip, limit=limit
-            )
-        else:
-            revisions = []
-    else:
-        # Regular users only see their own revisions
+    elif status in ["submitted", "approved"]:
+        # All users can see public status revisions
+        revisions = await revision_repository.get_by_status(
+            db, status=status, skip=skip, limit=limit
+        )
+    elif status in ["draft", "rejected"]:
+        # Only user's own private status revisions
         revisions = await revision_repository.get_by_status_and_proposer(
             db, status=status, proposer_id=current_user.id, 
             skip=skip, limit=limit
         )
+    else:
+        # Unknown status
+        revisions = []
     return revisions
 
 

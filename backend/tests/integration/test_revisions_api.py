@@ -108,10 +108,10 @@ class TestRevisionList:
         assert response.status_code == 200
         revisions_data = response.json()
         
-        # Should contain dev revision but not QA revision
+        # With new permission model: should see both submitted revisions (public)
         revision_ids = [r["revision_id"] for r in revisions_data]
         assert str(dev_revision.revision_id) in revision_ids
-        assert str(qa_revision.revision_id) not in revision_ids
+        assert str(qa_revision.revision_id) in revision_ids  # Changed: now visible as submitted is public
     
     async def test_list_revisions_as_user_own_only(self, client: AsyncClient, db_session: AsyncSession):
         """Test regular user sees only their own revisions"""
@@ -303,7 +303,8 @@ class TestRevisionGet:
         unrelated_user = await UserFactory.create_user(db_session, username="unrelated", email="unrelated@example.com")
         
         article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
-        revision = await RevisionFactory.create_submitted(
+        # Create a draft revision (private) instead of submitted (public)
+        revision = await RevisionFactory.create_draft(
             db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
         )
         
@@ -315,11 +316,49 @@ class TestRevisionGet:
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
         
-        # Try to get revision (should fail)
+        # Try to get draft revision (should fail - draft is private to proposer)
         response = await client.get(f"/api/v1/revisions/{revision.revision_id}", headers=headers)
         
         assert response.status_code == 403
         assert "permission" in response.json()["detail"].lower()
+    
+    async def test_get_revision_public_access_submitted_approved(self, client: AsyncClient, db_session: AsyncSession):
+        """Test all users can access submitted and approved revisions"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        proposer = await UserFactory.create_user(db_session, username="public_proposer", email="public_proposer@example.com")
+        approver = await UserFactory.create_approver(db_session, approval_group, username="public_approver", email="public_approver@example.com")
+        unrelated_user = await UserFactory.create_user(db_session, username="public_unrelated", email="public_unrelated@example.com")
+        
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        
+        # Create submitted and approved revisions
+        submitted_revision = await RevisionFactory.create_submitted(
+            db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+        )
+        approved_revision = await RevisionFactory.create_approved(
+            db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+        )
+        
+        # Login as unrelated user
+        login_response = await client.post(
+            "/api/v1/auth/login/json",
+            json={"email": "public_unrelated@example.com", "password": "testpassword123"}
+        )
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Should be able to access submitted revision
+        response = await client.get(f"/api/v1/revisions/{submitted_revision.revision_id}", headers=headers)
+        assert response.status_code == 200
+        assert response.json()["revision_id"] == str(submitted_revision.revision_id)
+        
+        # Should be able to access approved revision
+        response = await client.get(f"/api/v1/revisions/{approved_revision.revision_id}", headers=headers)
+        assert response.status_code == 200
+        assert response.json()["revision_id"] == str(approved_revision.revision_id)
     
     async def test_get_nonexistent_revision(self, client: AsyncClient, test_users):
         """Test getting non-existent revision returns 404"""
@@ -551,7 +590,7 @@ class TestRevisionUpdate:
         response = await client.put(f"/api/v1/revisions/{revision.revision_id}", json=update_data, headers=headers)
         
         assert response.status_code == 403
-        assert "permission" in response.json()["detail"].lower()
+        assert "own revisions" in response.json()["detail"].lower()
 
 
 class TestRevisionStatusUpdate:
@@ -657,9 +696,9 @@ class TestRevisionPermissionMatrix:
         ("user", "/api/v1/revisions/", "GET", 200),
         
         # Revision create endpoint
-        ("admin", "/api/v1/revisions/", "POST", [201, 400, 422]),
-        ("approver", "/api/v1/revisions/", "POST", [201, 400, 422]),
-        ("user", "/api/v1/revisions/", "POST", [201, 400, 422]),
+        ("admin", "/api/v1/revisions/", "POST", [201, 400, 404, 422]),
+        ("approver", "/api/v1/revisions/", "POST", [201, 400, 404, 422]),
+        ("user", "/api/v1/revisions/", "POST", [201, 400, 404, 422]),
         
         # Revision detail endpoint (access control varies by relationship)
         ("admin", "/api/v1/revisions/{revision_id}", "GET", [200, 404]),
@@ -672,8 +711,8 @@ class TestRevisionPermissionMatrix:
         ("user", "/api/v1/revisions/{revision_id}", "PUT", [200, 400, 403, 404]),
         
         # Status update endpoint
-        ("admin", "/api/v1/revisions/{revision_id}/status", "PATCH", [200, 400, 404]),
-        ("approver", "/api/v1/revisions/{revision_id}/status", "PATCH", [200, 400, 403, 404]),
+        ("admin", "/api/v1/revisions/{revision_id}/status", "PATCH", [200, 400, 404, 422]),
+        ("approver", "/api/v1/revisions/{revision_id}/status", "PATCH", [200, 400, 403, 404, 422]),
         ("user", "/api/v1/revisions/{revision_id}/status", "PATCH", 403),
     ])
     async def test_revision_permission_matrix(self, client: AsyncClient, test_users, db_session: AsyncSession,

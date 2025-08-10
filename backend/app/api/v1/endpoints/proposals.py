@@ -222,26 +222,26 @@ async def get_proposal(
             detail="Proposal not found"
         )
     
-    # Check access permissions
-    # Users can see their own proposals
-    # Approvers can see submitted proposals in their group
-    # Admins can see all proposals
-    if (proposal.proposer_id == current_user.id or
-        current_user.role == "admin"):
+    # Check access permissions with new rules
+    # Admin can see all proposals
+    if current_user.role == "admin":
         return proposal
     
-    # For approvers, check if the proposal is in their approval scope
-    if (current_user.role in ["approver", "admin"] and 
-        proposal.status == "submitted"):
-        # Check if the target article is in the approver's group
-        if current_user.approval_group_id:
-            from app.repositories.article import article_repository
-            target_article = await article_repository.get_by_id(
-                db, article_id=proposal.target_article_id
-            )
-            if target_article and target_article.approval_group == current_user.approval_group_id:
-                return proposal
+    # Submitted and approved proposals are public to all authenticated users
+    if proposal.status in ["submitted", "approved"]:
+        return proposal
     
+    # Draft and rejected proposals are only visible to the proposer
+    if proposal.status in ["draft", "rejected"]:
+        if proposal.proposer_id == current_user.id:
+            return proposal
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions to view this proposal"
+            )
+    
+    # Unknown status - deny access
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Not enough permissions to view this proposal"
