@@ -303,6 +303,29 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
             .order_by(Revision.created_at.desc())
         )
         return result.scalars().all()
+    
+    async def get_public_revisions_by_article(
+        self,
+        db: AsyncSession,
+        *,
+        target_article_id: str,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Revision]:
+        """Get public revisions (submitted/approved) for a specific article"""
+        result = await db.execute(
+            select(Revision)
+            .where(
+                and_(
+                    Revision.target_article_id == target_article_id,
+                    Revision.status.in_(["submitted", "approved"])
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+            .order_by(Revision.created_at.desc())
+        )
+        return result.scalars().all()
 
 
 # Create a singleton instance

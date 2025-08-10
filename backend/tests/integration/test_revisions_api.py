@@ -781,3 +781,207 @@ class TestRevisionPermissionMatrix:
             assert response.status_code in expected_status
         else:
             assert response.status_code == expected_status
+
+
+class TestRevisionsByArticle:
+    """Test revision list by article endpoint (GET /api/v1/revisions/by-article/{target_article_id})"""
+    
+    async def test_get_revisions_by_article_public_only(self, client: AsyncClient, db_session: AsyncSession):
+        """Test that only submitted/approved revisions are returned for a specific article"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        # Create users
+        proposer = await UserFactory.create_user(db_session, username="art_proposer", email="art_proposer@example.com")
+        approver = await UserFactory.create_approver(db_session, approval_group, username="art_approver", email="art_approver@example.com")
+        regular_user = await UserFactory.create_user(db_session, username="art_user", email="art_user@example.com")
+        
+        # Create articles
+        target_article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        other_article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        
+        # Create revisions for target article with different statuses
+        draft_revision = await RevisionFactory.create_draft(
+            db_session, proposer=proposer, approver=approver, target_article_id=target_article.article_id
+        )
+        submitted_revision = await RevisionFactory.create_submitted(
+            db_session, proposer=proposer, approver=approver, target_article_id=target_article.article_id
+        )
+        approved_revision = await RevisionFactory.create_approved(
+            db_session, proposer=proposer, approver=approver, target_article_id=target_article.article_id
+        )
+        rejected_revision = await RevisionFactory.create_rejected(
+            db_session, proposer=proposer, approver=approver, target_article_id=target_article.article_id
+        )
+        
+        # Create revision for other article (should not be included)
+        other_submitted = await RevisionFactory.create_submitted(
+            db_session, proposer=proposer, approver=approver, target_article_id=other_article.article_id
+        )
+        
+        # Login as regular user
+        login_response = await client.post(
+            "/api/v1/auth/login/json",
+            json={"email": regular_user.email, "password": "testpassword123"}
+        )
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Get revisions for target article
+        response = await client.get(
+            f"/api/v1/revisions/by-article/{target_article.article_id}", 
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        revisions_data = response.json()
+        
+        # Should only return submitted and approved revisions for the target article
+        revision_ids = [r["revision_id"] for r in revisions_data]
+        assert str(submitted_revision.revision_id) in revision_ids
+        assert str(approved_revision.revision_id) in revision_ids
+        assert str(draft_revision.revision_id) not in revision_ids  # draft not included
+        assert str(rejected_revision.revision_id) not in revision_ids  # rejected not included
+        assert str(other_submitted.revision_id) not in revision_ids  # different article
+        
+        # Should have exactly 2 revisions (submitted + approved)
+        assert len(revisions_data) == 2
+    
+    async def test_get_revisions_by_article_empty_result(self, client: AsyncClient, db_session: AsyncSession):
+        """Test empty result when no public revisions exist for an article"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        proposer = await UserFactory.create_user(db_session, username="empty_proposer", email="empty_proposer@example.com")
+        approver = await UserFactory.create_approver(db_session, approval_group, username="empty_approver", email="empty_approver@example.com")
+        regular_user = await UserFactory.create_user(db_session, username="empty_user", email="empty_user@example.com")
+        
+        # Create article with only draft and rejected revisions
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        
+        await RevisionFactory.create_draft(
+            db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+        )
+        await RevisionFactory.create_rejected(
+            db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+        )
+        
+        # Login as regular user
+        login_response = await client.post(
+            "/api/v1/auth/login/json",
+            json={"email": regular_user.email, "password": "testpassword123"}
+        )
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Get revisions for article
+        response = await client.get(
+            f"/api/v1/revisions/by-article/{article.article_id}", 
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        revisions_data = response.json()
+        assert len(revisions_data) == 0  # No public revisions
+    
+    async def test_get_revisions_by_article_pagination(self, client: AsyncClient, db_session: AsyncSession):
+        """Test pagination for revisions by article"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        proposer = await UserFactory.create_user(db_session, username="pag_proposer", email="pag_proposer@example.com")
+        approver = await UserFactory.create_approver(db_session, approval_group, username="pag_approver", email="pag_approver@example.com")
+        regular_user = await UserFactory.create_user(db_session, username="pag_user", email="pag_user@example.com")
+        
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        
+        # Create 5 submitted revisions
+        revisions = []
+        for i in range(5):
+            revision = await RevisionFactory.create_submitted(
+                db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+            )
+            revisions.append(revision)
+        
+        # Login as regular user
+        login_response = await client.post(
+            "/api/v1/auth/login/json",
+            json={"email": regular_user.email, "password": "testpassword123"}
+        )
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Test pagination - get first 3 revisions
+        response = await client.get(
+            f"/api/v1/revisions/by-article/{article.article_id}?limit=3", 
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        revisions_data = response.json()
+        assert len(revisions_data) == 3  # Limited to 3
+        
+        # Test skip parameter
+        response = await client.get(
+            f"/api/v1/revisions/by-article/{article.article_id}?skip=3&limit=3", 
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        revisions_data = response.json()
+        assert len(revisions_data) == 2  # Remaining 2
+    
+    async def test_get_revisions_by_article_unauthorized(self, client: AsyncClient, db_session: AsyncSession):
+        """Test that authentication is required"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        
+        # Try to access without authentication
+        response = await client.get(f"/api/v1/revisions/by-article/{article.article_id}")
+        
+        assert response.status_code == 403
+    
+    async def test_get_revisions_by_article_all_roles_access(self, client: AsyncClient, test_users, db_session: AsyncSession):
+        """Test that all authenticated users (user, approver, admin) can access the endpoint"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        proposer = test_users["user"]
+        approver = test_users["approver"]
+        admin = test_users["admin"]
+        
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        
+        # Create a submitted revision
+        revision = await RevisionFactory.create_submitted(
+            db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+        )
+        
+        # Test access for each role
+        for role in ["user", "approver", "admin"]:
+            user = test_users[role]
+            
+            # Login
+            login_response = await client.post(
+                "/api/v1/auth/login/json",
+                json={"email": user.email, "password": "testpassword123"}
+            )
+            token = login_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            # Access endpoint
+            response = await client.get(
+                f"/api/v1/revisions/by-article/{article.article_id}", 
+                headers=headers
+            )
+            
+            assert response.status_code == 200
+            revisions_data = response.json()
+            assert len(revisions_data) == 1  # Should see the submitted revision
+            assert revisions_data[0]["revision_id"] == str(revision.revision_id)

@@ -213,6 +213,24 @@ async def get_revisions_by_status(
     return revisions
 
 
+@router.get("/by-article/{target_article_id}", response_model=List[Revision])
+async def get_revisions_by_article(
+    target_article_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get public revisions (submitted/approved) for a specific article
+    - All authenticated users can access this endpoint
+    - Only returns submitted and approved revisions (public revisions)
+    """
+    revisions = await revision_repository.get_public_revisions_by_article(
+        db, target_article_id=target_article_id, skip=skip, limit=limit
+    )
+    return revisions
+
+
 @router.patch("/{revision_id}/status", response_model=Revision)
 async def update_revision_status(
     revision_id: UUID,
