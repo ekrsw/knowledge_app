@@ -492,6 +492,8 @@ class ApprovalStatusError(Exception): pass           # 400
 
 ## 9. テスト設計
 
+**詳細なテスト設計仕様は別ファイルを参照**: `test_design.md`
+
 ### 9.1 テスト階層
 - **単体テスト**: Service、Repository、Utils の個別機能テスト
 - **統合テスト**: API エンドポイントのE2Eテスト
@@ -508,6 +510,8 @@ async def test_user() -> User:
 async def test_revision() -> Revision:
     """テスト用修正案"""
 ```
+
+**実装詳細**: テスト環境設定、データファクトリー、モック戦略、エラーハンドリングテスト、パフォーマンステストなどの詳細仕様については `test_design.md` を参照してください。
 
 ## 10. デプロイメント設計
 
