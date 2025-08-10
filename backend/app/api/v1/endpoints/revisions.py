@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_db, get_current_active_user, get_current_approver_user
 from app.repositories.revision import revision_repository
 from app.repositories.user import user_repository
-from app.schemas.revision import Revision, RevisionCreate, RevisionUpdate
+from app.schemas.revision import Revision, RevisionCreate, RevisionUpdate, RevisionStatusUpdate
 from app.models.user import User
 from app.models.revision import Revision as RevisionModel
 
@@ -64,14 +64,21 @@ async def get_revision(
     if current_user.role == "admin":
         # Admin can see all revisions
         pass
-    elif current_user.role == "approver" and revision.after_info_category_obj:
-        # Approver can see revisions for their approval groups
-        article = await revision_repository.get_target_article(db, revision_id=revision_id)
-        if article and article.approval_group != current_user.approval_group_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="No permission to view this revision"
-            )
+    elif current_user.role == "approver":
+        # Approver can see revisions:
+        # 1. If they are the designated approver
+        # 2. If revision is for their approval group
+        if revision.approver_id == current_user.id:
+            # Designated approver can always see the revision
+            pass
+        else:
+            # Check if revision is for their approval group
+            article = await revision_repository.get_target_article(db, revision_id=revision_id)
+            if not article or article.approval_group != current_user.approval_group_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No permission to view this revision"
+                )
     else:
         # Regular users can only see their own revisions
         if revision.proposer_id != current_user.id:
@@ -90,6 +97,41 @@ async def create_revision(
     db: AsyncSession = Depends(get_db)
 ):
     """Create new revision with proposer_id automatically set from current user"""
+    # Validate target article exists
+    from app.repositories.article import article_repository
+    article = await article_repository.get_by_id(db, article_id=revision_in.target_article_id)
+    if not article:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Target article not found"
+        )
+    
+    # Validate approver exists
+    from app.repositories.user import user_repository
+    approver = await user_repository.get(db, id=revision_in.approver_id)
+    if not approver:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specified approver not found"
+        )
+    
+    # Validate info category if provided
+    if revision_in.after_info_category:
+        from app.repositories.info_category import info_category_repository
+        from sqlalchemy import select
+        from app.models.info_category import InfoCategory
+        
+        # Use direct query since InfoCategory uses category_id as primary key
+        result = await db.execute(
+            select(InfoCategory).where(InfoCategory.category_id == revision_in.after_info_category)
+        )
+        category = result.scalar_one_or_none()
+        if not category:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Specified info category not found"
+            )
+    
     # Create revision with proposer_id from current user
     revision_data = revision_in.model_dump()
     revision_data["proposer_id"] = current_user.id
@@ -186,20 +228,12 @@ async def get_revisions_by_status(
 @router.patch("/{revision_id}/status", response_model=Revision)
 async def update_revision_status(
     revision_id: UUID,
-    status: str,
+    status_update: RevisionStatusUpdate,
     current_user: User = Depends(get_current_approver_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Update revision status - requires approver or admin role"""
     from datetime import datetime
-    
-    # Validate status
-    valid_statuses = ["submitted", "approved", "rejected", "deleted"]
-    if status not in valid_statuses:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
-        )
     
     revision = await revision_repository.get(db, id=revision_id)
     if not revision:
@@ -218,8 +252,8 @@ async def update_revision_status(
             )
     
     # Update status and set approver/processed time for approval/rejection
-    update_data = {"status": status}
-    if status in ["approved", "rejected"]:
+    update_data = {"status": status_update.status}
+    if status_update.status in ["approved", "rejected"]:
         update_data["approver_id"] = current_user.id
         update_data["processed_at"] = datetime.utcnow()
     

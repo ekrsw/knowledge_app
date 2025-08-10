@@ -49,6 +49,11 @@ class RevisionUpdate(BaseModel):
     after_additional_comment: Optional[str] = None
 
 
+class RevisionStatusUpdate(BaseModel):
+    """Schema for updating revision status"""
+    status: str = Field(..., pattern="^(submitted|approved|rejected|deleted)$")
+
+
 class RevisionInDB(RevisionBase):
     """Schema for revision in database"""
     revision_id: UUID

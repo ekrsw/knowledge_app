@@ -8,6 +8,7 @@ from typing import AsyncGenerator, Dict
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
+from sqlalchemy import text
 
 # FakeRedis for mocking Redis
 try:
@@ -68,7 +69,24 @@ async def test_session_maker(test_engine):
 async def db_session(test_session_maker) -> AsyncGenerator[AsyncSession, None]:
     """Create database session for each test"""
     async with test_session_maker() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            # Clean up all test data after each test to prevent leakage
+            from app.models.notification import SimpleNotification
+            from app.models.revision import Revision
+            from app.models.article import Article
+            from app.models.user import User
+            from app.models.info_category import InfoCategory
+            from app.models.approval_group import ApprovalGroup
+            
+            await session.rollback()
+            
+            # Delete in correct order to avoid foreign key constraints
+            for model in [SimpleNotification, Revision, Article, User, InfoCategory, ApprovalGroup]:
+                await session.execute(text(f"DELETE FROM {model.__tablename__}"))
+            
+            await session.commit()
 
 
 @pytest_asyncio.fixture
