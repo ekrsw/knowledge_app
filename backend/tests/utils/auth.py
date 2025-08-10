@@ -93,3 +93,28 @@ async def login_user(client: AsyncClient, username: str, password: str) -> Dict[
     
     response = await client.post("/api/v1/auth/login", data=login_data)
     return response.json()
+
+
+async def create_test_user_and_token(db, role: str = "user", **kwargs) -> tuple[User, str]:
+    """
+    Create a test user and generate authentication token
+    
+    Args:
+        db: Database session
+        role: User role (user, approver, admin)
+        **kwargs: Additional user creation parameters
+    
+    Returns:
+        Tuple of (User object, JWT token)
+    """
+    from tests.factories.user_factory import UserFactory
+    
+    if role == "admin":
+        user = await UserFactory.create_admin(db, **kwargs)
+    elif role == "approver":
+        user = await UserFactory.create_approver(db, **kwargs)
+    else:
+        user = await UserFactory.create_user(db, **kwargs)
+    
+    token = await get_auth_token(user)
+    return user, token
