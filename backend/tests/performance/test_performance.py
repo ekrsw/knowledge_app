@@ -15,7 +15,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.utils.auth import create_test_user_and_token
+from tests.utils.auth import create_test_user_and_token, get_auth_token
 from tests.factories.article_factory import ArticleFactory
 from tests.factories.revision_factory import RevisionFactory
 from tests.factories.user_factory import UserFactory
@@ -44,8 +44,8 @@ class TestPerformanceAPI:
             article = await ArticleFactory.create(
                 db_session, 
                 article_id=f"PERF_ARTICLE_{i:03d}",
-                info_category=info_category.category_id,
-                approval_group=approval_group.group_id
+                info_category=info_category,
+                approval_group=approval_group
             )
             articles.append(article)
         
@@ -55,8 +55,8 @@ class TestPerformanceAPI:
                 await RevisionFactory.create(
                     db_session,
                     target_article_id=article.article_id,
-                    proposer_id=admin_user.id,
-                    approver_id=approver.id,
+                    proposer=admin_user,
+                    approver=approver,
                     status="approved"
                 )
         
@@ -89,24 +89,31 @@ class TestPerformanceAPI:
         approval_group = await ApprovalGroupFactory.create(db_session)
         approver = await UserFactory.create_approver(db_session, approval_group)
         
-        # 100ユーザーを作成
+        # 単一の管理者ユーザーを事前作成（データベース競合回避）
+        admin_user, admin_token = await create_test_user_and_token(
+            db_session, 
+            role="admin",
+            username="concurrent_test_admin"
+        )
+        
+        # 100ユーザーを作成し、有効なJWTトークンを生成
         users_tokens = []
         for i in range(100):
-            user = await UserFactory.create_async(
+            user = await UserFactory.create(
                 db_session,
                 username=f"concurrent_user_{i:03d}",
                 email=f"concurrent_{i:03d}@test.com"
             )
-            # 簡単なトークン作成（認証APIテストではないため）
-            token = f"mock_token_{i}"
+            # 有効なJWTトークンを生成
+            token = await get_auth_token(user)
             users_tokens.append((user, token))
         
         # 記事作成（リクエスト先データ）
         article = await ArticleFactory.create(
             db_session,
             article_id="CONCURRENT_TEST_ARTICLE",
-            info_category=info_category.category_id,
-            approval_group=approval_group.group_id
+            info_category=info_category,
+            approval_group=approval_group
         )
         
         async def user_request(user_token_pair: tuple, request_id: int) -> Dict[str, Any]:
@@ -115,9 +122,7 @@ class TestPerformanceAPI:
             start_time = time.time()
             
             try:
-                # 管理者権限でテスト（実際のJWT検証をスキップ）
-                admin_user, admin_token = await create_test_user_and_token(db_session, role="admin")
-                
+                # 管理者権限でリクエスト（事前作成済みトークン使用）
                 response = await client.get(
                     "/api/v1/articles/",
                     params={"skip": 0, "limit": 10},
@@ -164,16 +169,17 @@ class TestPerformanceAPI:
         
         # アサーション
         success_rate = len(successful_requests) / len(results)
-        assert success_rate >= 0.95, f"成功率が低すぎます: {success_rate:.2%}（要件: 95%以上）"
-        assert avg_response_time < 5.0, f"平均応答時間が長すぎます: {avg_response_time:.2f}秒"
-        assert max_response_time < 10.0, f"最大応答時間が長すぎます: {max_response_time:.2f}秒"
-        
-        print(f"✓ 同時接続テスト完了 - 成功率: {success_rate:.2%}, 平均応答時間: {avg_response_time:.2f}秒, 最大応答時間: {max_response_time:.2f}秒")
         
         if failed_requests:
             print(f"⚠ 失敗リクエスト {len(failed_requests)}件:")
             for req in failed_requests[:3]:  # 最初の3件のみ表示
                 print(f"  - User {req['user_id']}: {req.get('error', 'Unknown error')}")
+        
+        print(f"✓ 同時接続テスト完了 - 成功率: {success_rate:.2%}, 平均応答時間: {avg_response_time:.2f}秒, 最大応答時間: {max_response_time:.2f}秒")
+        
+        assert success_rate >= 0.95, f"成功率が低すぎます: {success_rate:.2%}（要件: 95%以上）"
+        assert avg_response_time < 5.0, f"平均応答時間が長すぎます: {avg_response_time:.2f}秒"
+        assert max_response_time < 10.0, f"最大応答時間が長すぎます: {max_response_time:.2f}秒"
     
     @pytest.mark.asyncio
     async def test_large_content_diff_performance(self, client: AsyncClient, db_session: AsyncSession):
@@ -194,8 +200,8 @@ class TestPerformanceAPI:
             title="Large Content Test Article",
             question=large_content[:500000],  # 500KB
             answer=large_content[500000:],     # 500KB
-            info_category=info_category.category_id,
-            approval_group=approval_group.group_id
+            info_category=info_category,
+            approval_group=approval_group
         )
         
         # 大容量修正案作成
@@ -204,8 +210,8 @@ class TestPerformanceAPI:
         revision = await RevisionFactory.create(
             db_session,
             target_article_id=article.article_id,
-            proposer_id=admin_user.id,
-            approver_id=approver.id,
+            proposer=admin_user,
+            approver=approver,
             after_question=modified_content[:500000],  # 500KB
             after_answer=modified_content[500000:],     # 500KB
             status="submitted"
@@ -246,8 +252,8 @@ class TestPerformanceAPI:
             article = await ArticleFactory.create(
                 db_session,
                 article_id=f"PAGINATION_ARTICLE_{i:03d}",
-                info_category=info_category.category_id,
-                approval_group=approval_group.group_id
+                info_category=info_category,
+                approval_group=approval_group
             )
             
             # 各記事に10件の修正案
@@ -255,8 +261,8 @@ class TestPerformanceAPI:
                 await RevisionFactory.create(
                     db_session,
                     target_article_id=article.article_id,
-                    proposer_id=admin_user.id,
-                    approver_id=approver.id,
+                    proposer=admin_user,
+                    approver=approver,
                     status="approved"
                 )
         
@@ -325,8 +331,8 @@ class TestPerformanceAPI:
                 keywords=f"{keyword}, testing, search",
                 question=f"How to optimize {keyword} performance?",
                 answer=f"{keyword} optimization involves multiple strategies...",
-                info_category=info_category.category_id,
-                approval_group=approval_group.group_id
+                info_category=info_category,
+                approval_group=approval_group
             )
             
             # 修正案も作成
@@ -334,8 +340,8 @@ class TestPerformanceAPI:
                 await RevisionFactory.create(
                     db_session,
                     target_article_id=article.article_id,
-                    proposer_id=admin_user.id,
-                    approver_id=approver.id,
+                    proposer=admin_user,
+                    approver=approver,
                     after_title=f"Updated {keyword} Article",
                     status=["draft", "submitted", "approved"][j % 3]
                 )
@@ -380,7 +386,7 @@ class TestPerformanceDatabase:
         # 大量データ読み取り性能
         start_time = time.time()
         
-        revisions = await revision_repo.get_all(db_session, skip=0, limit=1000)
+        revisions = await revision_repo.get_multi(db_session, skip=0, limit=1000)
         
         end_time = time.time()
         query_time = end_time - start_time
