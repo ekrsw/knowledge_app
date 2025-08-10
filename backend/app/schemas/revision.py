@@ -35,14 +35,16 @@ class RevisionUpdate(BaseModel):
     """Schema for updating revisions"""
     reason: Optional[str] = Field(None, min_length=1)
     status: Optional[str] = Field(None, pattern="^(draft|submitted|approved|rejected|deleted)$")
+    processed_at: Optional[datetime] = None  # Add processed_at field
+    approver_id: Optional[UUID] = None  # Add approver_id field
     
     # After fields (all optional)
     after_title: Optional[str] = None
     after_info_category: Optional[UUID] = None  # Changed to UUID type
     after_keywords: Optional[str] = None
     after_importance: Optional[bool] = None
-    after_publish_start: Optional[datetime] = None
-    after_publish_end: Optional[datetime] = None
+    after_publish_start: Optional[date] = None
+    after_publish_end: Optional[date] = None
     after_target: Optional[str] = Field(None, max_length=100)
     after_question: Optional[str] = None
     after_answer: Optional[str] = None

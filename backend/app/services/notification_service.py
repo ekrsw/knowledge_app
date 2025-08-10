@@ -92,6 +92,13 @@ class NotificationService:
         notification_channels = channels or template["channels"]
         
         # Create simple notification (using existing repository)
+        # Ensure UUIDs are properly converted
+        from uuid import UUID
+        if isinstance(user_id, str):
+            user_id = UUID(user_id)
+        if revision_id and isinstance(revision_id, str):
+            revision_id = UUID(revision_id)
+            
         notification_data = SimpleNotificationCreate(
             user_id=user_id,
             type=notification_type.value,

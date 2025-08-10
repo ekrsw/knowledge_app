@@ -95,13 +95,14 @@ async def login_user(client: AsyncClient, username: str, password: str) -> Dict[
     return response.json()
 
 
-async def create_test_user_and_token(db, role: str = "user", **kwargs) -> tuple[User, str]:
+async def create_test_user_and_token(db, role: str = "user", approval_group=None, **kwargs) -> tuple[User, str]:
     """
     Create a test user and generate authentication token
     
     Args:
         db: Database session
         role: User role (user, approver, admin)
+        approval_group: ApprovalGroup object (required for approver role)
         **kwargs: Additional user creation parameters
     
     Returns:
@@ -112,7 +113,11 @@ async def create_test_user_and_token(db, role: str = "user", **kwargs) -> tuple[
     if role == "admin":
         user = await UserFactory.create_admin(db, **kwargs)
     elif role == "approver":
-        user = await UserFactory.create_approver(db, **kwargs)
+        if approval_group is None:
+            # Create a default approval group for approver
+            from tests.factories.approval_group_factory import ApprovalGroupFactory
+            approval_group = await ApprovalGroupFactory.create_development_group(db)
+        user = await UserFactory.create_approver(db, approval_group, **kwargs)
     else:
         user = await UserFactory.create_user(db, **kwargs)
     

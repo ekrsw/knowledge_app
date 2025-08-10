@@ -17,6 +17,28 @@ class NotificationRepository(BaseRepository[SimpleNotification, SimpleNotificati
     def __init__(self):
         super().__init__(SimpleNotification)
     
+    async def create(
+        self, 
+        db: AsyncSession, 
+        *, 
+        obj_in: SimpleNotificationCreate
+    ) -> SimpleNotification:
+        """Create a new notification with proper UUID handling"""
+        # Create notification model with proper UUID conversion
+        obj_data = {
+            "user_id": obj_in.user_id if isinstance(obj_in.user_id, UUID) else UUID(obj_in.user_id),
+            "message": obj_in.message,
+            "type": obj_in.type,
+            "revision_id": obj_in.revision_id if obj_in.revision_id is None or isinstance(obj_in.revision_id, UUID) else UUID(obj_in.revision_id),
+            "is_read": False
+        }
+        
+        db_obj = SimpleNotification(**obj_data)
+        db.add(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
+        return db_obj
+    
     async def get_by_user(
         self, 
         db: AsyncSession, 

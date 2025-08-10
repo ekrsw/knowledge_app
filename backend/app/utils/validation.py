@@ -25,9 +25,7 @@ def validate_proposal_changes(proposal_data: RevisionCreate) -> Dict[str, Any]:
         result["errors"].append("Target article ID is required")
         result["is_valid"] = False
     
-    if not proposal_data.target_article_pk or not proposal_data.target_article_pk.strip():
-        result["errors"].append("Target article PK is required")
-        result["is_valid"] = False
+    # target_article_pk field was removed from schema, skip validation
     
     if not proposal_data.reason or not proposal_data.reason.strip():
         result["errors"].append("Reason for change is required")
