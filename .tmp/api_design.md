@@ -107,6 +107,20 @@ GET /api/v1/revisions/by-status/{status}
 - draft/rejected: 作成者のみアクセス可能
 **クエリパラメータ**: skip, limit
 
+#### 記事別修正案取得
+```http
+GET /api/v1/revisions/by-article/{target_article_id}
+```
+**権限**: 全認証ユーザー  
+**説明**: 特定記事の公開修正案一覧を取得
+- 対象記事のsubmitted/approved修正案のみ返却
+- draft/rejected修正案は非表示（プライバシー保護）
+- ページネーション対応
+**クエリパラメータ**: 
+- `skip`: int = 0 (オフセット)
+- `limit`: int = 100 (取得件数)
+**用途**: 記事の修正履歴表示、類似修正案の参考情報提供
+
 #### ステータス直接更新
 ```http
 PATCH /api/v1/revisions/{revision_id}/status
@@ -852,10 +866,11 @@ API-Version: 1.0
 - `GET /api/v1/revisions/`
 - `GET /api/v1/revisions/{revision_id}`
 - `GET /api/v1/revisions/by-status/{status}`
+- `GET /api/v1/revisions/by-article/{target_article_id}` (**2025年1月追加**)
 - `GET /api/v1/proposals/{proposal_id}`
 
 **技術的変更**:
-- 新リポジトリメソッド: `get_mixed_access_revisions()`, `get_public_revisions()`, `get_user_private_revisions()`
+- 新リポジトリメソッド: `get_mixed_access_revisions()`, `get_public_revisions()`, `get_user_private_revisions()`, `get_public_revisions_by_article()` (**2025年1月追加**)
 - 権限チェックロジックの統一化
 - テスト期待値の更新
 
@@ -864,6 +879,33 @@ API-Version: 1.0
 - **プライバシー保護**: draft/rejected修正案は作成者のみアクセス可能で、未完成・不適切な内容の漏洩を防止
 - **ワークフロー効率化**: 承認済み修正案を全員が参照できるため、類似案件の参考として活用可能
 - **シンプルな権限制御**: 複雑な役割ベース権限から明確なステータスベース権限への移行
+
+#### 9.1.2 記事別修正案取得API追加（2025年1月実装）
+
+**追加エンドポイント**: `GET /api/v1/revisions/by-article/{target_article_id}`
+
+**機能仕様**:
+- 特定記事のsubmitted/approved修正案のみを取得
+- 全認証ユーザーがアクセス可能（公開修正案に限定）
+- ページネーション対応（skip/limitパラメータ）
+
+**技術実装**:
+- `RevisionRepository.get_public_revisions_by_article()`メソッド実装
+- target_article_idとstatus条件を組み合わせたSQLクエリ
+- 作成日時降順でのソート機能
+
+**テスト実装**:
+- 公開修正案のみ表示確認テスト
+- 空結果対応テスト
+- ページネーション機能テスト
+- 認証要求テスト
+- 全ロール（user/approver/admin）アクセス確認テスト
+
+**活用シナリオ**:
+- 記事詳細ページでの修正履歴表示
+- 類似修正案作成時の参考情報提供
+- 記事の変更トレンド分析
+- フロントエンドでの効率的な履歴表示
 
 ### 9.2 アーキテクチャの拡張
 - **エンドポイント分離**: 基本CRUD（revisions）とビジネスロジック（proposals）の分離
