@@ -39,8 +39,7 @@ GET /api/v1/revisions/
 **権限**: 認証済みユーザー  
 **説明**: 権限に応じた修正案一覧を取得
 - Admin: 全修正案
-- Approver: 担当グループの修正案
-- User: 自分の修正案のみ
+- All authenticated users: submitted/approved修正案 + 自分のdraft/rejected修正案
 
 **クエリパラメータ**:
 - `skip`: int = 0 (オフセット)
@@ -52,7 +51,10 @@ GET /api/v1/revisions/
 ```http
 GET /api/v1/revisions/{revision_id}
 ```
-**権限**: 修正案の関係者（提出者・承認者・管理者）  
+**権限**: 権限に応じたアクセス制御
+- Admin: 全修正案にアクセス可能
+- All authenticated users: submitted/approved修正案にアクセス可能
+- Owner only: draft/rejected修正案は作成者のみアクセス可能
 **レスポンス**: 修正案の全詳細情報（after_*フィールド含む）
 
 #### 修正案作成
@@ -99,7 +101,10 @@ GET /api/v1/revisions/by-proposer/{proposer_id}
 GET /api/v1/revisions/by-status/{status}
 ```
 **権限**: 認証済みユーザー（権限に応じて結果フィルタ）  
-**説明**: 権限に応じて異なるリポジトリメソッドを使用
+**説明**: ステータスに応じたアクセス制御
+- Admin: 全ステータスの修正案を取得可能
+- submitted/approved: 全認証ユーザーがアクセス可能
+- draft/rejected: 作成者のみアクセス可能
 **クエリパラメータ**: skip, limit
 
 #### ステータス直接更新
@@ -189,8 +194,11 @@ GET /api/v1/proposals/statistics
 ```http
 GET /api/v1/proposals/{proposal_id}
 ```
-**権限**: 提案者・承認者・管理者  
-**説明**: 詳細な権限チェック（承認グループベース権限制御含む）
+**権限**: 権限に応じたアクセス制御
+- Admin: 全提案にアクセス可能
+- All authenticated users: submitted/approved提案にアクセス可能
+- Owner only: draft/rejected提案は作成者のみアクセス可能
+**説明**: 新しい権限モデルによるアクセス制御
 
 ### 3.3 承認管理 (/api/v1/approvals)
 **説明**: 大幅に拡張されたワークフロー管理機能
@@ -827,7 +835,37 @@ API-Version: 1.0
 
 ## 9. 実装と設計の主要相違点
 
-### 9.1 アーキテクチャの拡張
+### 9.1 権限モデル変更（2025年実装）
+
+#### 9.1.1 修正案・提案アクセス権限の変更
+**変更内容**: 従来の役割ベース権限から混合アクセス制御モデルへ変更
+
+**新しい権限マトリックス**:
+| ステータス | Admin | 認証ユーザー | 作成者のみ |
+|-----------|-------|------------|------------|
+| submitted | ✓     | ✓          | -          |
+| approved  | ✓     | ✓          | -          |
+| draft     | ✓     | -          | ✓          |
+| rejected  | ✓     | -          | ✓          |
+
+**影響を受けるエンドポイント**:
+- `GET /api/v1/revisions/`
+- `GET /api/v1/revisions/{revision_id}`
+- `GET /api/v1/revisions/by-status/{status}`
+- `GET /api/v1/proposals/{proposal_id}`
+
+**技術的変更**:
+- 新リポジトリメソッド: `get_mixed_access_revisions()`, `get_public_revisions()`, `get_user_private_revisions()`
+- 権限チェックロジックの統一化
+- テスト期待値の更新
+
+**新権限モデルのメリット**:
+- **透明性向上**: submitted/approved修正案が全ユーザーに公開され、組織内のナレッジ共有が促進
+- **プライバシー保護**: draft/rejected修正案は作成者のみアクセス可能で、未完成・不適切な内容の漏洩を防止
+- **ワークフロー効率化**: 承認済み修正案を全員が参照できるため、類似案件の参考として活用可能
+- **シンプルな権限制御**: 複雑な役割ベース権限から明確なステータスベース権限への移行
+
+### 9.2 アーキテクチャの拡張
 - **エンドポイント分離**: 基本CRUD（revisions）とビジネスロジック（proposals）の分離
 - **高度なワークフロー**: 承認ワークロード管理、ダッシュボード機能、チーム概要
 - **包括的分析**: トレンド分析、パフォーマンスメトリクス、エグゼクティブダッシュボード
