@@ -72,14 +72,14 @@ class TestApprovalGroupAPI:
         data = response.json()
         assert data["detail"] == "Approval group not found"
     
-    async def test_create_approval_group(self, client: AsyncClient, clean_approval_groups):
+    async def test_create_approval_group(self, authenticated_client: AsyncClient, clean_approval_groups):
         """Test POST /api/v1/approval-groups/"""
         group_data = {
             "group_name": "新規審査グループ",
             "description": "新しく作成されたグループ"
         }
         
-        response = await client.post("/api/v1/approval-groups/", json=group_data)
+        response = await authenticated_client.post("/api/v1/approval-groups/", json=group_data)
         
         assert response.status_code == 201
         data = response.json()
@@ -89,7 +89,7 @@ class TestApprovalGroupAPI:
         assert "created_at" in data
         assert "updated_at" in data
     
-    async def test_create_approval_group_validation_error(self, client: AsyncClient, clean_approval_groups):
+    async def test_create_approval_group_validation_error(self, authenticated_client: AsyncClient, clean_approval_groups):
         """Test POST /api/v1/approval-groups/ with validation errors"""
         # Empty group_name
         group_data = {
@@ -97,7 +97,7 @@ class TestApprovalGroupAPI:
             "description": "説明あり"
         }
         
-        response = await client.post("/api/v1/approval-groups/", json=group_data)
+        response = await authenticated_client.post("/api/v1/approval-groups/", json=group_data)
         assert response.status_code == 422
         
         # Missing required field
@@ -105,10 +105,10 @@ class TestApprovalGroupAPI:
             "description": "group_nameなし"
         }
         
-        response = await client.post("/api/v1/approval-groups/", json=group_data)
+        response = await authenticated_client.post("/api/v1/approval-groups/", json=group_data)
         assert response.status_code == 422
     
-    async def test_update_approval_group(self, client: AsyncClient, clean_approval_groups, sample_approval_group):
+    async def test_update_approval_group(self, authenticated_client: AsyncClient, clean_approval_groups, sample_approval_group):
         """Test PUT /api/v1/approval-groups/{group_id}"""
         group_id = str(sample_approval_group.group_id)
         update_data = {
@@ -116,7 +116,7 @@ class TestApprovalGroupAPI:
             "description": "更新された説明"
         }
         
-        response = await client.put(f"/api/v1/approval-groups/{group_id}", json=update_data)
+        response = await authenticated_client.put(f"/api/v1/approval-groups/{group_id}", json=update_data)
         
         assert response.status_code == 200
         data = response.json()
@@ -124,7 +124,7 @@ class TestApprovalGroupAPI:
         assert data["group_name"] == "更新されたグループ名"
         assert data["description"] == "更新された説明"
     
-    async def test_update_approval_group_not_found(self, client: AsyncClient, clean_approval_groups):
+    async def test_update_approval_group_not_found(self, authenticated_client: AsyncClient, clean_approval_groups):
         """Test PUT /api/v1/approval-groups/{group_id} with non-existent ID"""
         non_existent_id = str(uuid4())
         update_data = {
@@ -132,13 +132,13 @@ class TestApprovalGroupAPI:
             "description": "更新された説明"
         }
         
-        response = await client.put(f"/api/v1/approval-groups/{non_existent_id}", json=update_data)
+        response = await authenticated_client.put(f"/api/v1/approval-groups/{non_existent_id}", json=update_data)
         
         assert response.status_code == 404
         data = response.json()
         assert data["detail"] == "Approval group not found"
     
-    async def test_update_approval_group_partial(self, client: AsyncClient, clean_approval_groups, sample_approval_group):
+    async def test_update_approval_group_partial(self, authenticated_client: AsyncClient, clean_approval_groups, sample_approval_group):
         """Test PUT /api/v1/approval-groups/{group_id} with partial update"""
         group_id = str(sample_approval_group.group_id)
         update_data = {
@@ -146,7 +146,7 @@ class TestApprovalGroupAPI:
             # description は更新しない
         }
         
-        response = await client.put(f"/api/v1/approval-groups/{group_id}", json=update_data)
+        response = await authenticated_client.put(f"/api/v1/approval-groups/{group_id}", json=update_data)
         
         assert response.status_code == 200
         data = response.json()
@@ -180,3 +180,25 @@ class TestApprovalGroupAPI:
         assert response.status_code == 422
         data = response.json()
         assert "detail" in data
+
+    async def test_create_approval_group_non_admin_forbidden(self, user_client: AsyncClient, clean_approval_groups):
+        """Test that non-admin user cannot create approval groups"""
+        group_data = {
+            "group_name": "Unauthorized Group",
+            "description": "Should not be created by non-admin user"
+        }
+        
+        response = await user_client.post("/api/v1/approval-groups/", json=group_data)
+        
+        assert response.status_code == 403
+
+    async def test_update_approval_group_non_admin_forbidden(self, user_client: AsyncClient, clean_approval_groups, sample_approval_group):
+        """Test that non-admin user cannot update approval groups"""
+        group_id = str(sample_approval_group.group_id)
+        update_data = {
+            "group_name": "Unauthorized Update"
+        }
+        
+        response = await user_client.put(f"/api/v1/approval-groups/{group_id}", json=update_data)
+        
+        assert response.status_code == 403

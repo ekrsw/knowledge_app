@@ -223,7 +223,7 @@ class TestInfoCategoryGet:
 class TestInfoCategoryCreate:
     """Test info category creation endpoint (POST /api/v1/info-categories/)"""
     
-    async def test_create_info_category_success(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_create_info_category_success(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test successful info category creation"""
         category_data = {
             "category_name": "New Test Category",
@@ -231,7 +231,7 @@ class TestInfoCategoryCreate:
             "display_order": 10
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json=category_data
         )
@@ -246,13 +246,13 @@ class TestInfoCategoryCreate:
         assert "created_at" in created_category
         assert "updated_at" in created_category
     
-    async def test_create_info_category_minimal_data(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_create_info_category_minimal_data(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test creating info category with minimal required data"""
         category_data = {
             "category_name": "Minimal Category"
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json=category_data
         )
@@ -264,23 +264,23 @@ class TestInfoCategoryCreate:
         assert created_category["is_active"] == True  # Default value
         assert created_category["display_order"] == 0  # Default value
     
-    async def test_create_info_category_missing_required_fields(self, client: AsyncClient):
+    async def test_create_info_category_missing_required_fields(self, authenticated_client: AsyncClient):
         """Test creating info category with missing required fields"""
         # Missing category_name
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json={"display_order": 5}
         )
         assert response.status_code == 422
         
         # Empty data
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json={}
         )
         assert response.status_code == 422
     
-    async def test_create_info_category_invalid_data_types(self, client: AsyncClient):
+    async def test_create_info_category_invalid_data_types(self, authenticated_client: AsyncClient):
         """Test creating info category with invalid data types"""
         # is_active should be boolean
         category_data = {
@@ -288,7 +288,7 @@ class TestInfoCategoryCreate:
             "is_active": "not-a-boolean"
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json=category_data
         )
@@ -301,21 +301,21 @@ class TestInfoCategoryCreate:
             "display_order": "not-an-integer"
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json=category_data
         )
         
         assert response.status_code == 422
     
-    async def test_create_info_category_negative_display_order(self, client: AsyncClient):
+    async def test_create_info_category_negative_display_order(self, authenticated_client: AsyncClient):
         """Test creating info category with negative display order"""
         category_data = {
             "category_name": "Test Category",
             "display_order": -5
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json=category_data
         )
@@ -323,11 +323,25 @@ class TestInfoCategoryCreate:
         # Should either succeed or fail with validation error
         assert response.status_code in [201, 422]
 
+    async def test_create_info_category_non_admin_forbidden(self, user_client: AsyncClient):
+        """Test that non-admin user cannot create info categories"""
+        category_data = {
+            "category_name": "Unauthorized Category",
+            "display_order": 10
+        }
+        
+        response = await user_client.post(
+            "/api/v1/info-categories/",
+            json=category_data
+        )
+        
+        assert response.status_code == 403
+
 
 class TestInfoCategoryUpdate:
     """Test info category update endpoint (PUT /api/v1/info-categories/{category_id})"""
     
-    async def test_update_info_category_success(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_update_info_category_success(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test successful info category update"""
         # Create a test info category
         test_category = await InfoCategoryFactory.create(
@@ -343,7 +357,7 @@ class TestInfoCategoryUpdate:
             "display_order": 10
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/info-categories/{test_category.category_id}",
             json=update_data
         )
@@ -356,7 +370,7 @@ class TestInfoCategoryUpdate:
         assert updated["display_order"] == 10
         assert updated["category_id"] == str(test_category.category_id)
     
-    async def test_update_info_category_partial(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_update_info_category_partial(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test partial update of info category"""
         # Create a test info category
         test_category = await InfoCategoryFactory.create(
@@ -371,7 +385,7 @@ class TestInfoCategoryUpdate:
             "category_name": "Partially Updated Name"
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/info-categories/{test_category.category_id}",
             json=update_data
         )
@@ -383,14 +397,14 @@ class TestInfoCategoryUpdate:
         assert updated["is_active"] == True  # Unchanged
         assert updated["display_order"] == 5  # Unchanged
     
-    async def test_update_nonexistent_info_category(self, client: AsyncClient):
+    async def test_update_nonexistent_info_category(self, authenticated_client: AsyncClient):
         """Test updating non-existent info category returns 404"""
         fake_id = str(uuid4())
         update_data = {
             "category_name": "Updated Name"
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/info-categories/{fake_id}",
             json=update_data
         )
@@ -398,7 +412,7 @@ class TestInfoCategoryUpdate:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
     
-    async def test_update_info_category_invalid_data(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_update_info_category_invalid_data(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test updating info category with invalid data"""
         # Create a test info category
         test_category = await InfoCategoryFactory.create_technology_category(db_session)
@@ -409,14 +423,14 @@ class TestInfoCategoryUpdate:
             "display_order": "not-an-integer"
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/info-categories/{test_category.category_id}",
             json=update_data
         )
         
         assert response.status_code == 422
     
-    async def test_update_info_category_display_order_change(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_update_info_category_display_order_change(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test updating display order affects sorting"""
         # Create test categories
         category = await InfoCategoryFactory.create(
@@ -430,7 +444,7 @@ class TestInfoCategoryUpdate:
             "display_order": 1
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/info-categories/{category.category_id}",
             json=update_data
         )
@@ -439,17 +453,33 @@ class TestInfoCategoryUpdate:
         updated = response.json()
         assert updated["display_order"] == 1
 
+    async def test_update_info_category_non_admin_forbidden(self, user_client: AsyncClient, db_session: AsyncSession):
+        """Test that non-admin user cannot update info categories"""
+        # Create a test info category
+        test_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        update_data = {
+            "category_name": "Unauthorized Update"
+        }
+        
+        response = await user_client.put(
+            f"/api/v1/info-categories/{test_category.category_id}",
+            json=update_data
+        )
+        
+        assert response.status_code == 403
+
 
 class TestInfoCategoryEdgeCases:
     """Test edge cases and error handling"""
     
-    async def test_info_category_with_special_characters(self, client: AsyncClient):
+    async def test_info_category_with_special_characters(self, authenticated_client: AsyncClient):
         """Test info category with special characters in name"""
         category_data = {
             "category_name": "Test-Category_123 (Special Characters!)"
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json=category_data
         )
@@ -458,13 +488,13 @@ class TestInfoCategoryEdgeCases:
         created_category = response.json()
         assert created_category["category_name"] == category_data["category_name"]
     
-    async def test_info_category_unicode_support(self, client: AsyncClient):
+    async def test_info_category_unicode_support(self, authenticated_client: AsyncClient):
         """Test info category with Unicode characters"""
         category_data = {
             "category_name": "技術カテゴリー"  # Japanese
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json=category_data
         )
@@ -473,7 +503,7 @@ class TestInfoCategoryEdgeCases:
         created_category = response.json()
         assert created_category["category_name"] == category_data["category_name"]
     
-    async def test_info_category_extreme_display_orders(self, client: AsyncClient):
+    async def test_info_category_extreme_display_orders(self, authenticated_client: AsyncClient):
         """Test info categories with extreme display order values"""
         # Very large display order
         category_data = {
@@ -481,7 +511,7 @@ class TestInfoCategoryEdgeCases:
             "display_order": 999999
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/info-categories/",
             json=category_data
         )

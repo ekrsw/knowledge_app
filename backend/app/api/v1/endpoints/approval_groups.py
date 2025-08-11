@@ -6,9 +6,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_db
+from app.api.dependencies import get_db, get_current_admin_user
 from app.repositories.approval_group import approval_group_repository
 from app.schemas.approval_group import ApprovalGroup, ApprovalGroupCreate, ApprovalGroupUpdate
+from app.models.user import User
 
 router = APIRouter()
 
@@ -42,7 +43,8 @@ async def get_approval_group(
 @router.post("/", response_model=ApprovalGroup, status_code=status.HTTP_201_CREATED)
 async def create_approval_group(
     group_in: ApprovalGroupCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
 ):
     """Create new approval group"""
     # group_id は自動生成されるため、重複チェック不要
@@ -54,7 +56,8 @@ async def create_approval_group(
 async def update_approval_group(
     group_id: UUID,
     group_in: ApprovalGroupUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
 ):
     """Update approval group"""
     group = await approval_group_repository.get_by_id(db, group_id=group_id)

@@ -145,7 +145,7 @@ class TestApprovalGroupGet:
 class TestApprovalGroupCreate:
     """Test approval group creation endpoint (POST /api/v1/approval-groups/)"""
     
-    async def test_create_approval_group_success(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_create_approval_group_success(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test successful approval group creation"""
         group_data = {
             "group_name": "New Test Group",
@@ -153,7 +153,7 @@ class TestApprovalGroupCreate:
             "is_active": True
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json=group_data
         )
@@ -168,13 +168,13 @@ class TestApprovalGroupCreate:
         assert "created_at" in created_group
         assert "updated_at" in created_group
     
-    async def test_create_approval_group_minimal_data(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_create_approval_group_minimal_data(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test creating approval group with minimal required data"""
         group_data = {
             "group_name": "Minimal Group"
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json=group_data
         )
@@ -186,23 +186,23 @@ class TestApprovalGroupCreate:
         assert created_group["description"] is None
         assert created_group["is_active"] == True  # Default value
     
-    async def test_create_approval_group_missing_required_fields(self, client: AsyncClient):
+    async def test_create_approval_group_missing_required_fields(self, authenticated_client: AsyncClient):
         """Test creating approval group with missing required fields"""
         # Missing group_name
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json={"description": "Group without name"}
         )
         assert response.status_code == 422
         
         # Empty data
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json={}
         )
         assert response.status_code == 422
     
-    async def test_create_approval_group_invalid_data_types(self, client: AsyncClient):
+    async def test_create_approval_group_invalid_data_types(self, authenticated_client: AsyncClient):
         """Test creating approval group with invalid data types"""
         # is_active should be boolean
         group_data = {
@@ -210,21 +210,21 @@ class TestApprovalGroupCreate:
             "is_active": "not-a-boolean"
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json=group_data
         )
         
         assert response.status_code == 422
     
-    async def test_create_approval_group_long_strings(self, client: AsyncClient):
+    async def test_create_approval_group_long_strings(self, authenticated_client: AsyncClient):
         """Test creating approval group with very long strings"""
         group_data = {
             "group_name": "A" * 300,  # Very long name
             "description": "B" * 1000  # Very long description
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json=group_data
         )
@@ -232,11 +232,25 @@ class TestApprovalGroupCreate:
         # Should either succeed or fail gracefully with validation error
         assert response.status_code in [201, 422]
 
+    async def test_create_approval_group_non_admin_forbidden(self, user_client: AsyncClient):
+        """Test that non-admin user cannot create approval groups"""
+        group_data = {
+            "group_name": "Unauthorized Group",
+            "description": "Should not be created by non-admin user"
+        }
+        
+        response = await user_client.post(
+            "/api/v1/approval-groups/",
+            json=group_data
+        )
+        
+        assert response.status_code == 403
+
 
 class TestApprovalGroupUpdate:
     """Test approval group update endpoint (PUT /api/v1/approval-groups/{group_id})"""
     
-    async def test_update_approval_group_success(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_update_approval_group_success(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test successful approval group update"""
         # Create a test approval group
         test_group = await ApprovalGroupFactory.create(
@@ -252,7 +266,7 @@ class TestApprovalGroupUpdate:
             "is_active": False
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/approval-groups/{test_group.group_id}",
             json=update_data
         )
@@ -265,7 +279,7 @@ class TestApprovalGroupUpdate:
         assert updated["is_active"] == False
         assert updated["group_id"] == str(test_group.group_id)
     
-    async def test_update_approval_group_partial(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_update_approval_group_partial(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test partial update of approval group"""
         # Create a test approval group
         test_group = await ApprovalGroupFactory.create(
@@ -280,7 +294,7 @@ class TestApprovalGroupUpdate:
             "group_name": "Partially Updated Name"
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/approval-groups/{test_group.group_id}",
             json=update_data
         )
@@ -292,14 +306,14 @@ class TestApprovalGroupUpdate:
         assert updated["description"] == "Original description"  # Unchanged
         assert updated["is_active"] == True  # Unchanged
     
-    async def test_update_nonexistent_approval_group(self, client: AsyncClient):
+    async def test_update_nonexistent_approval_group(self, authenticated_client: AsyncClient):
         """Test updating non-existent approval group returns 404"""
         fake_id = str(uuid4())
         update_data = {
             "group_name": "Updated Name"
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/approval-groups/{fake_id}",
             json=update_data
         )
@@ -307,7 +321,7 @@ class TestApprovalGroupUpdate:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
     
-    async def test_update_approval_group_invalid_data(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_update_approval_group_invalid_data(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test updating approval group with invalid data"""
         # Create a test approval group
         test_group = await ApprovalGroupFactory.create_development_group(db_session)
@@ -317,20 +331,20 @@ class TestApprovalGroupUpdate:
             "is_active": "not-a-boolean"
         }
         
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/approval-groups/{test_group.group_id}",
             json=update_data
         )
         
         assert response.status_code == 422
     
-    async def test_update_approval_group_empty_data(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_update_approval_group_empty_data(self, authenticated_client: AsyncClient, db_session: AsyncSession):
         """Test updating approval group with empty data"""
         # Create a test approval group
         test_group = await ApprovalGroupFactory.create_development_group(db_session)
         
         # Empty update should succeed (no changes)
-        response = await client.put(
+        response = await authenticated_client.put(
             f"/api/v1/approval-groups/{test_group.group_id}",
             json={}
         )
@@ -343,18 +357,34 @@ class TestApprovalGroupUpdate:
         assert updated["description"] == test_group.description
         assert updated["is_active"] == test_group.is_active
 
+    async def test_update_approval_group_non_admin_forbidden(self, user_client: AsyncClient, db_session: AsyncSession):
+        """Test that non-admin user cannot update approval groups"""
+        # Create a test approval group
+        test_group = await ApprovalGroupFactory.create_development_group(db_session)
+        
+        update_data = {
+            "group_name": "Unauthorized Update"
+        }
+        
+        response = await user_client.put(
+            f"/api/v1/approval-groups/{test_group.group_id}",
+            json=update_data
+        )
+        
+        assert response.status_code == 403
+
 
 class TestApprovalGroupEdgeCases:
     """Test edge cases and error handling"""
     
-    async def test_approval_group_with_special_characters(self, client: AsyncClient):
+    async def test_approval_group_with_special_characters(self, authenticated_client: AsyncClient):
         """Test approval group with special characters in name"""
         group_data = {
             "group_name": "Test-Group_123 (Special Characters!)",
             "description": "Group with special chars: @#$%^&*()"
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json=group_data
         )
@@ -364,14 +394,14 @@ class TestApprovalGroupEdgeCases:
         assert created_group["group_name"] == group_data["group_name"]
         assert created_group["description"] == group_data["description"]
     
-    async def test_approval_group_unicode_support(self, client: AsyncClient):
+    async def test_approval_group_unicode_support(self, authenticated_client: AsyncClient):
         """Test approval group with Unicode characters"""
         group_data = {
             "group_name": "テストグループ",  # Japanese
             "description": "これはテスト用の承認グループです"  # Japanese
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json=group_data
         )
@@ -381,14 +411,14 @@ class TestApprovalGroupEdgeCases:
         assert created_group["group_name"] == group_data["group_name"]
         assert created_group["description"] == group_data["description"]
     
-    async def test_approval_group_whitespace_handling(self, client: AsyncClient):
+    async def test_approval_group_whitespace_handling(self, authenticated_client: AsyncClient):
         """Test approval group with whitespace in fields"""
         group_data = {
             "group_name": "  Test Group  ",  # Leading/trailing spaces
             "description": "\n\tTest description\n\t"  # Tabs and newlines
         }
         
-        response = await client.post(
+        response = await authenticated_client.post(
             "/api/v1/approval-groups/",
             json=group_data
         )
