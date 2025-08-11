@@ -545,7 +545,7 @@ GET /api/v1/approval-groups/
 ```http
 POST /api/v1/approval-groups/
 ```
-**権限**: 管理者（⚠️ **実装では権限制御なし - セキュリティ修正が必要**）
+**権限**: 管理者
 
 #### 承認グループ詳細
 ```http
@@ -557,7 +557,7 @@ GET /api/v1/approval-groups/{group_id}
 ```http
 PUT /api/v1/approval-groups/{group_id}
 ```
-**権限**: 管理者（⚠️ **実装では権限制御なし - セキュリティ修正が必要**）
+**権限**: 管理者
 
 ### 3.9 情報カテゴリ管理 (/api/v1/info-categories)
 
@@ -579,7 +579,7 @@ GET /api/v1/info-categories/active
 ```http
 POST /api/v1/info-categories/
 ```
-**権限**: 管理者（⚠️ **実装では権限制御なし - セキュリティ修正が必要**）
+**権限**: 管理者
 
 #### カテゴリ詳細
 ```http
@@ -591,7 +591,7 @@ GET /api/v1/info-categories/{category_id}
 ```http
 PUT /api/v1/info-categories/{category_id}
 ```
-**権限**: 管理者（⚠️ **実装では権限制御なし - セキュリティ修正が必要**）
+**権限**: 管理者
 
 ### 3.10 通知管理 (/api/v1/notifications)
 **説明**: 拡張された通知システム
@@ -849,34 +849,39 @@ API-Version: 1.0
 
 ## 9. 実装と設計の主要相違点
 
-### 9.1 セキュリティ問題（要修正）
+### 9.1 セキュリティ改善（修正完了）
 
-#### 9.1.1 権限制御の欠如
-**発見された問題**：
-- `POST /api/v1/approval-groups/` - 管理者権限制御なし
-- `PUT /api/v1/approval-groups/{group_id}` - 管理者権限制御なし  
-- `POST /api/v1/info-categories/` - 管理者権限制御なし
-- `PUT /api/v1/info-categories/{category_id}` - 管理者権限制御なし
+#### 9.1.1 権限制御の実装（✅ 2025年1月修正完了）
+**修正された問題**：
+- `POST /api/v1/approval-groups/` - 管理者権限制御を追加
+- `PUT /api/v1/approval-groups/{group_id}` - 管理者権限制御を追加  
+- `POST /api/v1/info-categories/` - 管理者権限制御を追加
+- `PUT /api/v1/info-categories/{category_id}` - 管理者権限制御を追加
 
-**影響**：
-- 一般ユーザーが承認グループを作成・変更可能
-- 一般ユーザーが情報カテゴリを作成・変更可能
-- データの整合性とシステムセキュリティに影響
+**修正内容**：
+- 一般ユーザーによる承認グループの不正作成・変更を防止
+- 一般ユーザーによる情報カテゴリの不正作成・変更を防止
+- データの整合性とシステムセキュリティを向上
 
-**推奨対応**：
+**実装された対応**：
 ```python
-# 追加すべき依存性
-from app.api.deps import get_current_admin_user
+# 追加された依存性
+from app.api.dependencies import get_current_admin_user
+from app.models.user import User
 
-# エンドポイントでの使用例
+# 実装されたエンドポイント例
 @router.post("/", response_model=ApprovalGroup)
 async def create_approval_group(
-    *,
-    db: AsyncSession = Depends(get_async_db),
-    current_user: User = Depends(get_current_admin_user),  # 管理者権限要求
     group_in: ApprovalGroupCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)  # 管理者権限要求
 ) -> ApprovalGroup:
 ```
+
+**テスト拡張**：
+- 管理者権限でのテスト（`authenticated_client`使用）
+- 一般ユーザーでの権限エラーテスト（403 Forbidden確認）
+- 包括的なテストカバレッジによる品質保証
 
 ### 9.2 権限モデル変更（2025年実装）
 
@@ -967,8 +972,8 @@ async def create_approval_group(
 - **拡張通知システム**: 統計、ダイジェスト、一括処理機能
 - **システム管理機能**: メンテナンスタスク、設定管理、ヘルスモニタリング
 
-### 10.3 要対応課題
-- **セキュリティ修正**: 承認グループ・情報カテゴリの権限制御追加
-- **設計文書更新**: 実装機能に合わせた継続的な文書メンテナンス
+### 10.3 修正完了事項（2025年1月）
+- **セキュリティ修正**: ✅ 承認グループ・情報カテゴリの権限制御追加済み
+- **設計文書更新**: ✅ 実装機能に合わせた文書メンテナンス継続中
 
 実装は設計書の基本要件を大幅に超えて、実用的なエンタープライズシステムとして必要な機能を網羅的に実装しています。
