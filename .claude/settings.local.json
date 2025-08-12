@@ -52,7 +52,12 @@
       "Bash(set ENVIRONMENT=test)",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/performance/test_performance.py -v)",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/performance/test_performance.py::TestPerformanceAPI::test_large_data_response_time -v)",
-      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/performance/test_performance.py::TestPerformanceAPI::test_concurrent_users_simulation -v -s)"
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/performance/test_performance.py::TestPerformanceAPI::test_concurrent_users_simulation -v -s)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/ -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_approval_groups_api.py -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_info_categories_api.py -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_approval_group_api.py -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/ -v --tb=no -q)"
     ],
     "deny": []
   }
