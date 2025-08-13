@@ -62,7 +62,12 @@
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run --dev pytest tests/performance/test_performance.py::TestPerformanceMemory::test_memory_usage_large_dataset -v -s)",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/performance/test_performance.py::TestPerformanceMemory::test_memory_usage_large_dataset -v)",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/ -q --tb=no)",
-      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/performance/ -q --tb=no)"
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/performance/ -q --tb=no)",
+      "Bash(npm run lint)",
+      "Bash(npm run format:check:*)",
+      "Bash(npm run format:*)",
+      "Bash(taskkill:*)",
+      "Bash(PORT=3000 npm run dev)"
     ],
     "deny": []
   }

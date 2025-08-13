@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: Optional[str] = None
     
     # CORS
-    BACKEND_CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"
+    BACKEND_CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:8000"
     
     def get_cors_origins(self) -> List[str]:
         """Get CORS origins as list"""
