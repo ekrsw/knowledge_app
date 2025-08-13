@@ -8,7 +8,7 @@
 graph TB
     %% フロントエンド層
     subgraph Frontend["フロントエンド層"]
-        UI_Framework["Next.js 14<br/>TypeScript<br/>Tailwind CSS<br/>NextAuth.js"]
+        UI_Framework["Next.js 15.4.6<br/>TypeScript 5.x<br/>Tailwind CSS 4.x<br/>NextAuth.js"]
         UI_Components["修正案管理UI<br/>承認ワークフローUI<br/>差分表示UI<br/>通知・ダッシュボード"]
         UI_Framework --- UI_Components
     end
@@ -71,10 +71,10 @@ graph TB
 - 依存関係管理: uv
 
 **フロントエンド**:
-- 言語: TypeScript 5.0+
-- フレームワーク: React 18 + Next.js 14
+- 言語: TypeScript 5.x
+- フレームワーク: React 19.1.0 + Next.js 15.4.6
 - 認証: NextAuth.js
-- UI: Tailwind CSS + Shadcn/ui
+- UI: Tailwind CSS 4.x + Shadcn/ui
 - 差分表示: react-diff-viewer
 - バリデーション: Zod
 
