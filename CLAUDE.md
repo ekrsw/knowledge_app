@@ -82,7 +82,7 @@ When receiving development tasks, please follow the 4-stage workflow below. This
 This is a knowledge revision proposal and approval system built with:
 
 **Backend**: Python 3.12+ with FastAPI 0.115.8, SQLAlchemy 2.0.40, PostgreSQL 17
-**Frontend**: Next.js 14 with TypeScript, Tailwind CSS
+**Frontend**: Next.js 15.4.6, React 19.1.0, TypeScript 5.x, Tailwind CSS 4.x  
 **Infrastructure**: Windows Server 2019, Redis 3.0.504 (legacy constraints)
 
 The system uses a layered architecture following FastAPI best practices:
@@ -184,7 +184,7 @@ DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv
 DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic revision --autogenerate -m "Migration description"
 ```
 
-**Development:**
+**Backend Development:**
 ```bash
 # Run development server
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -199,13 +199,34 @@ DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend
 DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/ -q --tb=no
 
 # Run with coverage
-uv run pytest --cov=app
+uv run pytest --cov=app --cov-report=html --cov-report=term
+
+# Run performance tests only
+DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest -m performance -v
 
 # Code formatting and linting
 uv run black app/
 uv run isort app/
 uv run flake8 app/
 uv run mypy app/
+```
+
+**Frontend Development:**
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Run development server with Turbopack
+npm run dev
+
+# Build production bundle
+npm run build
+
+# Start production server
+npm run start
+
+# Run linting
+npm run lint
 ```
 
 **Database Access:**
@@ -247,13 +268,16 @@ GET /api/v1/revisions/by-article/{target_article_id}
 - `backend/app/repositories/revision.py` - Mixed permission model implementation
 - `backend/app/api/v1/endpoints/revisions.py` - Revision API endpoints  
 - `backend/tests/integration/test_revisions_api.py` - Comprehensive test coverage
-- `.tmp/api_design.md` - Complete API specification
+- `.tmp/api_design.md` - Complete API specification (77 endpoints documented)
 - `.tmp/design.md` - Technical design documentation
 - `.tmp/test_design.md` - Test design specifications
+- `.tmp/tasks.md` - Current implementation task list (Frontend focus)
+- `.tmp/requirements.md` - Business requirements documentation
 
 **Configuration:**
 - `.claude/settings.local.json` - Tool permissions and project settings
 - `backend/.env.example` - Environment configuration template
+- `frontend/.env.local` - Frontend environment variables (create from template)
 
 ### Key Technical Patterns
 
@@ -336,6 +360,12 @@ DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test
 
 # For specific test debugging, use -v flag and class::method notation
 DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_revisions_api.py::TestRevisionsByArticle::test_get_revisions_by_article_public_only -v
+
+# Run a single test file
+DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_users_api.py -v
+
+# Skip performance tests for faster runs
+DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest -m "not performance" -v
 ```
 
 #### Permission Issues
@@ -355,13 +385,32 @@ DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv
 DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic upgrade head
 ```
 
+### Frontend Implementation Status (January 2025)
+
+**Current Phase**: Frontend UI implementation with Next.js 15.4.6
+- 25 tasks organized into 8 phases
+- Focus on step-by-step implementation from basic components to full features
+- API integration strictly following `.tmp/api_design.md` specifications
+
+**Frontend Task Phases**:
+1. **Foundation**: Environment setup, API client, type definitions
+2. **Authentication**: JWT management, login page, route protection
+3. **UI Components**: Layout, common components, data tables
+4. **Core Features**: Revision management (CRUD + status transitions)
+5. **Approval Workflow**: Queue management, approval/rejection
+6. **Diff Display**: Field-level and text diff visualization
+7. **Dashboard**: Home dashboard, notifications
+8. **Quality**: Error handling, performance, responsive design
+
 ### Documentation References
 
 For detailed specifications, always refer to:
-1. `.tmp/api_design.md` - Complete API endpoint documentation
+1. `.tmp/api_design.md` - Complete API endpoint documentation (77 endpoints)
 2. `.tmp/design.md` - System architecture and technical design
 3. `.tmp/test_design.md` - Testing strategies and patterns
-4. `backend/tests/` - Live examples of implementation patterns
+4. `.tmp/tasks.md` - Current frontend implementation tasks
+5. `.tmp/requirements.md` - Business requirements and success criteria
+6. `backend/tests/` - Live examples of implementation patterns
 
 ### Windows Server Deployment Notes
 
