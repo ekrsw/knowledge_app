@@ -68,7 +68,8 @@
       "Bash(npm run format:*)",
       "Bash(taskkill:*)",
       "Bash(PORT=3000 npm run dev)",
-      "Bash(npx create-next-app:*)"
+      "Bash(npx create-next-app:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
