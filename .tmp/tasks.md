@@ -13,10 +13,10 @@
 
 #### Task 1.1: プロジェクト環境設定
 
-- [ ] Next.js 15.4.6の設定確認
-- [ ] TypeScript設定の確認と調整
-- [ ] ESLint/Prettierの設定
-- [ ] 環境変数設定（.env.local）
+- [x] Next.js 15.4.6の設定確認
+- [x] TypeScript設定の確認と調整
+- [x] ESLint/Prettierの設定
+- [x] 環境変数設定（.env.local）
 - **完了条件**: 開発サーバーが正常に起動し、TypeScriptエラーがない
 - **依存**: なし
 - **推定時間**: 1時間
