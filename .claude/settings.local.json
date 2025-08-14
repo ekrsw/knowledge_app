@@ -70,7 +70,10 @@
       "Bash(PORT=3000 npm run dev)",
       "Bash(npx create-next-app:*)",
       "Bash(npx tsc:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(npx tsx:*)",
+      "Bash(chmod:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

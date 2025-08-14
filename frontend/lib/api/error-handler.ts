@@ -1,4 +1,4 @@
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 
 // Standard API error interface
 export interface ApiErrorResponse {

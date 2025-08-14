@@ -1,0 +1,16 @@
+# テスト実行時に生成される一時ファイル
+test-results.json
+typescript-test-results.json
+final-verification-results.json
+
+# Node.js関連
+node_modules/
+*.log
+npm-debug.log*
+
+# TypeScript関連
+*.tsbuildinfo
+
+# OS関連
+.DS_Store
+Thumbs.db

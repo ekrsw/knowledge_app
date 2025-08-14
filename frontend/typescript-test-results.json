@@ -1,0 +1,62 @@
+{
+  "testType": "TypeScript API Connection Test",
+  "summary": {
+    "total": 5,
+    "passed": 3,
+    "failed": 2,
+    "successRate": 60
+  },
+  "results": [
+    {
+      "testName": "基本接続テスト",
+      "success": true,
+      "message": "API接続に成功しました",
+      "timestamp": "2025-08-14T11:44:13.223Z",
+      "details": {
+        "status": 200,
+        "endpoint": "/system/health"
+      }
+    },
+    {
+      "testName": "認証テスト",
+      "success": false,
+      "message": "認証テストに失敗しました: ネットワークエラーが発生しました。接続を確認してください",
+      "timestamp": "2025-08-14T11:44:13.233Z"
+    },
+    {
+      "testName": "基本テストスイート",
+      "success": true,
+      "message": "2個のテスト実行 - 全て成功",
+      "timestamp": "2025-08-14T11:44:13.236Z",
+      "details": {
+        "testCount": 2,
+        "successCount": 2
+      }
+    },
+    {
+      "testName": "包括的テスト",
+      "success": false,
+      "message": "総合テスト結果: 5/7 成功",
+      "timestamp": "2025-08-14T11:44:13.256Z",
+      "details": {
+        "summary": {
+          "total": 7,
+          "passed": 5,
+          "failed": 2
+        },
+        "overall": false
+      }
+    },
+    {
+      "testName": "個別エンドポイントテスト",
+      "success": true,
+      "message": "GET /system/health に成功しました",
+      "timestamp": "2025-08-14T11:44:13.257Z",
+      "details": {
+        "status": 200,
+        "endpoint": "/system/health"
+      }
+    }
+  ],
+  "timestamp": "2025-08-14T11:44:13.257Z"
+}

@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // API Response wrapper type
 export interface ApiResponse<T = any> {
@@ -22,8 +23,7 @@ const createAxiosInstance = (): AxiosInstance => {
     headers: {
       'Content-Type': 'application/json',
     },
-    // Disable proxy for localhost connections to avoid corporate proxy issues
-    proxy: false,
+    // Remove proxy setting as it's not needed for modern axios
   });
 
   // Request interceptor for adding auth token
@@ -32,7 +32,7 @@ const createAxiosInstance = (): AxiosInstance => {
       // Get token from localStorage if available
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('authToken');
-        if (token) {
+        if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
       }
