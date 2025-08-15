@@ -150,7 +150,7 @@ export default function AuthTestPage() {
 
           {/* テスト結果 */}
           {testResults.length > 0 && (
-            <div className="bg-gray-700/60 border border-gray-600 rounded-lg p-6 backdrop-blur-sm">
+            <div className="bg-gray-700/60 border border-gray-600 rounded-lg p-6 backdrop-blur-sm mb-8">
               <h2 className="text-xl font-semibold mb-6 text-gray-200 flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                 テスト結果
@@ -187,7 +187,7 @@ export default function AuthTestPage() {
           )}
 
           {/* 使用方法 */}
-          <div className="mt-8 bg-slate-700/60 border border-slate-600 p-6 rounded-lg backdrop-blur-sm">
+          <div className="bg-slate-700/60 border border-slate-600 p-6 rounded-lg backdrop-blur-sm">
             <h2 className="text-lg font-semibold mb-4 text-gray-200 flex items-center gap-2">
               <span className="text-blue-400">📖</span>
               使用方法
