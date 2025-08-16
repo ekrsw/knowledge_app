@@ -944,7 +944,7 @@ class TestRevisionsByArticle:
         # Try to access without authentication
         response = await client.get(f"/api/v1/revisions/by-article/{article.article_id}")
         
-        assert response.status_code == 403
+        assert response.status_code == 401
     
     async def test_get_revisions_by_article_all_roles_access(self, client: AsyncClient, test_users, db_session: AsyncSession):
         """Test that all authenticated users (user, approver, admin) can access the endpoint"""

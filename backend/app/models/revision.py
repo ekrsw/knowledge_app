@@ -54,16 +54,16 @@ class Revision(Base):
     )
     
     # Approval information
-    approver_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
+    approver_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
         index=True
     )
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Relationships
     proposer: Mapped["User"] = relationship("User", back_populates="submitted_revisions", foreign_keys=[proposer_id])
-    approver: Mapped["User"] = relationship("User", back_populates="approved_revisions", foreign_keys=[approver_id])
+    approver: Mapped[Optional["User"]] = relationship("User", back_populates="approved_revisions", foreign_keys=[approver_id])
     after_info_category_obj: Mapped[Optional["InfoCategory"]] = relationship("InfoCategory", back_populates="revisions")
     # Note: Since target_article_id is not a foreign key (for flexibility),
     # we don't define a relationship here. Use repository methods to fetch related articles.

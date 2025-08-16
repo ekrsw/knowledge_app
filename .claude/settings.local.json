@@ -68,7 +68,20 @@
       "Bash(npm run format:*)",
       "Bash(taskkill:*)",
       "Bash(PORT=3000 npm run dev)",
-      "Bash(npx create-next-app:*)"
+      "Bash(npx create-next-app:*)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_proposals_api.py::TestProposalsMyProposals::test_get_my_proposals_with_null_approver -v)",
+      "Bash(DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic revision --autogenerate -m \"Make approver_id nullable in revisions table\")",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_proposals_api.py::TestProposalsMyProposals::test_get_my_proposals_unauthorized -v -s)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_proposals_api.py::TestProposalsMyProposals::test_get_my_proposals_unauthorized tests/integration/test_proposals_api.py::TestProposalsForApproval::test_get_proposals_for_approval_as_approver tests/integration/test_proposals_api.py::TestProposalStatistics::test_get_proposal_statistics_own -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_proposals_api.py::TestProposalsForApproval::test_get_proposals_for_approval_as_approver -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_proposals_api.py::TestProposalsMyProposals::test_get_my_proposals_unauthorized -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_auth_api.py -v --tb=no -q)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_auth_api.py::TestAuthUserInfo::test_get_current_user_no_token -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_auth_api.py::TestAuthUserInfo::test_get_current_user_no_token tests/integration/test_auth_api.py::TestAuthTokenValidation::test_test_token_no_token tests/integration/test_auth_api.py::TestAuthenticationIntegration::test_auth_header_variations -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_revisions_api.py::TestRevisionsByArticle::test_get_revisions_by_article_unauthorized tests/integration/test_users_api.py::TestUserList::test_list_users_without_auth tests/integration/test_users_api.py::TestUserGet::test_get_user_without_auth tests/integration/test_users_api.py::TestUserDelete::test_delete_user_without_auth -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_users_api.py -k \"insufficient\" -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_users_api.py -k \"permission\" -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/ -k \"unauthorized or without_auth\" --tb=no -q)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

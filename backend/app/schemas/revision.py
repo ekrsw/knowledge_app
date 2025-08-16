@@ -61,7 +61,7 @@ class RevisionInDB(RevisionBase):
     revision_id: UUID
     proposer_id: UUID
     status: str
-    approver_id: UUID
+    approver_id: Optional[UUID] = None
     processed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

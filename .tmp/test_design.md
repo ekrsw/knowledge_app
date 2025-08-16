@@ -227,6 +227,24 @@ async def test_validation_errors(client, invalid_data):
     """バリデーションエラーの包括的テスト"""
 ```
 
+### 5.3 NULL値ハンドリング
+
+```python
+# approver_idがNULLの修正案の処理
+async def test_revision_with_null_approver():
+    """承認者未指定の修正案が正しく処理されることを検証"""
+    # 1. approver_idなしで修正案作成（レガシーデータ想定）
+    revision = await create_revision_without_approver()
+    
+    # 2. /proposals/my-proposalsエンドポイントでの取得
+    response = await client.get("/api/v1/proposals/my-proposals")
+    assert response.status_code == 200
+    
+    # 3. レスポンススキーマ検証（approver_idはOptional[UUID]）
+    data = response.json()
+    assert data[0]["approver_id"] is None  # NULLが正しく処理される
+```
+
 ## 6. セキュリティ設計
 
 ### 6.1 認証・認可テスト

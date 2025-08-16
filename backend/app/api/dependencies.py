@@ -13,7 +13,7 @@ from app.repositories.user import user_repository
 from app.models.user import User
 
 # JWT Bearer token security scheme
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -35,6 +35,10 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # Check if credentials are provided
+    if credentials is None:
+        raise credentials_exception
     
     # Verify token
     user_id = verify_token(credentials.credentials)

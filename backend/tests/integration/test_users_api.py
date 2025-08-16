@@ -104,7 +104,7 @@ class TestUserList:
     async def test_list_users_without_auth(self, client: AsyncClient):
         """Test unauthenticated access is denied"""
         response = await client.get("/api/v1/users/")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestUserCreate:
@@ -368,7 +368,7 @@ class TestUserGet:
         """Test unauthenticated access is denied"""
         user = test_users["user"]
         response = await client.get(f"/api/v1/users/{user.id}")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestUserUpdate:
@@ -616,7 +616,7 @@ class TestUserDelete:
         """Test unauthenticated deletion is denied"""
         user = test_users["user"]
         response = await client.delete(f"/api/v1/users/{user.id}")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestUserPermissionMatrix:

@@ -69,18 +69,6 @@ class RevisionFactory:
                 username=f"testproposer{counter}"
             )
         
-        if approver is None:
-            from .user_factory import UserFactory
-            from .approval_group_factory import ApprovalGroupFactory
-            
-            # Create approval group for the approver
-            approval_group = await ApprovalGroupFactory.create_development_group(db)
-            approver = await UserFactory.create_approver(
-                db=db,
-                approval_group=approval_group,
-                username=f"testapprover{counter}"
-            )
-        
         # Set default values
         if target_article_id is None:
             target_article_id = f"test-article-{counter}"
@@ -91,7 +79,7 @@ class RevisionFactory:
         revision = Revision(
             target_article_id=target_article_id,
             proposer_id=proposer.id,
-            approver_id=approver.id,
+            approver_id=approver.id if approver else None,
             status=status,
             reason=reason,
             after_title=after_title,

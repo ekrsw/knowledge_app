@@ -381,7 +381,7 @@ class TestAuthUserInfo:
         """Test getting current user without authentication token"""
         response = await client.get("/api/v1/auth/me")
         
-        assert response.status_code == 403
+        assert response.status_code == 401
         data = response.json()
         assert "detail" in data
     
@@ -418,7 +418,7 @@ class TestAuthTokenValidation:
         """Test token validation without token"""
         response = await client.post("/api/v1/auth/test-token")
         
-        assert response.status_code == 403
+        assert response.status_code == 401
         data = response.json()
         assert "detail" in data
     
@@ -478,21 +478,21 @@ class TestAuthenticationIntegration:
             "/api/v1/auth/me",
             headers={"Authorization": token}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
         
         # Test empty Authorization header
         response = await client.get(
             "/api/v1/auth/me",
             headers={"Authorization": ""}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
         
         # Test wrong scheme
         response = await client.get(
             "/api/v1/auth/me",
             headers={"Authorization": f"Basic {token}"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
     
     async def test_username_email_login_consistency(self, client: AsyncClient, test_auth_user):
         """Test that username and email login return consistent token"""
