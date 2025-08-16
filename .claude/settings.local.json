@@ -81,7 +81,8 @@
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_revisions_api.py::TestRevisionsByArticle::test_get_revisions_by_article_unauthorized tests/integration/test_users_api.py::TestUserList::test_list_users_without_auth tests/integration/test_users_api.py::TestUserGet::test_get_user_without_auth tests/integration/test_users_api.py::TestUserDelete::test_delete_user_without_auth -v)",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_users_api.py -k \"insufficient\" -v)",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_users_api.py -k \"permission\" -v)",
-      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/ -k \"unauthorized or without_auth\" --tb=no -q)"
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/ -k \"unauthorized or without_auth\" --tb=no -q)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
