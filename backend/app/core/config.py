@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: str = "development"
+    DEBUG: bool = False
     TZ: str = "Asia/Tokyo"  # Timezone for timestamps
     
     # Security
