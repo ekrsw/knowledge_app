@@ -7,44 +7,13 @@ stateDiagram-v2
     %% 状態定義
     [*] --> draft: 新規作成
     
-    %% draft状態
-    state draft {
-        [*] --> 編集可能
-        編集可能 --> 編集可能: PUT /api/v1/proposals/{id}<br/>権限: 提案者本人<br/>状態: draftのみ
-    }
-    
-    %% submitted状態
-    state submitted {
-        [*] --> 承認待ち
-    }
-    
-    %% approved状態
-    state approved {
-        [*] --> 承認済み
-    }
-    
-    %% rejected状態  
-    state rejected {
-        [*] --> 却下済み
-    }
-    
-    %% deleted状態
-    state deleted {
-        [*] --> 削除済み
-    }
-    
     %% 状態遷移
-    draft --> submitted: POST /api/v1/proposals/{id}/submit<br/>権限: 提案者本人<br/>実行者: 提案者
-    
-    submitted --> approved: POST /api/v1/approvals/{id}/decide<br/>{"action": "approve"}<br/>権限: 指定承認者<br/>実行者: 承認者
-    
-    submitted --> rejected: POST /api/v1/approvals/{id}/decide<br/>{"action": "reject"}<br/>権限: 指定承認者<br/>実行者: 承認者
-    
-    submitted --> draft: POST /api/v1/proposals/{id}/withdraw<br/>権限: 提案者本人<br/>実行者: 提案者（差戻し）
-    
-    submitted --> deleted: PATCH /api/v1/revisions/{id}/status<br/>{"status": "deleted"}<br/>権限: 管理者のみ<br/>実行者: 管理者
-    
-    draft --> [*]: DELETE /api/v1/proposals/{id}<br/>権限: 提案者本人<br/>状態: draftのみ
+    draft --> submitted: 提出
+    submitted --> approved: 承認
+    submitted --> rejected: 却下  
+    submitted --> draft: 差戻し
+    submitted --> deleted: 強制削除
+    draft --> [*]: 削除
     
     approved --> [*]: 完了
     rejected --> [*]: 完了
@@ -52,36 +21,69 @@ stateDiagram-v2
 
     %% 状態の説明
     note right of draft
-        閲覧権限:
-        - 作成者: ✓
-        - 管理者: ✓
-        - その他: ✗
+        【下書き】
+        閲覧: 作成者・管理者
+        編集: 作成者のみ
     end note
     
     note right of submitted
-        閲覧権限:
-        - 全認証ユーザー: ✓
-        (公開状態)
+        【提出済み】
+        閲覧: 全認証ユーザー
+        承認/却下: 指定承認者
     end note
     
     note right of approved
-        閲覧権限:
-        - 全認証ユーザー: ✓
-        (公開状態)
+        【承認済み】
+        閲覧: 全認証ユーザー
+        編集: 不可
     end note
     
     note left of rejected
-        閲覧権限:
-        - 作成者: ✓
-        - 管理者: ✓
-        - その他: ✗
+        【却下】
+        閲覧: 作成者・管理者
+        編集: 不可
     end note
     
     note left of deleted
-        閲覧権限:
-        - 管理者: ✓
-        - その他: ✗
+        【削除済み】
+        閲覧: 管理者のみ
+        編集: 不可
     end note
+```
+
+## 状態遷移詳細
+
+### 各遷移のAPI情報
+
+| 遷移 | APIエンドポイント | メソッド | 権限 | 実行者 |
+|------|------------------|----------|------|--------|
+| **新規作成 → draft** | `/api/v1/proposals/` | POST | 認証済みユーザー | 提案者 |
+| **draft内で編集** | `/api/v1/proposals/{id}` | PUT | 提案者本人 | 提案者 |
+| **draft → submitted** | `/api/v1/proposals/{id}/submit` | POST | 提案者本人 | 提案者 |
+| **submitted → approved** | `/api/v1/approvals/{id}/decide` | POST | 指定承認者 | 承認者 |
+| **submitted → rejected** | `/api/v1/approvals/{id}/decide` | POST | 指定承認者 | 承認者 |
+| **submitted → draft** | `/api/v1/proposals/{id}/withdraw` | POST | 提案者本人 | 提案者 |
+| **submitted → deleted** | `/api/v1/revisions/{id}/status` | PATCH | 管理者のみ | 管理者 |
+| **draft → 削除** | `/api/v1/proposals/{id}` | DELETE | 提案者本人 | 提案者 |
+
+### 承認・却下時のリクエストボディ
+
+**承認の場合:**
+```json
+{
+  "action": "approve",
+  "comment": "承認コメント",
+  "priority": "medium"
+}
+```
+
+**却下の場合:**
+```json
+{
+  "action": "reject", 
+  "comment": "却下理由",
+  "priority": "low"
+}
 ```
 
 ## 2. 権限マトリックス表
