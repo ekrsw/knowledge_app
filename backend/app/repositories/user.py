@@ -88,6 +88,18 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         await db.commit()
         await db.refresh(db_obj)
         return db_obj
+    
+    async def update_password(self, db: AsyncSession, *, user: User, new_password: str) -> User:
+        """Update user password"""
+        from app.core.security import get_password_hash
+        
+        # Hash the new password
+        user.password_hash = get_password_hash(new_password)
+        user.updated_at = user.updated_at  # This will trigger auto-update
+        
+        await db.commit()
+        await db.refresh(user)
+        return user
 
 
 # Create a singleton instance

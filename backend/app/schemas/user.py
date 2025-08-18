@@ -50,3 +50,9 @@ class UserInDB(UserBase):
 class User(UserInDB):
     """Schema for user response (without sensitive data)"""
     pass
+
+
+class UserPasswordUpdate(BaseModel):
+    """Schema for updating user password"""
+    current_password: str = Field(..., min_length=1, description="Current password")
+    new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")

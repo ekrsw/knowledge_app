@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_active_user, get_current_admin_user
 from app.repositories.user import user_repository
-from app.schemas.user import User, UserCreate, UserUpdate
+from app.schemas.user import User, UserCreate, UserUpdate, UserPasswordUpdate
 from app.models.user import User as UserModel
+from app.core.security import verify_password
 
 router = APIRouter()
 
@@ -145,3 +146,48 @@ async def delete_user(
     
     await user_repository.remove(db, id=user_id)
     return None
+
+
+@router.put("/{user_id}/password", response_model=User)
+async def update_user_password(
+    user_id: UUID,
+    password_update: UserPasswordUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_active_user)
+):
+    """
+    Update user password.
+    
+    - Users can update their own password (must provide current password)
+    - Admins can update any user's password (must provide current password)
+    """
+    # Check if user is updating their own password or if they are admin
+    if current_user.id != user_id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    
+    # Get the target user
+    user = await user_repository.get(db, id=user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Verify current password
+    if not verify_password(password_update.current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+    
+    # Update password
+    updated_user = await user_repository.update_password(
+        db, 
+        user=user, 
+        new_password=password_update.new_password
+    )
+    
+    return updated_user
