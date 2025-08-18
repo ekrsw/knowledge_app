@@ -35,7 +35,6 @@ class UserUpdate(BaseModel):
     role: Optional[str] = Field(None, pattern="^(user|approver|admin)$")
     approval_group_id: Optional[UUID] = None
     is_active: Optional[bool] = None
-    password: Optional[str] = Field(None, min_length=8)
 
 
 class UserInDB(UserBase):
