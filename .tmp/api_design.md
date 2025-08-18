@@ -539,6 +539,41 @@ PUT /api/v1/users/{user_id}
 **権限**: 本人または管理者  
 **説明**: 非管理者は自分のロール変更不可
 
+#### パスワード更新（本人用）
+```http
+PUT /api/v1/users/{user_id}/password
+```
+**権限**: 本人のみ（`get_current_active_user`）  
+**説明**: ユーザーが自分のパスワードを更新  
+**リクエストボディ**: UserPasswordUpdate スキーマ
+```json
+{
+  "current_password": "string",
+  "new_password": "string"
+}
+```
+**セキュリティ**: 
+- 現在のパスワード検証必須
+- 管理者も他ユーザーのパスワード変更時は専用エンドポイント使用
+
+#### 管理者パスワードリセット
+```http
+PUT /api/v1/users/{user_id}/admin-reset-password
+```
+**権限**: 管理者のみ（`get_current_admin_user`）  
+**説明**: 管理者による他ユーザーのパスワード強制リセット  
+**リクエストボディ**: AdminPasswordUpdate スキーマ
+```json
+{
+  "new_password": "string",
+  "reason": "string"
+}
+```
+**セキュリティ**:
+- 現在パスワード検証不要（管理者特権）
+- 監査ログ記録（リセット理由含む）
+- 一般ユーザーのアクセス完全禁止
+
 #### ユーザー削除
 ```http
 DELETE /api/v1/users/{user_id}

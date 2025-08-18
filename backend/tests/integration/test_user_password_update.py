@@ -95,14 +95,14 @@ class TestUserPasswordUpdate:
         )
         
         assert response.status_code == 403
-        assert response.json()["detail"] == "Not enough permissions"
+        assert "Users can only update their own password" in response.json()["detail"]
     
-    async def test_update_other_user_password_as_admin(
+    async def test_admin_cannot_use_regular_password_endpoint_for_others(
         self, 
         authenticated_client: AsyncClient,
         db_session: AsyncSession
     ):
-        """Test admin can update another user's password"""
+        """Test admin cannot use regular password endpoint for other users"""
         # Create a regular user
         regular_user = await user_repository.create_with_password(
             db_session,
@@ -115,7 +115,7 @@ class TestUserPasswordUpdate:
             )
         )
         
-        # Admin updates regular user's password
+        # Admin tries to use regular password endpoint for other user (should fail)
         response = await authenticated_client.put(
             f"/api/v1/users/{regular_user.id}/password",
             json={
@@ -124,19 +124,14 @@ class TestUserPasswordUpdate:
             }
         )
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["id"] == str(regular_user.id)
-        
-        # Verify the password was actually changed
-        updated_user = await user_repository.get(db_session, id=regular_user.id)
-        assert verify_password("NewRegularPass456!", updated_user.password_hash)
+        assert response.status_code == 403
+        assert "Admins should use /admin-reset-password endpoint" in response.json()["detail"]
     
     async def test_update_password_for_nonexistent_user(
         self, 
         authenticated_client: AsyncClient
     ):
-        """Test password update for non-existent user returns 404"""
+        """Test password update for non-existent user returns 403 due to permission check"""
         fake_user_id = "550e8400-e29b-41d4-a716-446655440000"
         
         response = await authenticated_client.put(
@@ -147,8 +142,9 @@ class TestUserPasswordUpdate:
             }
         )
         
-        assert response.status_code == 404
-        assert response.json()["detail"] == "User not found"
+        # Permission check happens before user existence check
+        assert response.status_code == 403
+        assert "Users can only update their own password" in response.json()["detail"]
     
     async def test_update_password_with_short_new_password(
         self, 
@@ -245,3 +241,119 @@ class TestUserPasswordUpdate:
         # Verify password was changed
         updated_admin = await user_repository.get(db_session, id=admin_user.id)
         assert verify_password("NewAdminPass456!", updated_admin.password_hash)
+    
+    async def test_admin_reset_other_user_password(
+        self, 
+        authenticated_client: AsyncClient,
+        db_session: AsyncSession
+    ):
+        """Test admin can reset another user's password without knowing current password"""
+        # Create a regular user
+        regular_user = await user_repository.create_with_password(
+            db_session,
+            obj_in=UserCreate(
+                username="resetuser",
+                email="reset@example.com",
+                password="OriginalPass123!",
+                full_name="Reset User",
+                role="user"
+            )
+        )
+        
+        # Admin resets user's password without knowing current password
+        response = await authenticated_client.put(
+            f"/api/v1/users/{regular_user.id}/admin-reset-password",
+            json={
+                "new_password": "AdminResetPass456!",
+                "reason": "User forgot password"
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == str(regular_user.id)
+        
+        # Verify the password was actually changed
+        updated_user = await user_repository.get(db_session, id=regular_user.id)
+        assert verify_password("AdminResetPass456!", updated_user.password_hash)
+        assert not verify_password("OriginalPass123!", updated_user.password_hash)
+    
+    async def test_regular_user_cannot_use_admin_reset_endpoint(
+        self, 
+        client: AsyncClient,
+        db_session: AsyncSession,
+        test_users: dict
+    ):
+        """Test regular user cannot use admin reset endpoint"""
+        auth_headers = await create_auth_headers(test_users["user"])
+        
+        # Create another user to try to reset
+        target_user = await user_repository.create_with_password(
+            db_session,
+            obj_in=UserCreate(
+                username="targetuser",
+                email="target@example.com",
+                password="TargetPass123!",
+                full_name="Target User",
+                role="user"
+            )
+        )
+        
+        # Regular user tries to use admin reset endpoint
+        response = await client.put(
+            f"/api/v1/users/{target_user.id}/admin-reset-password",
+            json={
+                "new_password": "HackedPass456!",
+                "reason": "Malicious attempt"
+            },
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Not enough permissions"
+    
+    async def test_admin_reset_nonexistent_user(
+        self, 
+        authenticated_client: AsyncClient
+    ):
+        """Test admin reset for non-existent user returns 404"""
+        fake_user_id = "550e8400-e29b-41d4-a716-446655440000"
+        
+        response = await authenticated_client.put(
+            f"/api/v1/users/{fake_user_id}/admin-reset-password",
+            json={
+                "new_password": "NewPassword456!",
+                "reason": "Test reset"
+            }
+        )
+        
+        assert response.status_code == 404
+        assert response.json()["detail"] == "User not found"
+    
+    async def test_admin_reset_with_short_password(
+        self, 
+        authenticated_client: AsyncClient,
+        db_session: AsyncSession
+    ):
+        """Test admin reset fails with too short new password"""
+        # Create a regular user
+        regular_user = await user_repository.create_with_password(
+            db_session,
+            obj_in=UserCreate(
+                username="shortpassuser",
+                email="shortpass@example.com",
+                password="OriginalPass123!",
+                full_name="Short Pass User",
+                role="user"
+            )
+        )
+        
+        response = await authenticated_client.put(
+            f"/api/v1/users/{regular_user.id}/admin-reset-password",
+            json={
+                "new_password": "Short1!",  # Less than 8 characters
+                "reason": "Test validation"
+            }
+        )
+        
+        assert response.status_code == 422  # Validation error

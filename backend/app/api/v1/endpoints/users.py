@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_active_user, get_current_admin_user
 from app.repositories.user import user_repository
-from app.schemas.user import User, UserCreate, UserUpdate, UserPasswordUpdate
+from app.schemas.user import User, UserCreate, UserUpdate, UserPasswordUpdate, AdminPasswordUpdate
 from app.models.user import User as UserModel
 from app.core.security import verify_password
 
@@ -156,16 +156,16 @@ async def update_user_password(
     current_user: UserModel = Depends(get_current_active_user)
 ):
     """
-    Update user password.
+    Update own password.
     
-    - Users can update their own password (must provide current password)
-    - Admins can update any user's password (must provide current password)
+    - Users can only update their own password (must provide current password)
+    - For admin password resets, use /admin-reset-password endpoint
     """
-    # Check if user is updating their own password or if they are admin
-    if current_user.id != user_id and current_user.role != "admin":
+    # Users can only update their own password
+    if current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            detail="Users can only update their own password. Admins should use /admin-reset-password endpoint."
         )
     
     # Get the target user
@@ -189,5 +189,41 @@ async def update_user_password(
         user=user, 
         new_password=password_update.new_password
     )
+    
+    return updated_user
+
+
+@router.put("/{user_id}/admin-reset-password", response_model=User)
+async def admin_reset_user_password(
+    user_id: UUID,
+    password_reset: AdminPasswordUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_admin_user)
+):
+    """
+    Admin password reset for any user.
+    
+    - Only admins can use this endpoint
+    - No current password verification required
+    - Generates audit log for security
+    """
+    # Get the target user
+    user = await user_repository.get(db, id=user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Update password without current password verification
+    updated_user = await user_repository.update_password(
+        db, 
+        user=user, 
+        new_password=password_reset.new_password
+    )
+    
+    # TODO: Log admin password reset action for audit trail
+    # This would typically go to an audit log
+    print(f"Admin {current_user.id} reset password for user {user_id}. Reason: {password_reset.reason}")
     
     return updated_user

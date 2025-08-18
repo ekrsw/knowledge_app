@@ -53,6 +53,12 @@ class User(UserInDB):
 
 
 class UserPasswordUpdate(BaseModel):
-    """Schema for updating user password"""
+    """Schema for updating own password (requires current password)"""
     current_password: str = Field(..., min_length=1, description="Current password")
     new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")
+
+
+class AdminPasswordUpdate(BaseModel):
+    """Schema for admin password reset (does not require current password)"""
+    new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")
+    reason: str = Field(default="Admin password reset", max_length=200, description="Reason for password reset")
