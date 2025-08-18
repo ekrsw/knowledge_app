@@ -21,10 +21,11 @@ Development: http://localhost:8000/api/v1
 Authorization: Bearer {jwt_token}
 ```
 
-**注意**: 一部の閲覧系エンドポイントは認証なしでアクセス可能です：
-- 記事一覧・詳細: `/api/v1/articles/*` (GET)
+**注意**: 一部のエンドポイントは認証なしでアクセス可能です：
+- 記事関連: `/api/v1/articles/*` (GET)
 - 情報カテゴリ: `/api/v1/info-categories/*` (GET)
-- システム情報: `/api/v1/system/health`, `/api/v1/system/version`, `/api/v1/system/api-documentation`
+- ヘルスチェック: `/health` (基本), `/api/v1/system/health` (詳細)
+- システム情報: `/api/v1/system/version`, `/api/v1/system/api-documentation`
 
 ### 2.2 依存関数による権限制御
 ```python
@@ -771,23 +772,45 @@ GET /api/v1/analytics/dashboards/executive
 **権限**: 管理者  
 **説明**: 経営層向け包括ダッシュボード（KPI、リスク評価、推奨事項）
 
-### 3.12 システム情報 (/api/v1/system)
+### 3.12 システム情報
 
-#### ヘルスチェック
+#### 基本ヘルスチェック
 ```http
-GET /api/v1/system/health
+GET /health
 ```
 **権限**: なし（public）  
+**用途**: ロードバランサー・監視ツール用の軽量チェック  
 **レスポンス**:
 ```json
 {
   "status": "healthy",
-  "timestamp": "2024-01-01T00:00:00Z",
+  "timestamp": "2025-01-30T00:00:00Z",
+  "version": "0.1.0"
+}
+```
+
+### システム管理エンドポイント (/api/v1/system)
+
+#### ヘルスチェック（詳細版）
+```http
+GET /api/v1/system/health
+```
+**権限**: なし（public）  
+**用途**: 開発・運用チーム向けの詳細システムステータス  
+**レスポンス**:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01T12:34:56.789Z",
   "version": "0.1.0",
   "environment": "development",
   "database": "connected"
 }
 ```
+
+**注意**: 基本的なヘルスチェックは `/health` で利用可能
+- `/health`: ロードバランサー・監視ツール用（軽量）
+- `/api/v1/system/health`: 開発・運用チーム用（詳細情報）
 
 #### バージョン情報
 ```http
