@@ -590,7 +590,145 @@ class TestRevisionUpdate:
         response = await client.put(f"/api/v1/revisions/{revision.revision_id}", json=update_data, headers=headers)
         
         assert response.status_code == 403
-        assert "own revisions" in response.json()["detail"].lower()
+        assert "own" in response.json()["detail"].lower() and "revisions" in response.json()["detail"].lower()
+    
+    async def test_update_approved_revision_as_approver_success(self, client: AsyncClient, db_session: AsyncSession):
+        """Test approver can update their assigned approved revision"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        proposer = await UserFactory.create_user(db_session, username="approved_proposer", email="approved_proposer@example.com")
+        approver = await UserFactory.create_approver(db_session, approval_group, username="approved_approver", email="approved_approver@example.com")
+        
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        revision = await RevisionFactory.create_approved(
+            db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+        )
+        
+        # Login as approver
+        login_response = await client.post(
+            "/api/v1/auth/login/json",
+            json={"email": "approved_approver@example.com", "password": "testpassword123"}
+        )
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Update approved revision
+        update_data = {
+            "after_title": "Approver Updated Title",
+            "after_question": "Approver updated question"
+        }
+        
+        response = await client.put(f"/api/v1/revisions/{revision.revision_id}", json=update_data, headers=headers)
+        
+        assert response.status_code == 200
+        updated_revision = response.json()
+        assert updated_revision["after_title"] == "Approver Updated Title"
+        assert updated_revision["after_question"] == "Approver updated question"
+        assert updated_revision["status"] == "approved"  # Status should remain approved
+    
+    async def test_update_approved_revision_as_admin_success(self, client: AsyncClient, db_session: AsyncSession):
+        """Test admin can update any approved revision"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        proposer = await UserFactory.create_user(db_session, username="admin_approved_proposer", email="admin_approved_proposer@example.com")
+        approver = await UserFactory.create_approver(db_session, approval_group, username="admin_approved_approver", email="admin_approved_approver@example.com")
+        admin = await UserFactory.create_admin(db_session, username="admin_update", email="admin_update@example.com")
+        
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        revision = await RevisionFactory.create_approved(
+            db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+        )
+        
+        # Login as admin
+        login_response = await client.post(
+            "/api/v1/auth/login/json",
+            json={"email": "admin_update@example.com", "password": "testpassword123"}
+        )
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Update approved revision
+        update_data = {
+            "after_title": "Admin Updated Title"
+        }
+        
+        response = await client.put(f"/api/v1/revisions/{revision.revision_id}", json=update_data, headers=headers)
+        
+        assert response.status_code == 200
+        updated_revision = response.json()
+        assert updated_revision["after_title"] == "Admin Updated Title"
+        assert updated_revision["status"] == "approved"
+    
+    async def test_update_approved_revision_as_wrong_approver_forbidden(self, client: AsyncClient, db_session: AsyncSession):
+        """Test wrong approver cannot update approved revision"""
+        # Create test data
+        approval_group1 = await ApprovalGroupFactory.create_development_group(db_session)
+        approval_group2 = await ApprovalGroupFactory.create_quality_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        proposer = await UserFactory.create_user(db_session, username="wrong_approved_proposer", email="wrong_approved_proposer@example.com")
+        correct_approver = await UserFactory.create_approver(db_session, approval_group1, username="correct_approver", email="correct_approver@example.com")
+        wrong_approver = await UserFactory.create_approver(db_session, approval_group2, username="wrong_approver", email="wrong_approver@example.com")
+        
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group1)
+        revision = await RevisionFactory.create_approved(
+            db_session, proposer=proposer, approver=correct_approver, target_article_id=article.article_id
+        )
+        
+        # Login as wrong approver
+        login_response = await client.post(
+            "/api/v1/auth/login/json",
+            json={"email": "wrong_approver@example.com", "password": "testpassword123"}
+        )
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Try to update approved revision (should fail)
+        update_data = {
+            "after_title": "Wrong Approver Update"
+        }
+        
+        response = await client.put(f"/api/v1/revisions/{revision.revision_id}", json=update_data, headers=headers)
+        
+        assert response.status_code == 403
+        assert "designated approver" in response.json()["detail"].lower()
+    
+    async def test_update_approved_revision_as_regular_user_forbidden(self, client: AsyncClient, db_session: AsyncSession):
+        """Test regular user cannot update approved revision"""
+        # Create test data
+        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
+        info_category = await InfoCategoryFactory.create_technology_category(db_session)
+        
+        proposer = await UserFactory.create_user(db_session, username="regular_approved_proposer", email="regular_approved_proposer@example.com")
+        approver = await UserFactory.create_approver(db_session, approval_group, username="regular_approved_approver", email="regular_approved_approver@example.com")
+        other_user = await UserFactory.create_user(db_session, username="regular_user_update", email="regular_user_update@example.com")
+        
+        article = await ArticleFactory.create(db_session, info_category=info_category, approval_group=approval_group)
+        revision = await RevisionFactory.create_approved(
+            db_session, proposer=proposer, approver=approver, target_article_id=article.article_id
+        )
+        
+        # Login as regular user
+        login_response = await client.post(
+            "/api/v1/auth/login/json",
+            json={"email": "regular_user_update@example.com", "password": "testpassword123"}
+        )
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Try to update approved revision (should fail)
+        update_data = {
+            "after_title": "Regular User Update"
+        }
+        
+        response = await client.put(f"/api/v1/revisions/{revision.revision_id}", json=update_data, headers=headers)
+        
+        assert response.status_code == 403
+        assert "designated approver" in response.json()["detail"].lower()
 
 
 class TestRevisionStatusUpdate:

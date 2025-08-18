@@ -151,6 +151,63 @@ class ProposalService:
         
         return revision
     
+    async def update_approved_proposal(
+        self,
+        db: AsyncSession,
+        *,
+        revision_id: UUID,
+        update_data: RevisionUpdate,
+        approver: User
+    ) -> Revision:
+        """Update an approved proposal (only allowed for approvers)"""
+        # Get the revision
+        revision = await revision_repository.get(db, id=revision_id)
+        if not revision:
+            raise ProposalNotFoundError("Revision not found")
+        
+        # Only approved proposals can be updated through this method
+        if revision.status != "approved":
+            raise ProposalStatusError(f"Cannot update proposal with status {revision.status}. Only approved proposals can be updated through this method.")
+        
+        # Verify approver authorization
+        if revision.approver_id != approver.id and approver.role != "admin":
+            raise ProposalPermissionError("Not authorized to update this approved proposal")
+        
+        # Prevent modification of core metadata fields
+        if update_data.status is not None:
+            update_data.status = None
+        if hasattr(update_data, 'proposer_id') and update_data.proposer_id is not None:
+            update_data.proposer_id = None
+        if hasattr(update_data, 'approver_id') and update_data.approver_id is not None:
+            update_data.approver_id = None
+        
+        # Update processed_at to track the modification
+        from datetime import datetime, timezone
+        if hasattr(update_data, 'processed_at'):
+            update_data.processed_at = datetime.now(timezone.utc)
+        
+        # Update the revision
+        revision = await revision_repository.update(db, db_obj=revision, obj_in=update_data)
+        
+        # Send notification about the approved proposal update
+        try:
+            from app.services.notification_service import NotificationService
+            notification_service = NotificationService()
+            
+            await notification_service.create_notification(
+                db=db,
+                user_id=revision.proposer_id,
+                revision_id=revision.revision_id,
+                type="approved_proposal_updated",
+                title="承認済み修正案が更新されました",
+                message=f"修正案「{revision.after_title or revision.target_article_id}」が承認者によって更新されました。"
+            )
+        except Exception as e:
+            # Don't fail the update if notification fails
+            print(f"Failed to send approved proposal update notification: {e}")
+        
+        return revision
+    
     async def delete_proposal(
         self,
         db: AsyncSession,

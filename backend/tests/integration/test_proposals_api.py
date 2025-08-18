@@ -346,3 +346,325 @@ class TestProposalStatistics:
         assert data["draft"] == 1
         assert data["submitted"] == 1
         assert data["approved"] == 1
+
+
+class TestProposalsApprovedUpdate:
+    """Test /proposals/{id}/approved-update endpoint"""
+    
+    async def test_update_approved_proposal_by_approver_success(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession
+    ):
+        """Test successful update of approved proposal by approver"""
+        # Create approval group
+        approval_group = await ApprovalGroupFactory.create(db_session)
+        
+        # Create approver user
+        approver = await UserFactory.create(
+            db_session,
+            role="approver",
+            approval_group=approval_group
+        )
+        
+        # Create proposer user
+        proposer = await UserFactory.create(db_session, role="user")
+        
+        # Create article
+        article = await ArticleFactory.create(
+            db_session,
+            approval_group=approval_group
+        )
+        
+        # Create approved revision
+        revision = await RevisionFactory.create(
+            db_session,
+            target_article_id=article.article_id,
+            proposer=proposer,
+            approver=approver,
+            status="approved",
+            after_title="Original Approved Title"
+        )
+        
+        # Get auth token for approver
+        token = await get_auth_token(approver)
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Update data
+        update_data = {
+            "after_title": "Updated Approved Title",
+            "after_question": "Updated question content"
+        }
+        
+        # Make request
+        response = await client.put(
+            f"/api/v1/proposals/{revision.revision_id}/approved-update",
+            headers=headers,
+            json=update_data
+        )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["after_title"] == "Updated Approved Title"
+        assert data["after_question"] == "Updated question content"
+        assert data["status"] == "approved"  # Status should remain unchanged
+        assert data["approver_id"] == str(approver.id)
+        assert data["proposer_id"] == str(proposer.id)
+    
+    async def test_update_approved_proposal_by_admin_success(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession
+    ):
+        """Test successful update of approved proposal by admin"""
+        # Create approval group
+        approval_group = await ApprovalGroupFactory.create(db_session)
+        
+        # Create admin user
+        admin = await UserFactory.create(db_session, role="admin")
+        
+        # Create approver user
+        approver = await UserFactory.create(
+            db_session,
+            role="approver",
+            approval_group=approval_group
+        )
+        
+        # Create proposer user
+        proposer = await UserFactory.create(db_session, role="user")
+        
+        # Create article
+        article = await ArticleFactory.create(
+            db_session,
+            approval_group=approval_group
+        )
+        
+        # Create approved revision
+        revision = await RevisionFactory.create(
+            db_session,
+            target_article_id=article.article_id,
+            proposer=proposer,
+            approver=approver,
+            status="approved",
+            after_title="Original Title"
+        )
+        
+        # Get auth token for admin
+        token = await get_auth_token(admin)
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Update data
+        update_data = {
+            "after_title": "Admin Updated Title"
+        }
+        
+        # Make request
+        response = await client.put(
+            f"/api/v1/proposals/{revision.revision_id}/approved-update",
+            headers=headers,
+            json=update_data
+        )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["after_title"] == "Admin Updated Title"
+        assert data["status"] == "approved"
+    
+    async def test_update_approved_proposal_by_wrong_approver_forbidden(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession
+    ):
+        """Test update of approved proposal by wrong approver is forbidden"""
+        # Create approval groups
+        approval_group1 = await ApprovalGroupFactory.create(db_session)
+        approval_group2 = await ApprovalGroupFactory.create(db_session)
+        
+        # Create approver users
+        correct_approver = await UserFactory.create(
+            db_session,
+            role="approver",
+            approval_group=approval_group1
+        )
+        wrong_approver = await UserFactory.create(
+            db_session,
+            role="approver",
+            approval_group=approval_group2
+        )
+        
+        # Create proposer user
+        proposer = await UserFactory.create(db_session, role="user")
+        
+        # Create article
+        article = await ArticleFactory.create(
+            db_session,
+            approval_group=approval_group1
+        )
+        
+        # Create approved revision
+        revision = await RevisionFactory.create(
+            db_session,
+            target_article_id=article.article_id,
+            proposer=proposer,
+            approver=correct_approver,
+            status="approved"
+        )
+        
+        # Get auth token for wrong approver
+        token = await get_auth_token(wrong_approver)
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Update data
+        update_data = {
+            "after_title": "Updated Title"
+        }
+        
+        # Make request
+        response = await client.put(
+            f"/api/v1/proposals/{revision.revision_id}/approved-update",
+            headers=headers,
+            json=update_data
+        )
+        
+        # Verify forbidden response
+        assert response.status_code == 403
+    
+    async def test_update_approved_proposal_by_user_forbidden(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession
+    ):
+        """Test update of approved proposal by regular user is forbidden"""
+        # Create approval group
+        approval_group = await ApprovalGroupFactory.create(db_session)
+        
+        # Create approver user
+        approver = await UserFactory.create(
+            db_session,
+            role="approver",
+            approval_group=approval_group
+        )
+        
+        # Create proposer user
+        proposer = await UserFactory.create(db_session, role="user")
+        
+        # Create article
+        article = await ArticleFactory.create(
+            db_session,
+            approval_group=approval_group
+        )
+        
+        # Create approved revision
+        revision = await RevisionFactory.create(
+            db_session,
+            target_article_id=article.article_id,
+            proposer=proposer,
+            approver=approver,
+            status="approved"
+        )
+        
+        # Get auth token for proposer (regular user)
+        token = await get_auth_token(proposer)
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Update data
+        update_data = {
+            "after_title": "Updated Title"
+        }
+        
+        # Make request
+        response = await client.put(
+            f"/api/v1/proposals/{revision.revision_id}/approved-update",
+            headers=headers,
+            json=update_data
+        )
+        
+        # Verify forbidden response
+        assert response.status_code == 403
+    
+    async def test_update_non_approved_proposal_error(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession
+    ):
+        """Test update of non-approved proposal returns error"""
+        # Create approval group
+        approval_group = await ApprovalGroupFactory.create(db_session)
+        
+        # Create approver user
+        approver = await UserFactory.create(
+            db_session,
+            role="approver",
+            approval_group=approval_group
+        )
+        
+        # Create proposer user
+        proposer = await UserFactory.create(db_session, role="user")
+        
+        # Create article
+        article = await ArticleFactory.create(
+            db_session,
+            approval_group=approval_group
+        )
+        
+        # Create draft revision (not approved)
+        revision = await RevisionFactory.create(
+            db_session,
+            target_article_id=article.article_id,
+            proposer=proposer,
+            approver=approver,
+            status="draft"
+        )
+        
+        # Get auth token for approver
+        token = await get_auth_token(approver)
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Update data
+        update_data = {
+            "after_title": "Updated Title"
+        }
+        
+        # Make request
+        response = await client.put(
+            f"/api/v1/proposals/{revision.revision_id}/approved-update",
+            headers=headers,
+            json=update_data
+        )
+        
+        # Verify error response
+        assert response.status_code == 403
+        data = response.json()
+        assert "Only approved proposals can be updated" in data["detail"]
+    
+    async def test_update_nonexistent_proposal_not_found(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession
+    ):
+        """Test update of nonexistent proposal returns 404"""
+        # Create approver user
+        approver = await UserFactory.create(db_session, role="approver")
+        
+        # Get auth token for approver
+        token = await get_auth_token(approver)
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Update data
+        update_data = {
+            "after_title": "Updated Title"
+        }
+        
+        # Make request with non-existent ID
+        from uuid import uuid4
+        fake_id = uuid4()
+        response = await client.put(
+            f"/api/v1/proposals/{fake_id}/approved-update",
+            headers=headers,
+            json=update_data
+        )
+        
+        # Verify not found response
+        assert response.status_code == 404

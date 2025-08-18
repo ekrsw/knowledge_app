@@ -215,7 +215,7 @@ class TestCustomExceptionHandling:
         assert response.status_code == 403
         error_data = response.json()
         assert "detail" in error_data
-        assert "own revisions" in error_data["detail"].lower()
+        assert "own" in error_data["detail"].lower() and "revisions" in error_data["detail"].lower()
     
     async def test_revision_update_proposal_status_error(self, client: AsyncClient, db_session: AsyncSession):
         """Test ProposalStatusError handling for invalid status update"""

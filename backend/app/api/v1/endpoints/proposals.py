@@ -131,6 +131,31 @@ async def withdraw_proposal(
         )
 
 
+@router.put("/{proposal_id}/approved-update", response_model=Revision)
+async def update_approved_proposal(
+    proposal_id: UUID,
+    update_data: RevisionUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update an approved proposal (only approver or admin can update)"""
+    try:
+        proposal = await proposal_service.update_approved_proposal(
+            db, revision_id=proposal_id, update_data=update_data, approver=current_user
+        )
+        return proposal
+    except ProposalNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except (ProposalPermissionError, ProposalStatusError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
+
+
 @router.delete("/{proposal_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_proposal(
     proposal_id: UUID,

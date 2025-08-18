@@ -134,7 +134,7 @@ async def update_revision(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update revision - only proposer can update their draft revisions"""
+    """Update revision - proposer can update draft revisions, approver can update approved revisions"""
     revision = await revision_repository.get(db, id=revision_id)
     if not revision:
         raise HTTPException(
@@ -142,18 +142,29 @@ async def update_revision(
             detail="Revision not found"
         )
     
-    # Only the proposer can update their revision
-    if revision.proposer_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update your own revisions"
-        )
-    
-    # Only draft revisions can be updated
-    if revision.status != "draft":
+    # Check permissions based on status
+    if revision.status == "draft":
+        # Only the proposer can update draft revisions
+        if revision.proposer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only update your own draft revisions"
+            )
+    elif revision.status == "approved":
+        # Only the approver or admin can update approved revisions
+        if revision.approver_id != current_user.id and current_user.role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the designated approver or admin can update approved revisions"
+            )
+        # Prevent modification of core metadata fields for approved revisions
+        if revision_in.status is not None:
+            revision_in.status = None
+    else:
+        # No other statuses can be updated
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot update revision with status '{revision.status}'. Only draft revisions can be updated."
+            detail=f"Cannot update revision with status '{revision.status}'. Only draft and approved revisions can be updated."
         )
     
     revision = await revision_repository.update(db, db_obj=revision, obj_in=revision_in)
