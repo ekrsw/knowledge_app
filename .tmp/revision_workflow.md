@@ -35,7 +35,7 @@ stateDiagram-v2
     note right of approved
         【承認済み】
         閲覧: 全認証ユーザー
-        編集: 不可
+        編集: 承認者・管理者のみ
     end note
     
     note left of rejected
@@ -104,6 +104,8 @@ stateDiagram-v2
 |------|------------------|-----------|----------|
 | **作成** | `POST /api/v1/proposals/` | 認証済みユーザー | なし |
 | **更新** | `PUT /api/v1/proposals/{id}` | 提案者本人 | status = draft |
+| **承認済み更新** | `PUT /api/v1/proposals/{id}/approved-update` | 指定承認者・管理者 | status = approved |
+| **汎用更新** | `PUT /api/v1/revisions/{id}` | 提案者本人 or 指定承認者・管理者 | status = draft or approved |
 | **提出** | `POST /api/v1/proposals/{id}/submit` | 提案者本人 | status = draft |
 | **撤回** | `POST /api/v1/proposals/{id}/withdraw` | 提案者本人 | status = submitted |
 | **承認** | `POST /api/v1/approvals/{id}/decide` | 指定承認者 | status = submitted |
@@ -126,10 +128,27 @@ stateDiagram-v2
   - `after_*`: 少なくとも1つの変更フィールド
 
 #### PUT /api/v1/proposals/{proposal_id}
-- **目的**: 修正案の更新
+- **目的**: 修正案の更新（draft状態のみ）
 - **権限**: 提案者本人
 - **制約**: status = draft のみ
 - **更新可能**: すべてのafter_*フィールド、reason、approver_id
+
+#### PUT /api/v1/proposals/{proposal_id}/approved-update
+- **目的**: 承認済み修正案の更新
+- **権限**: 指定承認者または管理者
+- **制約**: status = approved のみ
+- **更新可能**: すべてのafter_*フィールド、reason（コアメタデータ除く）
+- **保護フィールド**: status、proposer_id、approver_id
+- **副作用**: processed_at更新、提案者への通知送信
+
+#### PUT /api/v1/revisions/{revision_id}
+- **目的**: 汎用修正案更新（状態別権限制御）
+- **権限**: 
+  - draft: 提案者本人のみ
+  - approved: 指定承認者または管理者のみ
+- **制約**: draft または approved のみ
+- **更新可能**: すべてのafter_*フィールド、reason
+- **approved時保護**: status フィールドは自動で NULL 設定
 
 #### DELETE /api/v1/proposals/{proposal_id}
 - **目的**: 修正案の削除
@@ -218,6 +237,20 @@ stateDiagram-v2
    {"action": "approve"}
 ```
 
+### 4.1.1 承認後の編集フロー（新機能）
+```
+5. 承認者が承認済み修正案を軽微修正（approved状態を維持）
+   PUT /api/v1/proposals/{id}/approved-update
+   {"after_title": "軽微な修正"}
+   
+   または
+   
+   PUT /api/v1/revisions/{id}
+   {"after_title": "軽微な修正"}
+   
+6. 提案者に編集完了の通知が送信される
+```
+
 ### 4.2 差戻しフロー
 ```
 1. 提出済み修正案に問題を発見
@@ -262,11 +295,14 @@ stateDiagram-v2
 - **ロールベース制御**: user/approver/adminの3段階
 - **所有者チェック**: 作成者本人かどうかの確認
 - **状態チェック**: 操作可能な状態かどうかの確認
+- **承認者制限**: approved修正案は指定承認者(approver_id)のみ編集可能
 
 ### 5.2 データ保護
 - **非公開情報の保護**: draft/rejectedは作成者と管理者のみアクセス可能
 - **削除データの隔離**: deletedは管理者のみアクセス可能
 - **承認者の制限**: approver_idで指定された承認者のみが承認可能
+- **コアメタデータ保護**: approved修正案編集時にstatus、proposer_id、approver_idの変更を防止
+- **編集証跡**: approved修正案編集時にprocessed_at更新と通知送信で監査証跡を維持
 
 ### 5.3 監査証跡
 - **タイムスタンプ**: created_at, updated_at, processed_at
@@ -299,19 +335,37 @@ stateDiagram-v2
 - **ProposalStatusError**: 不正な状態遷移
 - **ApprovalPermissionError**: 承認権限なし
 
-## 8. 今後の拡張予定
+## 8. 実装済み新機能（2025年1月）
 
-### 8.1 ワークフロー拡張
+### 8.1 承認済み修正案の編集機能
+- **機能概要**: 承認者が承認済み修正案を直接編集可能
+- **対象ユーザー**: 指定承認者(approver_id)または管理者のみ
+- **利用シーン**: 承認後の軽微な修正、補完情報の追加、誤字脱字の修正
+- **セキュリティ**: コアメタデータ保護、編集証跡記録、通知送信
+
+### 8.2 API拡張
+- **専用エンドポイント**: `PUT /api/v1/proposals/{id}/approved-update`
+- **汎用エンドポイント拡張**: `PUT /api/v1/revisions/{id}` で状態別権限制御
+- **権限分離**: draft編集(提案者)とapproved編集(承認者)の明確な分離
+
+### 8.3 通知システム連携
+- **自動通知**: 承認済み修正案編集時に提案者への通知送信
+- **編集証跡**: processed_at フィールド更新で変更履歴を記録
+- **失敗時制御**: 通知送信失敗時も編集処理は成功継続
+
+## 9. 今後の拡張予定
+
+### 9.1 ワークフロー拡張
 - **多段階承認**: 複数の承認者による順次承認
 - **条件付き承認**: 特定条件での自動承認
 - **期限管理**: 承認期限の設定と通知
 
-### 8.2 権限拡張
+### 9.2 権限拡張
 - **部門別アクセス制御**: 承認グループごとの閲覧制限
 - **委任機能**: 承認権限の一時委任
 - **カスタムロール**: 組織固有の権限設定
 
-### 8.3 機能拡張
+### 9.3 機能拡張
 - **バージョン管理**: 修正案の履歴管理
 - **コメント機能**: 修正案へのコメント追加
 - **添付ファイル**: 参考資料の添付機能
