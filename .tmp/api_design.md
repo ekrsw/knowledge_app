@@ -222,11 +222,40 @@ GET /api/v1/proposals/{proposal_id}
 ### 3.3 承認管理 (/api/v1/approvals)
 **説明**: 大幅に拡張されたワークフロー管理機能
 
+#### 承認権限管理の詳細
+
+承認系エンドポイントでは以下の多層的な権限チェックが実装されています：
+
+**1. APIレベル権限制御**
+- 大部分のエンドポイントで `get_current_approver_user` 依存関数を使用
+- 承認者（approver）または管理者（admin）ロールが必要
+
+**2. ビジネスロジックレベル権限制御**
+- `ApprovalService._verify_approval_permissions()`で詳細チェック
+- 指定承認者との一致確認（`revision.approver_id == approver.id`）
+- セルフアプルーバル防止（`revision.proposer_id != approver.id`）
+- 承認グループ制約（記事の承認グループとユーザーの承認グループが一致）
+
+**3. 管理者特権**
+- 管理者は全ての修正案を承認/却下可能
+- グループ制約や指定承認者制約を無視
+
+**4. エラーハンドリング**
+- `ApprovalPermissionError`: 権限不足
+- `ApprovalStatusError`: 不正な状態遷移
+- `ProposalNotFoundError`: リソース不存在
+
 #### 承認・却下処理
 ```http
 POST /api/v1/approvals/{revision_id}/decide
 ```
-**権限**: 指定された承認者  
+**権限**: 承認者ロール（`get_current_approver_user`）  
+**権限詳細**:
+- 管理者: 全修正案の承認/却下可能
+- 承認者: 指定された修正案のみ（`approver_id`が自分のIDと一致）
+- 自分の提案は承認不可（セルフアプルーバル防止）
+- 承認グループ制約: 記事の承認グループと一致する必要あり
+
 **リクエストボディ**: ApprovalDecision スキーマ
 ```json
 {
@@ -235,14 +264,28 @@ POST /api/v1/approvals/{revision_id}/decide
   "priority": "low|medium|high|urgent"
 }
 ```
-**状態遷移**: submitted → approved/rejected
-**エラーレスポンス**: ProposalNotFoundError, ApprovalPermissionError, ApprovalStatusError
+**状態遷移**: 
+- `approve`: submitted → approved
+- `reject`: submitted → rejected  
+- `request_changes`: submitted → draft
+- `defer`: submitted (記録のみ)
+
+**エラーレスポンス**: 
+- 404: 修正案が存在しない
+- 400: 不正な状態遷移またはアクション
+- 403: 承認権限なし（指定承認者でない、自分の提案等）
 
 #### 承認権限チェック
 ```http
 GET /api/v1/approvals/{revision_id}/can-approve
 ```
-**権限**: 認証済みユーザー  
+**権限**: 認証済みユーザー（`get_current_active_user`）  
+**権限検証内容**:
+- 指定承認者であるかチェック（`approver_id`との一致）
+- 管理者権限の確認
+- セルフアプルーバル防止（提案者と承認者が同一でないかチェック）
+- 修正案のステータス確認（`submitted`状態のみ承認可能）
+
 **レスポンス**:
 ```json
 {
@@ -289,7 +332,12 @@ GET /api/v1/approvals/workload/{approver_id}
 ```http
 POST /api/v1/approvals/bulk
 ```
-**権限**: 承認者  
+**権限**: 承認者ロール（`get_current_approver_user`）  
+**権限詳細**:
+- 各修正案に対して個別に権限チェック実行
+- 権限のない修正案はスキップして処理継続
+- 管理者は全修正案に対して一括処理可能
+
 **制約**: 最大20件まで
 **リクエストボディ**: BulkApprovalRequest スキーマ
 ```json
@@ -299,7 +347,7 @@ POST /api/v1/approvals/bulk
   "comment": "string"
 }
 ```
-**レスポンス**: 処理結果の詳細
+**レスポンス**: 処理結果の詳細（成功/失敗/スキップ別集計）
 
 #### 承認履歴
 ```http
