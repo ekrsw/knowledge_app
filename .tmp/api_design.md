@@ -21,6 +21,11 @@ Development: http://localhost:8000/api/v1
 Authorization: Bearer {jwt_token}
 ```
 
+**注意**: 一部の閲覧系エンドポイントは認証なしでアクセス可能です：
+- 記事一覧・詳細: `/api/v1/articles/*` (GET)
+- 情報カテゴリ: `/api/v1/info-categories/*` (GET)
+- システム情報: `/api/v1/system/health`, `/api/v1/system/version`, `/api/v1/system/api-documentation`
+
 ### 2.2 依存関数による権限制御
 ```python
 get_current_active_user()      # 認証済みアクティブユーザー
@@ -498,14 +503,14 @@ DELETE /api/v1/users/{user_id}
 ```http
 GET /api/v1/articles/
 ```
-**権限**: 認証済みユーザー  
+**権限**: なし（public）  
 **クエリパラメータ**: skip, limit
 
 #### 記事詳細取得
 ```http
 GET /api/v1/articles/{article_id}
 ```
-**権限**: 認証済みユーザー
+**権限**: なし（public）
 
 #### 記事作成
 ```http
@@ -518,13 +523,13 @@ POST /api/v1/articles/
 ```http
 GET /api/v1/articles/by-category/{info_category}
 ```
-**権限**: 認証済みユーザー
+**権限**: なし（public）
 
 #### 承認グループ別記事一覧
 ```http
 GET /api/v1/articles/by-group/{approval_group}
 ```
-**権限**: 認証済みユーザー
+**権限**: なし（public）
 
 #### 記事更新
 ```http
@@ -565,14 +570,14 @@ PUT /api/v1/approval-groups/{group_id}
 ```http
 GET /api/v1/info-categories/
 ```
-**権限**: 認証済みユーザー  
+**権限**: なし（public）  
 **クエリパラメータ**: skip, limit
 
 #### アクティブカテゴリ一覧
 ```http
 GET /api/v1/info-categories/active
 ```
-**権限**: 認証済みユーザー  
+**権限**: なし（public）  
 **説明**: アクティブな情報カテゴリのみ取得
 
 #### カテゴリ作成
@@ -585,7 +590,7 @@ POST /api/v1/info-categories/
 ```http
 GET /api/v1/info-categories/{category_id}
 ```
-**権限**: 認証済みユーザー
+**権限**: なし（public）
 
 #### カテゴリ更新
 ```http
