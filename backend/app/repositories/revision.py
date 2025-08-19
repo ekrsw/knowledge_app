@@ -284,17 +284,22 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
         skip: int = 0,
         limit: int = 100
     ) -> List[Revision]:
-        """Get revisions with mixed access control - public + user's private"""
+        """Get revisions with mixed access control - public + user's private + approver's rejected"""
         result = await db.execute(
             select(Revision)
             .where(
                 or_(
                     # Public revisions (submitted/approved)
                     Revision.status.in_(["submitted", "approved"]),
-                    # User's private revisions (draft/rejected)
+                    # User's private revisions (draft/rejected as proposer)
                     and_(
                         Revision.proposer_id == user_id,
                         Revision.status.in_(["draft", "rejected"])
+                    ),
+                    # Approver can see rejected revisions they were assigned to approve
+                    and_(
+                        Revision.approver_id == user_id,
+                        Revision.status == "rejected"
                     )
                 )
             )

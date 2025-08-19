@@ -60,7 +60,8 @@ GET /api/v1/revisions/{revision_id}
 **権限**: 権限に応じたアクセス制御
 - Admin: 全修正案にアクセス可能
 - All authenticated users: submitted/approved修正案にアクセス可能
-- Owner only: draft/rejected修正案は作成者のみアクセス可能
+- Owner only: draft修正案は作成者のみアクセス可能
+- Owner + Approver: rejected修正案は作成者と指定承認者のみアクセス可能
 **レスポンス**: 修正案の全詳細情報（after_*フィールド含む）
 
 #### 修正案作成
@@ -110,7 +111,8 @@ GET /api/v1/revisions/by-status/{status}
 **説明**: ステータスに応じたアクセス制御
 - Admin: 全ステータスの修正案を取得可能
 - submitted/approved: 全認証ユーザーがアクセス可能
-- draft/rejected: 作成者のみアクセス可能
+- draft: 作成者のみアクセス可能
+- rejected: 作成者と指定承認者のみアクセス可能
 **クエリパラメータ**: skip, limit
 
 #### 記事別修正案取得
@@ -217,7 +219,8 @@ GET /api/v1/proposals/{proposal_id}
 **権限**: 権限に応じたアクセス制御
 - Admin: 全提案にアクセス可能
 - All authenticated users: submitted/approved提案にアクセス可能
-- Owner only: draft/rejected提案は作成者のみアクセス可能
+- Owner only: draft提案は作成者のみアクセス可能
+- Owner + Approver: rejected提案は作成者と指定承認者のみアクセス可能
 **説明**: 新しい権限モデルによるアクセス制御
 
 ### 3.3 承認管理 (/api/v1/approvals)

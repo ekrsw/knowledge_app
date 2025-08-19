@@ -41,7 +41,7 @@ stateDiagram-v2
     
     note left of rejected
         【却下】
-        閲覧: 作成者・管理者
+        閲覧: 作成者・承認者・管理者
         編集: 不可
     end note
     
@@ -96,7 +96,7 @@ stateDiagram-v2
 | **draft**<br>（下書き） | ✓ | ✗ | ✗ | ✓ |
 | **submitted**<br>（提出済み） | ✓ | ✓ | ✓ | ✓ |
 | **approved**<br>（承認済み） | ✓ | ✓ | ✓ | ✓ |
-| **rejected**<br>（却下） | ✓ | ✗ | ✗ | ✓ |
+| **rejected**<br>（却下） | ✓ | ✓<br>(指定承認者のみ) | ✗ | ✓ |
 | **deleted**<br>（削除済み） | ✓ | ✗ | ✗ | ✗ |
 
 ### 2.2 操作別実行権限
@@ -213,7 +213,8 @@ stateDiagram-v2
 - **目的**: 修正案詳細取得
 - **権限**: 
   - 公開修正案（submitted/approved）: 全認証ユーザー
-  - 非公開修正案（draft/rejected）: 作成者と管理者のみ
+  - draft: 作成者と管理者のみ
+  - rejected: 作成者・指定承認者・管理者のみ
 
 #### GET /api/v1/revisions/by-article/{target_article_id}
 - **目的**: 特定記事の修正履歴取得
@@ -300,7 +301,9 @@ stateDiagram-v2
 - **承認者制限**: approved修正案は指定承認者(approver_id)のみ編集可能
 
 ### 5.2 データ保護
-- **非公開情報の保護**: draft/rejectedは作成者と管理者のみアクセス可能
+- **非公開情報の保護**: 
+  - draft: 作成者と管理者のみアクセス可能
+  - rejected: 作成者・指定承認者・管理者のみアクセス可能
 - **削除データの隔離**: deletedは管理者のみアクセス可能
 - **承認者の制限**: approver_idで指定された承認者のみが承認可能
 - **コアメタデータ保護**: approved修正案編集時にstatus、proposer_id、approver_idの変更を防止

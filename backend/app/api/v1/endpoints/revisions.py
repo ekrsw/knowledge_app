@@ -61,9 +61,16 @@ async def get_revision(
     elif revision.status in ["submitted", "approved"]:
         # All authenticated users can see submitted/approved revisions
         pass
-    elif revision.status in ["draft", "rejected"]:
-        # Only the proposer can see draft/rejected revisions
+    elif revision.status == "draft":
+        # Only the proposer can see draft revisions
         if revision.proposer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No permission to view this revision"
+            )
+    elif revision.status == "rejected":
+        # Proposer and approver can see rejected revisions
+        if revision.proposer_id != current_user.id and revision.approver_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No permission to view this revision"
@@ -212,12 +219,33 @@ async def get_revisions_by_status(
         revisions = await revision_repository.get_by_status(
             db, status=status, skip=skip, limit=limit
         )
-    elif status in ["draft", "rejected"]:
-        # Only user's own private status revisions
+    elif status == "draft":
+        # Only user's own draft revisions
         revisions = await revision_repository.get_by_status_and_proposer(
             db, status=status, proposer_id=current_user.id, 
             skip=skip, limit=limit
         )
+    elif status == "rejected":
+        # For rejected: proposer and approver can see
+        from sqlalchemy import select, and_, or_
+        from app.models.revision import Revision
+        
+        result = await db.execute(
+            select(Revision)
+            .where(
+                and_(
+                    Revision.status == "rejected",
+                    or_(
+                        Revision.proposer_id == current_user.id,
+                        Revision.approver_id == current_user.id
+                    )
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+            .order_by(Revision.created_at.desc())
+        )
+        revisions = result.scalars().all()
     else:
         # Unknown status
         revisions = []
