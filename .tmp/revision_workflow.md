@@ -29,6 +29,7 @@ stateDiagram-v2
     note right of submitted
         【提出済み】
         閲覧: 全認証ユーザー
+        編集: 不可（承認待ち状態）
         承認/却下: 指定承認者
     end note
     
@@ -105,7 +106,7 @@ stateDiagram-v2
 | **作成** | `POST /api/v1/proposals/` | 認証済みユーザー | なし |
 | **更新** | `PUT /api/v1/proposals/{id}` | 提案者本人 | status = draft |
 | **承認済み更新** | `PUT /api/v1/proposals/{id}/approved-update` | 指定承認者・管理者 | status = approved |
-| **汎用更新** | `PUT /api/v1/revisions/{id}` | 提案者本人 or 指定承認者・管理者 | status = draft or approved |
+| **汎用更新** | `PUT /api/v1/revisions/{id}` | 提案者本人 or 指定承認者・管理者 | status = draft or approved（submitted不可） |
 | **提出** | `POST /api/v1/proposals/{id}/submit` | 提案者本人 | status = draft |
 | **撤回** | `POST /api/v1/proposals/{id}/withdraw` | 提案者本人 | status = submitted |
 | **承認** | `POST /api/v1/approvals/{id}/decide` | 指定承認者 | status = submitted |
@@ -146,7 +147,8 @@ stateDiagram-v2
 - **権限**: 
   - draft: 提案者本人のみ
   - approved: 指定承認者または管理者のみ
-- **制約**: draft または approved のみ
+  - submitted: 編集不可（承認待ち状態のため）
+- **制約**: draft または approved のみ（submitted, rejected, deleted は不可）
 - **更新可能**: すべてのafter_*フィールド、reason
 - **approved時保護**: status フィールドは自動で NULL 設定
 
@@ -347,6 +349,7 @@ stateDiagram-v2
 - **専用エンドポイント**: `PUT /api/v1/proposals/{id}/approved-update`
 - **汎用エンドポイント拡張**: `PUT /api/v1/revisions/{id}` で状態別権限制御
 - **権限分離**: draft編集(提案者)とapproved編集(承認者)の明確な分離
+- **submitted状態**: 編集不可を維持（承認待ち状態の整合性保護）
 
 ### 8.3 通知システム連携
 - **自動通知**: 承認済み修正案編集時に提案者への通知送信
