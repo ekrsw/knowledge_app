@@ -171,17 +171,33 @@ The system manages 6 core tables with the following relationships:
 
 **Environment Setup:**
 ```bash
-# Install dependencies with uv
-uv install
+# Backend setup
+cd backend
+uv sync --dev
+cp ..\.env.example .env  # Edit with actual values
 
-# Set up environment variables
-cp .env.example .env  # Edit with actual values
+# Frontend setup  
+cd frontend
+npm install
 
 # Database migrations
 DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic upgrade head
 
 # Generate new migration
 DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic revision --autogenerate -m "Migration description"
+```
+
+**Development Servers:**
+```bash
+# Start backend (from backend/ directory)
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Start frontend (from frontend/ directory)  
+npm run dev
+
+# API Connection Testing
+# Access http://localhost:3000/api-test after both servers are running
+# Expected: 6/8 tests pass (2 auth-required endpoints fail without JWT - this is normal)
 ```
 
 **Backend Development:**
@@ -225,8 +241,17 @@ npm run build
 # Start production server
 npm run start
 
-# Run linting
+# Run linting and formatting
 npm run lint
+npm run lint:fix
+npm run format
+npm run format:check
+
+# API Connection Testing (built-in tool)
+# 1. Ensure backend is running on port 8000
+# 2. Access http://localhost:3000/api-test
+# 3. Run tests: 基本接続テスト, ヘルスチェック, 包括的テスト, デバッグ情報
+# 4. Expected: 6/8 pass (authentication-required endpoints show "Unauthorized")
 ```
 
 **Database Access:**
@@ -387,13 +412,20 @@ DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv
 
 ### Frontend Implementation Status (January 2025)
 
-**Current Phase**: Frontend UI implementation with Next.js 15.4.6
-- 25 tasks organized into 8 phases
-- Focus on step-by-step implementation from basic components to full features
-- API integration strictly following `.tmp/api_design.md` specifications
+**Completed Phase 1**: Frontend foundation with Next.js 15.4.6
+- ✅ Environment setup, API client, type definitions
+- ✅ API接続テストツール implementation with dark gray theme
+- ✅ Comprehensive API connection testing (6/8 tests passing as expected)
+- ✅ Full type definitions for all API entities
+- ✅ Error handling utilities and validation schemas
 
-**Frontend Task Phases**:
-1. **Foundation**: Environment setup, API client, type definitions
+**API Connection Test Tool**: Available at `http://localhost:3000/api-test`
+- Modern dark gray theme with professional UI
+- Tests system version, health check, and 7 key endpoints
+- Real-time connection testing with detailed error reporting
+- Comprehensive debug information display
+
+**Remaining Frontend Phases**:
 2. **Authentication**: JWT management, login page, route protection
 3. **UI Components**: Layout, common components, data tables
 4. **Core Features**: Revision management (CRUD + status transitions)
