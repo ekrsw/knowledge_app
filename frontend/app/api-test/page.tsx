@@ -170,7 +170,7 @@ export default function ApiTestPage() {
         <h1 className="text-3xl font-bold mb-6 text-white">🔧 API接続テストツール</h1>
 
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-          <h2 className="text-lg font-semibold text-blue-400 mb-2">使用方法</h2>
+          <h2 className="text-lg font-semibold text-gray-200 mb-2">使用方法</h2>
           <ul className="text-gray-300 text-sm space-y-1">
             <li>• 各テストボタンをクリックして API 接続をテストします</li>
             <li>• 結果はこのページとブラウザのコンソール（F12）に表示されます</li>
@@ -183,7 +183,7 @@ export default function ApiTestPage() {
           <button
             onClick={runBasicConnectionTest}
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200"
+            className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg hover:bg-slate-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200"
           >
             {activeTest === 'basic' && <span className="animate-spin">⏳</span>}
             🔗 基本接続テスト
@@ -192,7 +192,7 @@ export default function ApiTestPage() {
           <button
             onClick={runHealthCheckTest}
             disabled={isLoading}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200"
+            className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg hover:bg-slate-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200"
           >
             {activeTest === 'health' && <span className="animate-spin">⏳</span>}
             🏥 ヘルスチェック
@@ -201,7 +201,7 @@ export default function ApiTestPage() {
           <button
             onClick={runComprehensiveTest}
             disabled={isLoading}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200"
+            className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg hover:bg-slate-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200"
           >
             {activeTest === 'comprehensive' && <span className="animate-spin">⏳</span>}
             📊 包括的テスト
@@ -210,7 +210,7 @@ export default function ApiTestPage() {
           <button
             onClick={runDebugInfo}
             disabled={isLoading}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200"
+            className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg hover:bg-slate-600 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200"
           >
             {activeTest === 'debug' && <span className="animate-spin">⏳</span>}
             🐛 デバッグ情報
@@ -218,7 +218,7 @@ export default function ApiTestPage() {
 
           <button
             onClick={clearResults}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
+            className="px-4 py-2 bg-slate-700 text-gray-200 rounded-lg hover:bg-slate-600 transition-colors duration-200"
           >
             🗑️ 結果クリア
           </button>
@@ -260,7 +260,7 @@ export default function ApiTestPage() {
       </div>
 
         <div className="mt-8 p-4 bg-gray-800 border border-gray-700 rounded-lg">
-          <h3 className="font-semibold mb-2 text-green-400">📝 開発者向け情報</h3>
+          <h3 className="font-semibold mb-2 text-gray-200">📝 開発者向け情報</h3>
           <ul className="text-sm text-gray-300 space-y-1">
             <li>
               • API Base URL: {process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}
