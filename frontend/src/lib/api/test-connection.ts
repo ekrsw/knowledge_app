@@ -97,8 +97,8 @@ export async function testApiConnection(): Promise<ConnectionTestResult> {
   const timestamp = new Date().toISOString();
   
   try {
-    // システム情報エンドポイントをテスト
-    const response = await fetchWithTimeout(`${baseUrl}/system/info`);
+    // システムバージョンエンドポイントをテスト
+    const response = await fetchWithTimeout(`${baseUrl}/system/version`);
     const responseTime = Date.now() - startTime;
     
     if (!response.ok) {
@@ -258,7 +258,7 @@ export async function testApiEndpoints(authToken?: string): Promise<Comprehensiv
   
   // テスト対象のエンドポイント
   const testEndpoints = [
-    { endpoint: '/system/info', method: 'GET' },
+    { endpoint: '/system/version', method: 'GET' },
     { endpoint: '/system/health', method: 'GET' },
     { endpoint: '/users/me', method: 'GET' }, // 認証が必要
     { endpoint: '/revisions/', method: 'GET' }, // 認証が必要

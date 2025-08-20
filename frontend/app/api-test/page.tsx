@@ -115,9 +115,9 @@ export default function ApiTestPage() {
             <div className="font-medium">System Info:</div>
             <div className="ml-2 text-xs">
               <div>Version: {result.details.systemInfo.version}</div>
-              <div>Environment: {result.details.systemInfo.environment}</div>
-              <div>Database: {result.details.systemInfo.database_connected ? '✅' : '❌'}</div>
-              <div>Redis: {result.details.systemInfo.redis_connected ? '✅' : '❌'}</div>
+              <div>API Version: {result.details.systemInfo.api_version}</div>
+              <div>Build Date: {result.details.systemInfo.build_date}</div>
+              <div>Features: {result.details.systemInfo.features.join(', ')}</div>
             </div>
           </div>
         )}

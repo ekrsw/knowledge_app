@@ -90,11 +90,9 @@ export interface BulkOperationResult {
  */
 export interface SystemInfo {
   version: string;
-  environment: string;
-  debug: boolean;
-  database_connected: boolean;
-  redis_connected: boolean;
-  uptime_seconds: number;
+  api_version: string;
+  build_date: string;
+  features: string[];
 }
 
 /**
@@ -102,12 +100,10 @@ export interface SystemInfo {
  */
 export interface HealthCheck {
   status: 'healthy' | 'degraded' | 'unhealthy';
-  checks: {
-    database: boolean;
-    redis: boolean;
-    api: boolean;
-  };
   timestamp: string;
+  version: string;
+  environment: string;
+  database: string;
 }
 
 /**
