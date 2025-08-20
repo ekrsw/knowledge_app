@@ -89,7 +89,9 @@
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_user_password_update.py -v)",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_user_password_update.py -v)",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_rejected_permissions.py -v)",
-      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_rejected_permissions.py::TestRejectedRevisionPermissions::test_proposer_can_see_own_rejected_revision -v)"
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_rejected_permissions.py::TestRejectedRevisionPermissions::test_proposer_can_see_own_rejected_revision -v)",
+      "Bash(npx tsc:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
