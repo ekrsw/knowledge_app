@@ -3,6 +3,8 @@
  */
 
 export * from './test-connection';
+export { apiClient, ApiClient } from './client';
+export type { ApiResponse, ApiErrorResponse } from './client';
 
 // APIクライアントの設定
 export const API_CONFIG = {
