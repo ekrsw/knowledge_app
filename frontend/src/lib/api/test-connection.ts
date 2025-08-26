@@ -362,7 +362,7 @@ export function logConnectionTestResult(result: ConnectionTestResult | Comprehen
     console.log(`Response Time: ${result.details.responseTime}ms`);
     if (result.details.systemInfo) {
       console.log(`API Version: ${result.details.systemInfo.version}`);
-      console.log(`Environment: ${result.details.systemInfo.environment}`);
+      console.log(`API Version String: ${result.details.systemInfo.api_version}`);
     }
     if (result.details.error) {
       console.error(`Error: ${result.details.error}`);
