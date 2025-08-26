@@ -2,16 +2,25 @@
  * JWTトークンのローカルストレージ管理
  */
 
+import Cookies from 'js-cookie';
+
 const TOKEN_KEY = 'knowledge_app_token';
 const USER_KEY = 'knowledge_app_user';
+const COOKIE_TOKEN_KEY = 'auth-token';
 
 export class TokenStorage {
   /**
-   * トークンを保存
+   * トークンを保存（LocalStorageとCookieの両方）
    */
   static setToken(token: string): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem(TOKEN_KEY, token);
+      // Cookieにも保存（middlewareで使用）
+      Cookies.set(COOKIE_TOKEN_KEY, token, {
+        expires: 7, // 7日間
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+      });
     }
   }
 
@@ -31,6 +40,8 @@ export class TokenStorage {
   static removeToken(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(TOKEN_KEY);
+      // Cookieからも削除
+      Cookies.remove(COOKIE_TOKEN_KEY);
     }
   }
 

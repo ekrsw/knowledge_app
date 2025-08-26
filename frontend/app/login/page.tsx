@@ -25,8 +25,8 @@ export default function LoginPage() {
   // 認証済みの場合はリダイレクト
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      const returnUrl = searchParams.get('returnUrl') || '/';
-      router.replace(returnUrl);
+      const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+      router.push(returnUrl);
     }
   }, [isAuthenticated, isLoading, router, searchParams]);
 
