@@ -61,8 +61,8 @@ stateDiagram-v2
 | **新規作成 → draft** | `/api/v1/revisions/` | POST | 認証済みユーザー | 提案者 |
 | **draft内で編集** | `/api/v1/proposals/{revision_id}` | PUT | 提案者本人 | 提案者 |
 | **draft → submitted** | `/api/v1/proposals/{revision_id}/submit` | POST | 提案者本人 | 提案者 |
-| **submitted → approved** | `/api/v1/approvals/{id}/decide` | POST | 指定承認者 | 承認者 |
-| **submitted → rejected** | `/api/v1/approvals/{id}/decide` | POST | 指定承認者 | 承認者 |
+| **submitted → approved** | `/api/v1/approvals/{revision_id}/decide` | POST | 指定承認者 | 承認者 |
+| **submitted → rejected** | `/api/v1/approvals/{revision_id}/decide` | POST | 指定承認者 | 承認者 |
 | **submitted → draft** | `/api/v1/proposals/{revision_id}/withdraw` | POST | 提案者本人 | 提案者 |
 | **submitted → deleted** | `/api/v1/revisions/{revision_id}/status` | PATCH | 管理者のみ | 管理者 |
 | **draft → 削除** | `/api/v1/proposals/{revision_id}` | DELETE | 提案者本人 | 提案者 |
