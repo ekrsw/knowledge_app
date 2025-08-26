@@ -22,41 +22,9 @@ from app.core.exceptions import (
 router = APIRouter()
 
 
-@router.post("/", response_model=Revision, status_code=status.HTTP_201_CREATED)
-async def create_proposal(
-    proposal_data: RevisionCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """Create a new revision proposal"""
-    # Validate proposal data
-    validation_result = await proposal_service.validate_proposal_data(db, proposal_data=proposal_data)
-    if not validation_result["is_valid"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "message": "Invalid proposal data",
-                "errors": validation_result["errors"],
-                "warnings": validation_result.get("warnings", [])
-            }
-        )
-    
-    try:
-        proposal = await proposal_service.create_proposal(
-            db, proposal_data=proposal_data, proposer=current_user
-        )
-        return proposal
-    except ArticleNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except ProposalValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
+# NOTE: POST /api/v1/proposals/ endpoint has been removed.
+# Proposal creation should be done through POST /api/v1/revisions/ endpoint.
+# The proposals endpoints are only for business actions (submit, withdraw, etc.)
 
 @router.put("/{proposal_id}", response_model=Revision)
 async def update_proposal(

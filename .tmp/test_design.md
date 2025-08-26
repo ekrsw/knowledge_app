@@ -253,7 +253,9 @@ async def test_revision_with_null_approver():
 # 権限マトリクステスト
 PERMISSION_MATRIX = {
     "GET /api/v1/users/": ["admin"],
-    "POST /api/v1/proposals/": ["user", "approver", "admin"],
+    # NOTE: POST /api/v1/proposals/ endpoint has been removed
+    # Use POST /api/v1/revisions/ for creating proposals
+    "POST /api/v1/revisions/": ["user", "approver", "admin"],
     "POST /api/v1/approvals/{id}/decide": ["approver", "admin"],
 }
 

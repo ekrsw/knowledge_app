@@ -58,7 +58,7 @@ stateDiagram-v2
 
 | 遷移 | APIエンドポイント | メソッド | 権限 | 実行者 |
 |------|------------------|----------|------|--------|
-| **新規作成 → draft** | `/api/v1/proposals/` | POST | 認証済みユーザー | 提案者 |
+| **新規作成 → draft** | `/api/v1/revisions/` | POST | 認証済みユーザー | 提案者 |
 | **draft内で編集** | `/api/v1/proposals/{id}` | PUT | 提案者本人 | 提案者 |
 | **draft → submitted** | `/api/v1/proposals/{id}/submit` | POST | 提案者本人 | 提案者 |
 | **submitted → approved** | `/api/v1/approvals/{id}/decide` | POST | 指定承認者 | 承認者 |
@@ -103,7 +103,7 @@ stateDiagram-v2
 
 | 操作 | APIエンドポイント | 必要な権限 | 前提条件 |
 |------|------------------|-----------|----------|
-| **作成** | `POST /api/v1/proposals/` | 認証済みユーザー | なし |
+| **作成** | `POST /api/v1/revisions/` | 認証済みユーザー | なし |
 | **更新** | `PUT /api/v1/proposals/{id}` | 提案者本人 | status = draft |
 | **承認済み更新** | `PUT /api/v1/proposals/{id}/approved-update` | 指定承認者・管理者 | status = approved |
 | **汎用更新** | `PUT /api/v1/revisions/{id}` | 提案者本人 or 指定承認者・管理者 | status = draft or approved（submitted不可） |
@@ -118,9 +118,9 @@ stateDiagram-v2
 
 ### 3.1 修正案作成・編集系API
 
-#### POST /api/v1/proposals/
+#### POST /api/v1/revisions/
 - **目的**: 新規修正案の作成
-- **権限**: 認証済みユーザー
+- **権限**: 認証済みユーザー  
 - **初期状態**: draft
 - **必須フィールド**:
   - `target_article_id`: 対象記事ID
@@ -227,7 +227,7 @@ stateDiagram-v2
 ### 4.1 通常の承認フロー
 ```
 1. ユーザーが修正案を作成（draft）
-   POST /api/v1/proposals/
+   POST /api/v1/revisions/
    
 2. 内容を編集・調整（draft）
    PUT /api/v1/proposals/{id}

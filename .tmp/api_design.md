@@ -146,11 +146,8 @@ PATCH /api/v1/revisions/{revision_id}/status
 **説明**: 修正案のビジネスロジック層（バリデーション、状態遷移、通知統合）
 
 #### 修正案提案作成
-```http
-POST /api/v1/proposals/
-```
-**権限**: 認証済みユーザー  
-**説明**: バリデーション付きで修正案を作成、カスタム例外処理
+**注意**: このエンドポイントは削除されました。修正案の作成は `POST /api/v1/revisions/` を使用してください。  
+proposals エンドポイントはビジネスアクション（submit, withdraw等）専用です。
 **リクエストボディ**: RevisionCreateスキーマと同様
 **エラーレスポンス**: ProposalValidationError, ArticleNotFoundError
 
