@@ -36,37 +36,6 @@ export function Header() {
             </Link>
           </div>
 
-          {/* メインナビゲーション */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link 
-              href="/dashboard" 
-              className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              ダッシュボード
-            </Link>
-            <Link 
-              href="/revisions" 
-              className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              修正案
-            </Link>
-            {user?.role === 'approver' || user?.role === 'admin' ? (
-              <Link 
-                href="/approvals" 
-                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                承認
-              </Link>
-            ) : null}
-            {user?.role === 'admin' ? (
-              <Link 
-                href="/admin" 
-                className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                管理
-              </Link>
-            ) : null}
-          </nav>
 
           {/* ユーザーメニュー */}
           <div className="relative">

@@ -131,22 +131,27 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex flex-col h-full">
-          {/* モバイル用ヘッダー */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-700 lg:hidden">
+          {/* システムタイトル */}
+          <div className="px-4 py-6 border-b border-gray-700">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">KS</span>
               </div>
-              <span className="text-white text-xl font-semibold">KSAP</span>
+              <div className="flex-1">
+                <h1 className="text-white text-lg font-semibold leading-tight">
+                  Knowledge System Approval Platform
+                </h1>
+              </div>
+              {/* モバイル用クローズボタン */}
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 p-1 rounded lg:hidden"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 p-1 rounded"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
 
           {/* ナビゲーション */}
