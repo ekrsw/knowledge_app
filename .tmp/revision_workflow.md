@@ -59,13 +59,13 @@ stateDiagram-v2
 | 遷移 | APIエンドポイント | メソッド | 権限 | 実行者 |
 |------|------------------|----------|------|--------|
 | **新規作成 → draft** | `/api/v1/revisions/` | POST | 認証済みユーザー | 提案者 |
-| **draft内で編集** | `/api/v1/proposals/{id}` | PUT | 提案者本人 | 提案者 |
-| **draft → submitted** | `/api/v1/proposals/{id}/submit` | POST | 提案者本人 | 提案者 |
+| **draft内で編集** | `/api/v1/proposals/{revision_id}` | PUT | 提案者本人 | 提案者 |
+| **draft → submitted** | `/api/v1/proposals/{revision_id}/submit` | POST | 提案者本人 | 提案者 |
 | **submitted → approved** | `/api/v1/approvals/{id}/decide` | POST | 指定承認者 | 承認者 |
 | **submitted → rejected** | `/api/v1/approvals/{id}/decide` | POST | 指定承認者 | 承認者 |
-| **submitted → draft** | `/api/v1/proposals/{id}/withdraw` | POST | 提案者本人 | 提案者 |
-| **submitted → deleted** | `/api/v1/revisions/{id}/status` | PATCH | 管理者のみ | 管理者 |
-| **draft → 削除** | `/api/v1/proposals/{id}` | DELETE | 提案者本人 | 提案者 |
+| **submitted → draft** | `/api/v1/proposals/{revision_id}/withdraw` | POST | 提案者本人 | 提案者 |
+| **submitted → deleted** | `/api/v1/revisions/{revision_id}/status` | PATCH | 管理者のみ | 管理者 |
+| **draft → 削除** | `/api/v1/proposals/{revision_id}` | DELETE | 提案者本人 | 提案者 |
 
 ### 承認・却下時のリクエストボディ
 
@@ -128,13 +128,13 @@ stateDiagram-v2
   - `reason`: 修正理由
   - `after_*`: 少なくとも1つの変更フィールド
 
-#### PUT /api/v1/proposals/{proposal_id}
+#### PUT /api/v1/proposals/{revision_id}
 - **目的**: 修正案の更新（draft状態のみ）
 - **権限**: 提案者本人
 - **制約**: status = draft のみ
 - **更新可能**: すべてのafter_*フィールド、reason、approver_id
 
-#### PUT /api/v1/proposals/{proposal_id}/approved-update
+#### PUT /api/v1/proposals/{revision_id}/approved-update
 - **目的**: 承認済み修正案の更新
 - **権限**: 指定承認者または管理者
 - **制約**: status = approved のみ
@@ -152,7 +152,7 @@ stateDiagram-v2
 - **更新可能**: すべてのafter_*フィールド、reason
 - **approved時保護**: status フィールドは自動で NULL 設定
 
-#### DELETE /api/v1/proposals/{proposal_id}
+#### DELETE /api/v1/proposals/{revision_id}
 - **目的**: 修正案の削除
 - **権限**: 提案者本人
 - **制約**: status = draft のみ
@@ -160,13 +160,13 @@ stateDiagram-v2
 
 ### 3.2 ワークフロー系API
 
-#### POST /api/v1/proposals/{proposal_id}/submit
+#### POST /api/v1/proposals/{revision_id}/submit
 - **目的**: 修正案を承認待ちに変更
 - **権限**: 提案者本人
 - **状態遷移**: draft → submitted
 - **副作用**: 承認者への通知送信
 
-#### POST /api/v1/proposals/{proposal_id}/withdraw
+#### POST /api/v1/proposals/{revision_id}/withdraw
 - **目的**: 提出済み修正案を下書きに戻す
 - **権限**: 提案者本人
 - **状態遷移**: submitted → draft

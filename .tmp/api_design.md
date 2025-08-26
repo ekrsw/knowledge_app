@@ -153,7 +153,7 @@ proposals エンドポイントはビジネスアクション（submit, withdraw
 
 #### 修正案提案更新
 ```http
-PUT /api/v1/proposals/{proposal_id}
+PUT /api/v1/proposals/{revision_id}
 ```
 **権限**: 提案者（draft状態のみ）  
 **説明**: ドラフト状態の提案のみ更新可能、ProposalServiceを使用
@@ -161,7 +161,7 @@ PUT /api/v1/proposals/{proposal_id}
 
 #### 修正案提出
 ```http
-POST /api/v1/proposals/{proposal_id}/submit
+POST /api/v1/proposals/{revision_id}/submit
 ```
 **権限**: 提案者  
 **説明**: ドラフトを承認待ち状態に変更、通知送信  
@@ -169,7 +169,7 @@ POST /api/v1/proposals/{proposal_id}/submit
 
 #### 修正案撤回
 ```http
-POST /api/v1/proposals/{proposal_id}/withdraw
+POST /api/v1/proposals/{revision_id}/withdraw
 ```
 **権限**: 提案者  
 **説明**: 提出済みをドラフト状態に戻す  
@@ -177,7 +177,7 @@ POST /api/v1/proposals/{proposal_id}/withdraw
 
 #### 修正案削除
 ```http
-DELETE /api/v1/proposals/{proposal_id}
+DELETE /api/v1/proposals/{revision_id}
 ```
 **権限**: 提案者（draft状態のみ）  
 **レスポンス**: 204 No Content
@@ -211,7 +211,7 @@ GET /api/v1/proposals/statistics
 
 #### 提案詳細取得
 ```http
-GET /api/v1/proposals/{proposal_id}
+GET /api/v1/proposals/{revision_id}
 ```
 **権限**: 権限に応じたアクセス制御
 - Admin: 全提案にアクセス可能
@@ -1012,7 +1012,7 @@ async def create_approval_group(
 - `GET /api/v1/revisions/{revision_id}`
 - `GET /api/v1/revisions/by-status/{status}`
 - `GET /api/v1/revisions/by-article/{target_article_id}` (**2025年1月追加**)
-- `GET /api/v1/proposals/{proposal_id}`
+- `GET /api/v1/proposals/{revision_id}`
 
 **技術的変更**:
 - 新リポジトリメソッド: `get_mixed_access_revisions()`, `get_public_revisions()`, `get_user_private_revisions()`, `get_public_revisions_by_article()` (**2025年1月追加**)

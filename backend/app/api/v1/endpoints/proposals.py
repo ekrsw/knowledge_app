@@ -26,9 +26,9 @@ router = APIRouter()
 # Proposal creation should be done through POST /api/v1/revisions/ endpoint.
 # The proposals endpoints are only for business actions (submit, withdraw, etc.)
 
-@router.put("/{proposal_id}", response_model=Revision)
+@router.put("/{revision_id}", response_model=Revision)
 async def update_proposal(
-    proposal_id: UUID,
+    revision_id: UUID,
     update_data: RevisionUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -36,7 +36,7 @@ async def update_proposal(
     """Update a proposal (only draft proposals)"""
     try:
         proposal = await proposal_service.update_proposal(
-            db, revision_id=proposal_id, update_data=update_data, proposer=current_user
+            db, revision_id=revision_id, update_data=update_data, proposer=current_user
         )
         return proposal
     except ProposalNotFoundError as e:
@@ -51,16 +51,16 @@ async def update_proposal(
         )
 
 
-@router.post("/{proposal_id}/submit", response_model=Revision)
+@router.post("/{revision_id}/submit", response_model=Revision)
 async def submit_proposal(
-    proposal_id: UUID,
+    revision_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Submit a proposal for approval"""
     try:
         proposal = await proposal_service.submit_proposal(
-            db, revision_id=proposal_id, proposer=current_user
+            db, revision_id=revision_id, proposer=current_user
         )
         return proposal
     except ProposalNotFoundError as e:
@@ -75,16 +75,16 @@ async def submit_proposal(
         )
 
 
-@router.post("/{proposal_id}/withdraw", response_model=Revision)
+@router.post("/{revision_id}/withdraw", response_model=Revision)
 async def withdraw_proposal(
-    proposal_id: UUID,
+    revision_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Withdraw a submitted proposal back to draft"""
     try:
         proposal = await proposal_service.withdraw_proposal(
-            db, revision_id=proposal_id, proposer=current_user
+            db, revision_id=revision_id, proposer=current_user
         )
         return proposal
     except ProposalNotFoundError as e:
@@ -99,9 +99,9 @@ async def withdraw_proposal(
         )
 
 
-@router.put("/{proposal_id}/approved-update", response_model=Revision)
+@router.put("/{revision_id}/approved-update", response_model=Revision)
 async def update_approved_proposal(
-    proposal_id: UUID,
+    revision_id: UUID,
     update_data: RevisionUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -109,7 +109,7 @@ async def update_approved_proposal(
     """Update an approved proposal (only approver or admin can update)"""
     try:
         proposal = await proposal_service.update_approved_proposal(
-            db, revision_id=proposal_id, update_data=update_data, approver=current_user
+            db, revision_id=revision_id, update_data=update_data, approver=current_user
         )
         return proposal
     except ProposalNotFoundError as e:
@@ -124,16 +124,16 @@ async def update_approved_proposal(
         )
 
 
-@router.delete("/{proposal_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{revision_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_proposal(
-    proposal_id: UUID,
+    revision_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Delete a proposal (only draft proposals)"""
     try:
         await proposal_service.delete_proposal(
-            db, revision_id=proposal_id, proposer=current_user
+            db, revision_id=revision_id, proposer=current_user
         )
         return None
     except ProposalNotFoundError as e:
@@ -199,16 +199,16 @@ async def get_proposal_statistics(
     return stats
 
 
-@router.get("/{proposal_id}", response_model=Revision)
+@router.get("/{revision_id}", response_model=Revision)
 async def get_proposal(
-    proposal_id: UUID,
+    revision_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get a specific proposal"""
     from app.repositories.revision import revision_repository
     
-    proposal = await revision_repository.get(db, id=proposal_id)
+    proposal = await revision_repository.get(db, id=revision_id)
     if not proposal:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
