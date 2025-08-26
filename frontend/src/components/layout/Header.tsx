@@ -31,7 +31,7 @@ export function Header() {
                 <span className="text-white font-bold text-sm">KS</span>
               </div>
               <span className="text-white text-xl font-semibold hidden sm:block">
-                KSAP
+                Knowledge System Approval Platform
               </span>
             </Link>
           </div>
