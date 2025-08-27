@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -11,7 +11,8 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
 
   if (!isAuthenticated) {
     return null;
@@ -114,6 +115,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return pathname.startsWith(href);
   };
 
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+
   return (
     <>
       {/* モバイル用オーバーレイ */}
@@ -130,7 +136,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         lg:relative lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="flex flex-col h-full">
+        <div className="relative flex flex-col h-full">
           {/* システムタイトル */}
           <div className="px-4 py-6 border-b border-gray-700">
             <div className="flex items-center space-x-3">
@@ -154,8 +160,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           </div>
 
-          {/* ナビゲーション */}
-          <nav className="flex-1 px-4 py-6 space-y-1">
+          {/* ナビゲーション - ユーザー情報の高さ分だけ下部にパディング */}
+          <nav className="flex-1 overflow-y-auto px-4 py-6 pb-36 space-y-1">
             {filteredNavigation.map((item) => (
               <Link
                 key={item.name}
@@ -175,10 +181,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             ))}
           </nav>
 
-          {/* ユーザー情報 */}
-          <div className="p-4 border-t border-gray-700">
+          {/* ユーザー情報とログアウト - 絶対位置で下部固定 */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700 space-y-3 bg-gray-900">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-white font-medium">
                   {user?.full_name?.charAt(0) || user?.username?.charAt(0) || '?'}
                 </span>
@@ -187,11 +193,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <p className="text-white text-sm font-medium truncate">
                   {user?.full_name || user?.username}
                 </p>
+                <p className="text-gray-400 text-xs truncate">
+                  {user?.email}
+                </p>
                 <p className="text-gray-400 text-xs capitalize">
                   {user?.role}
                 </p>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-red-400 hover:text-red-300 rounded-lg text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>ログアウト</span>
+            </button>
           </div>
         </div>
       </aside>

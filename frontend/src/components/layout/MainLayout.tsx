@@ -2,7 +2,6 @@
 
 import { useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
 
@@ -46,9 +45,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       
       {/* メインコンテンツエリア */}
       <div className="flex-1 flex flex-col lg:pl-0">
-        {/* ヘッダー */}
-        <Header />
-        
         {/* モバイル用メニューボタン */}
         <div className="lg:hidden bg-gray-800 px-4 py-2 border-b border-gray-700">
           <button
