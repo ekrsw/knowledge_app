@@ -30,30 +30,8 @@ export default function ApprovalsPage() {
     <MainLayout>
       <div className="text-white">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">承認管理</h1>
+          <h1 className="text-3xl font-bold">承認キュー</h1>
           <p className="text-gray-400 mt-2">承認待ちの修正案を確認し、承認または却下を行います</p>
-        </div>
-        
-        <div className="bg-gray-800 rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">承認者情報</h2>
-          <div className="space-y-2">
-            <p>
-              <span className="text-gray-400">名前:</span>{' '}
-              <span className="text-white">{user?.full_name}</span>
-            </p>
-            <p>
-              <span className="text-gray-400">メール:</span>{' '}
-              <span className="text-white">{user?.email}</span>
-            </p>
-            <p>
-              <span className="text-gray-400">ロール:</span>{' '}
-              <span className="text-green-400 font-semibold">{user?.role}</span>
-            </p>
-            <p>
-              <span className="text-gray-400">承認グループ:</span>{' '}
-              <span className="text-white">{user?.approval_group_id || 'なし'}</span>
-            </p>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
