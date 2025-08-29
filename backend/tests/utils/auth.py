@@ -19,7 +19,7 @@ async def get_auth_token(user: User) -> str:
     Returns:
         JWT access token string
     """
-    return create_access_token(subject=str(user.id))
+    return create_access_token(subject=str(user.id), role=user.role)
 
 
 async def create_auth_headers(user: User) -> Dict[str, str]:
@@ -61,7 +61,7 @@ async def create_expired_token() -> str:
     """
     # Create token that expired 1 hour ago
     from uuid import uuid4
-    return create_access_token(subject=str(uuid4()), expires_delta=timedelta(hours=-1))
+    return create_access_token(subject=str(uuid4()), expires_delta=timedelta(hours=-1), role="user")
 
 
 def create_invalid_token() -> str:

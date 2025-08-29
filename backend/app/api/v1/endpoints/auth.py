@@ -41,7 +41,7 @@ async def login_for_access_token(
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        subject=str(user.id), expires_delta=access_token_expires
+        subject=str(user.id), expires_delta=access_token_expires, role=user.role
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -69,7 +69,7 @@ async def login_json(
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        subject=str(user.id), expires_delta=access_token_expires
+        subject=str(user.id), expires_delta=access_token_expires, role=user.role
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

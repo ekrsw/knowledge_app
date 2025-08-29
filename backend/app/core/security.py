@@ -15,7 +15,7 @@ ALGORITHM = "HS256"
 
 
 def create_access_token(
-    subject: Union[str, int], expires_delta: Optional[timedelta] = None
+    subject: Union[str, int], expires_delta: Optional[timedelta] = None, role: Optional[str] = None
 ) -> str:
     """Create JWT access token"""
     if expires_delta:
@@ -26,6 +26,9 @@ def create_access_token(
         )
     
     to_encode = {"exp": expire, "sub": str(subject)}
+    if role:
+        to_encode["role"] = role
+    
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
