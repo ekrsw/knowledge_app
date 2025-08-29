@@ -132,11 +132,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* サイドバー */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-700 transform transition-transform duration-300 ease-in-out
-        lg:relative lg:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-700 transform transition-transform duration-300 ease-in-out overflow-hidden
+        lg:relative lg:translate-x-0 lg:h-screen
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="relative flex flex-col h-full">
+        <div className="flex flex-col h-full">
           {/* システムタイトル */}
           <div className="px-4 py-6 border-b border-gray-700">
             <div className="flex items-center space-x-3">
@@ -160,8 +160,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           </div>
 
-          {/* ナビゲーション - ユーザー情報の高さ分だけ下部にパディング */}
-          <nav className="flex-1 overflow-y-auto px-4 py-6 pb-36 space-y-1">
+          {/* ナビゲーション */}
+          <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
             {filteredNavigation.map((item) => (
               <Link
                 key={item.name}
@@ -181,8 +181,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             ))}
           </nav>
 
-          {/* ユーザー情報とログアウト - 絶対位置で下部固定 */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700 space-y-3 bg-gray-900">
+          {/* ユーザー情報とログアウト */}
+          <div className="flex-shrink-0 p-4 border-t border-gray-700 space-y-3 bg-gray-900">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-white font-medium">

@@ -39,14 +39,14 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex">
+    <div className="h-screen bg-gray-900 flex overflow-hidden">
       {/* サイドバー */}
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
       
       {/* メインコンテンツエリア */}
-      <div className="flex-1 flex flex-col lg:pl-0">
+      <div className="flex-1 flex flex-col lg:pl-0 overflow-hidden">
         {/* モバイル用メニューボタン */}
-        <div className="lg:hidden bg-gray-800 px-4 py-2 border-b border-gray-700">
+        <div className="lg:hidden bg-gray-800 px-4 py-2 border-b border-gray-700 flex-shrink-0">
           <button
             onClick={toggleSidebar}
             className="text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 p-2 rounded"
@@ -58,7 +58,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
         
         {/* メインコンテンツ */}
-        <main className="flex-1 bg-gray-900">
+        <main className="flex-1 bg-gray-900 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {children}
           </div>
