@@ -75,8 +75,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       href: '/notifications',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h7V5a1 1 0 011-1h7l-5-5" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
       ),
       roles: ['user', 'approver', 'admin']
