@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from './Button';
 
-interface PaginationProps {
+export interface PaginationProps {
   currentPage: number;
   totalPages: number;
   totalItems: number;

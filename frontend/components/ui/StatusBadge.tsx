@@ -1,7 +1,7 @@
 import React from 'react';
 import { RevisionStatus } from '@/types';
 
-interface StatusBadgeProps {
+export interface StatusBadgeProps {
   status: RevisionStatus;
   className?: string;
 }

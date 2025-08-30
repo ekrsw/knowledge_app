@@ -24,5 +24,19 @@ export type { ModalProps } from './Modal';
 
 // Data Display Components
 export { DataTable } from './DataTable';
+export type { 
+  Column, 
+  DataTableProps, 
+  SortConfig, 
+  FilterConfig, 
+  SortDirection 
+} from './DataTable';
+
+export { PaginatedDataTable, useLocalPagination } from './PaginatedDataTable';
+export type { PaginatedDataTableProps } from './PaginatedDataTable';
+
 export { Pagination } from './Pagination';
+export type { PaginationProps } from './Pagination';
+
 export { StatusBadge } from './StatusBadge';
+export type { StatusBadgeProps } from './StatusBadge';

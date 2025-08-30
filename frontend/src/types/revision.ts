@@ -4,7 +4,7 @@
 
 export type RevisionStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'deleted';
 
-export interface Revision {
+export interface Revision extends Record<string, unknown> {
   revision_id: string;  // UUID
   target_article_id: string;  // 内部参照用（既存APIとの互換性）
   article_number?: string | null;  // 表示用記事番号
