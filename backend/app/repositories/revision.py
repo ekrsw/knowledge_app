@@ -4,11 +4,12 @@ Revision repository for database operations
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from sqlalchemy import select, and_, or_
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, aliased
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.revision import Revision
 from app.models.article import Article
+from app.models.user import User
 from app.schemas.revision import RevisionCreate, RevisionUpdate
 from .base import BaseRepository
 
@@ -331,6 +332,127 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
             .order_by(Revision.created_at.desc())
         )
         return result.scalars().all()
+    
+    async def get_with_names(
+        self,
+        db: AsyncSession,
+        *,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """Get all revisions with proposer and approver names"""
+        # Create aliases for proposer and approver
+        proposer = aliased(User)
+        approver = aliased(User)
+        
+        result = await db.execute(
+            select(
+                Revision,
+                proposer.full_name.label("proposer_name"),
+                approver.full_name.label("approver_name")
+            )
+            .join(proposer, Revision.proposer_id == proposer.id)
+            .outerjoin(approver, Revision.approver_id == approver.id)
+            .offset(skip)
+            .limit(limit)
+            .order_by(Revision.created_at.desc())
+        )
+        
+        revisions_with_names = []
+        for row in result:
+            revision_dict = {
+                "revision_id": row.Revision.revision_id,
+                "target_article_id": row.Revision.target_article_id,
+                "reason": row.Revision.reason,
+                "after_title": row.Revision.after_title,
+                "after_info_category": row.Revision.after_info_category,
+                "after_keywords": row.Revision.after_keywords,
+                "after_importance": row.Revision.after_importance,
+                "after_publish_start": row.Revision.after_publish_start,
+                "after_publish_end": row.Revision.after_publish_end,
+                "after_target": row.Revision.after_target,
+                "after_question": row.Revision.after_question,
+                "after_answer": row.Revision.after_answer,
+                "after_additional_comment": row.Revision.after_additional_comment,
+                "status": row.Revision.status,
+                "processed_at": row.Revision.processed_at,
+                "created_at": row.Revision.created_at,
+                "updated_at": row.Revision.updated_at,
+                "proposer_name": row.proposer_name,
+                "approver_name": row.approver_name
+            }
+            revisions_with_names.append(revision_dict)
+        
+        return revisions_with_names
+    
+    async def get_mixed_access_with_names(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: UUID,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """Get revisions with mixed access control and user names"""
+        # Create aliases for proposer and approver
+        proposer = aliased(User)
+        approver = aliased(User)
+        
+        result = await db.execute(
+            select(
+                Revision,
+                proposer.full_name.label("proposer_name"),
+                approver.full_name.label("approver_name")
+            )
+            .join(proposer, Revision.proposer_id == proposer.id)
+            .outerjoin(approver, Revision.approver_id == approver.id)
+            .where(
+                or_(
+                    # Public revisions (submitted/approved)
+                    Revision.status.in_(["submitted", "approved"]),
+                    # User's private revisions (draft/rejected as proposer)
+                    and_(
+                        Revision.proposer_id == user_id,
+                        Revision.status.in_(["draft", "rejected"])
+                    ),
+                    # Approver can see rejected revisions they were assigned to approve
+                    and_(
+                        Revision.approver_id == user_id,
+                        Revision.status == "rejected"
+                    )
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+            .order_by(Revision.created_at.desc())
+        )
+        
+        revisions_with_names = []
+        for row in result:
+            revision_dict = {
+                "revision_id": row.Revision.revision_id,
+                "target_article_id": row.Revision.target_article_id,
+                "reason": row.Revision.reason,
+                "after_title": row.Revision.after_title,
+                "after_info_category": row.Revision.after_info_category,
+                "after_keywords": row.Revision.after_keywords,
+                "after_importance": row.Revision.after_importance,
+                "after_publish_start": row.Revision.after_publish_start,
+                "after_publish_end": row.Revision.after_publish_end,
+                "after_target": row.Revision.after_target,
+                "after_question": row.Revision.after_question,
+                "after_answer": row.Revision.after_answer,
+                "after_additional_comment": row.Revision.after_additional_comment,
+                "status": row.Revision.status,
+                "processed_at": row.Revision.processed_at,
+                "created_at": row.Revision.created_at,
+                "updated_at": row.Revision.updated_at,
+                "proposer_name": row.proposer_name,
+                "approver_name": row.approver_name
+            }
+            revisions_with_names.append(revision_dict)
+        
+        return revisions_with_names
 
 
 # Create a singleton instance

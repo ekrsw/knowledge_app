@@ -89,3 +89,31 @@ class RevisionInDB(RevisionBase):
 class Revision(RevisionInDB):
     """Schema for revision response"""
     pass
+
+
+class RevisionWithNames(BaseModel):
+    """Schema for revision response with user names instead of IDs"""
+    revision_id: UUID
+    target_article_id: str
+    reason: str
+    after_title: Optional[str] = None
+    after_info_category: Optional[UUID] = None
+    after_keywords: Optional[str] = None
+    after_importance: Optional[bool] = None
+    after_publish_start: Optional[date] = None
+    after_publish_end: Optional[date] = None
+    after_target: Optional[str] = Field(None, max_length=100)
+    after_question: Optional[str] = None
+    after_answer: Optional[str] = None
+    after_additional_comment: Optional[str] = None
+    status: str
+    processed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    # User names instead of IDs
+    proposer_name: str
+    approver_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True

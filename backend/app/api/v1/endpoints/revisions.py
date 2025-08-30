@@ -9,32 +9,32 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_db, get_current_active_user, get_current_approver_user
 from app.repositories.revision import revision_repository
 from app.repositories.user import user_repository
-from app.schemas.revision import Revision, RevisionCreate, RevisionUpdate, RevisionStatusUpdate
+from app.schemas.revision import Revision, RevisionCreate, RevisionUpdate, RevisionStatusUpdate, RevisionWithNames
 from app.models.user import User
 from app.models.revision import Revision as RevisionModel
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Revision])
+@router.get("/", response_model=List[RevisionWithNames])
 async def get_revisions(
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get revisions based on user permissions
+    """Get revisions based on user permissions with proposer and approver names
     - Admin: can see all revisions
     - All authenticated users: can see submitted/approved revisions + their own draft/rejected
     """
     if current_user.role == "admin":
-        # Admin can see all revisions
-        revisions = await revision_repository.get_multi(db, skip=skip, limit=limit)
+        # Admin can see all revisions with names
+        revisions = await revision_repository.get_with_names(db, skip=skip, limit=limit)
     else:
         # All users can see:
         # 1. Public revisions (submitted/approved by anyone)
         # 2. Their own private revisions (draft/rejected)
-        revisions = await revision_repository.get_mixed_access_revisions(
+        revisions = await revision_repository.get_mixed_access_with_names(
             db, user_id=current_user.id, skip=skip, limit=limit
         )
     return revisions
