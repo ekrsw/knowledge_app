@@ -94,7 +94,11 @@
       "Bash(git stash:*)",
       "Bash(npm ls:*)",
       "Bash(npm:*)",
-      "Bash(PORT=3001 npm run dev)"
+      "Bash(PORT=3001 npm run dev)",
+      "Bash(set NO_PROXY=localhost,127.0.0.1)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_revisions_api.py::TestRevisionList::test_get_revisions_admin_sees_all -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_revisions_api.py -v -k \"test_get_revisions\")",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/conftest.py --collect-only -q)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
