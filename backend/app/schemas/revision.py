@@ -4,7 +4,7 @@ Revision Pydantic schemas
 from typing import Optional
 from datetime import date, datetime
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class RevisionBase(BaseModel):
@@ -28,7 +28,23 @@ class RevisionBase(BaseModel):
 
 class RevisionCreate(RevisionBase):
     """Schema for creating revisions"""
-    approver_id: UUID
+    approver_id: Optional[UUID] = None
+    
+    @field_validator('after_publish_start', 'after_publish_end', mode='before')
+    @classmethod
+    def parse_empty_date(cls, v):
+        """Convert empty string to None for optional date fields"""
+        if v == "":
+            return None
+        return v
+    
+    @field_validator('approver_id', mode='before')
+    @classmethod
+    def parse_empty_uuid(cls, v):
+        """Convert empty string to None for optional UUID fields"""
+        if v == "":
+            return None
+        return v
 
 
 class RevisionUpdate(BaseModel):

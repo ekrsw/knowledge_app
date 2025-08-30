@@ -101,14 +101,15 @@ async def create_revision(
             detail="Target article not found"
         )
     
-    # Validate approver exists
-    from app.repositories.user import user_repository
-    approver = await user_repository.get(db, id=revision_in.approver_id)
-    if not approver:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Specified approver not found"
-        )
+    # Validate approver exists (only if approver_id is provided)
+    if revision_in.approver_id:
+        from app.repositories.user import user_repository
+        approver = await user_repository.get(db, id=revision_in.approver_id)
+        if not approver:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Specified approver not found"
+            )
     
     # Validate info category if provided
     if revision_in.after_info_category:
