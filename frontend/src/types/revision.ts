@@ -6,7 +6,8 @@ export type RevisionStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | '
 
 export interface Revision {
   revision_id: string;  // UUID
-  target_article_id: string;
+  target_article_id: string;  // 内部参照用（既存APIとの互換性）
+  article_number?: string | null;  // 表示用記事番号
   proposer_id: string;  // UUID
   approver_id: string;  // UUID (required)
   

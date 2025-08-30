@@ -94,16 +94,16 @@ export default function RevisionsPage() {
 
   const columns = [
     {
-      key: 'target_article_id' as keyof Revision,
-      title: '記事ID',
+      key: 'article_number' as keyof Revision,
+      title: '記事番号',
       width: '150px'
     },
     {
       key: 'after_title' as keyof Revision,
       title: 'タイトル',
       render: (value: unknown, record: Revision) => (
-        <div className="max-w-xs truncate" title={(value as string) || record.target_article_id}>
-          {(value as string) || record.target_article_id}
+        <div className="max-w-xs truncate" title={(value as string) || record.article_number || record.target_article_id}>
+          {(value as string) || record.article_number || record.target_article_id}
         </div>
       )
     },
