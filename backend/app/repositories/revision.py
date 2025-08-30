@@ -340,7 +340,7 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
         skip: int = 0,
         limit: int = 100
     ) -> List[Dict[str, Any]]:
-        """Get all revisions with proposer and approver names"""
+        """Get all revisions with proposer and approver names, and article number"""
         # Create aliases for proposer and approver
         proposer = aliased(User)
         approver = aliased(User)
@@ -349,10 +349,12 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
             select(
                 Revision,
                 proposer.full_name.label("proposer_name"),
-                approver.full_name.label("approver_name")
+                approver.full_name.label("approver_name"),
+                Article.article_number
             )
             .join(proposer, Revision.proposer_id == proposer.id)
             .outerjoin(approver, Revision.approver_id == approver.id)
+            .outerjoin(Article, Revision.target_article_id == Article.article_id)
             .offset(skip)
             .limit(limit)
             .order_by(Revision.created_at.desc())
@@ -362,7 +364,7 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
         for row in result:
             revision_dict = {
                 "revision_id": row.Revision.revision_id,
-                "target_article_id": row.Revision.target_article_id,
+                "article_number": row.article_number,  # Use article_number instead of target_article_id
                 "reason": row.Revision.reason,
                 "after_title": row.Revision.after_title,
                 "after_info_category": row.Revision.after_info_category,
@@ -393,7 +395,7 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
         skip: int = 0,
         limit: int = 100
     ) -> List[Dict[str, Any]]:
-        """Get revisions with mixed access control and user names"""
+        """Get revisions with mixed access control, user names, and article number"""
         # Create aliases for proposer and approver
         proposer = aliased(User)
         approver = aliased(User)
@@ -402,10 +404,12 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
             select(
                 Revision,
                 proposer.full_name.label("proposer_name"),
-                approver.full_name.label("approver_name")
+                approver.full_name.label("approver_name"),
+                Article.article_number
             )
             .join(proposer, Revision.proposer_id == proposer.id)
             .outerjoin(approver, Revision.approver_id == approver.id)
+            .outerjoin(Article, Revision.target_article_id == Article.article_id)
             .where(
                 or_(
                     # Public revisions (submitted/approved)
@@ -431,7 +435,7 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
         for row in result:
             revision_dict = {
                 "revision_id": row.Revision.revision_id,
-                "target_article_id": row.Revision.target_article_id,
+                "article_number": row.article_number,  # Use article_number instead of target_article_id
                 "reason": row.Revision.reason,
                 "after_title": row.Revision.after_title,
                 "after_info_category": row.Revision.after_info_category,

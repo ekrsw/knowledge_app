@@ -92,9 +92,9 @@ class Revision(RevisionInDB):
 
 
 class RevisionWithNames(BaseModel):
-    """Schema for revision response with user names instead of IDs"""
+    """Schema for revision response with user names instead of IDs, and article number"""
     revision_id: UUID
-    target_article_id: str
+    article_number: Optional[str] = None  # Article number from Article table
     reason: str
     after_title: Optional[str] = None
     after_info_category: Optional[UUID] = None
