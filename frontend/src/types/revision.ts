@@ -29,10 +29,14 @@ export interface Revision {
   created_at: string;  // ISO 8601 datetime
   updated_at: string;  // ISO 8601 datetime
   
+  // Names populated from relations (in list views)
+  proposer_name?: string;
+  approver_name?: string;
+  
   // Relations (populated in some endpoints)
-  proposer?: any;  // User object
-  approver?: any;  // User object
-  article?: any;   // Article object
+  proposer?: unknown;  // User object
+  approver?: unknown;  // User object
+  article?: unknown;   // Article object
 }
 
 export interface RevisionCreate {

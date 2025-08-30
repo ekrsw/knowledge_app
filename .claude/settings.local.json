@@ -93,7 +93,8 @@
       "Bash(npx tsc:*)",
       "Bash(git stash:*)",
       "Bash(npm ls:*)",
-      "Bash(npm:*)"
+      "Bash(npm:*)",
+      "Bash(PORT=3001 npm run dev)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

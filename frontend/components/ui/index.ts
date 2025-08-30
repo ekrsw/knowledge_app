@@ -21,3 +21,8 @@ export type { Toast, ToastType } from './Toast';
 // Overlay Components
 export { Modal, ModalHeader, ModalBody, ModalFooter } from './Modal';
 export type { ModalProps } from './Modal';
+
+// Data Display Components
+export { DataTable } from './DataTable';
+export { Pagination } from './Pagination';
+export { StatusBadge } from './StatusBadge';

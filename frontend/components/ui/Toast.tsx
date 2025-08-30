@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, ReactNode, useId } from 'react';
+import { createContext, useContext, useReducer, ReactNode, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../utils/cn';
 
@@ -42,9 +42,11 @@ function toastReducer(state: ToastState, action: ToastAction): ToastState {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(toastReducer, { toasts: [] });
   const toastIdPrefix = useId();
+  const counterRef = useRef(0);
 
   const addToast = (toast: Omit<Toast, 'id'>) => {
-    const id = `toast-${toastIdPrefix}-${Date.now()}`;
+    counterRef.current += 1;
+    const id = `toast-${toastIdPrefix}-${Date.now()}-${counterRef.current}`;
     const newToast = { ...toast, id };
     dispatch({ type: 'ADD_TOAST', toast: newToast });
 

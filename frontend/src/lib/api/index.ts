@@ -5,6 +5,7 @@
 export * from './test-connection';
 export { apiClient, ApiClient } from './client';
 export type { ApiResponse, ApiErrorResponse } from './client';
+export * from './revisions';
 
 // APIクライアントの設定
 export const API_CONFIG = {
