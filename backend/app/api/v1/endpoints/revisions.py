@@ -201,7 +201,7 @@ async def get_revisions_by_proposer(
     return revisions
 
 
-@router.get("/by-status/{status}", response_model=List[Revision])
+@router.get("/by-status/{status}", response_model=List[RevisionWithNames])
 async def get_revisions_by_status(
     status: str,
     skip: int = 0,
@@ -222,31 +222,70 @@ async def get_revisions_by_status(
         )
     elif status == "draft":
         # Only user's own draft revisions
-        revisions = await revision_repository.get_by_status_and_proposer(
-            db, status=status, proposer_id=current_user.id, 
+        revisions = await revision_repository.get_by_proposer_and_status(
+            db, proposer_id=current_user.id, status=status,
             skip=skip, limit=limit
         )
     elif status == "rejected":
         # For rejected: proposer and approver can see
         from sqlalchemy import select, and_, or_
-        from app.models.revision import Revision
+        from sqlalchemy.orm import aliased
+        from app.models.revision import Revision as RevisionModel
+        from app.models.article import Article
+        from app.models.user import User
+        
+        # Create aliases for proposer and approver
+        proposer = aliased(User)
+        approver = aliased(User)
         
         result = await db.execute(
-            select(Revision)
+            select(
+                RevisionModel,
+                proposer.full_name.label("proposer_name"),
+                approver.full_name.label("approver_name"),
+                Article.article_number
+            )
+            .join(proposer, RevisionModel.proposer_id == proposer.id)
+            .outerjoin(approver, RevisionModel.approver_id == approver.id)
+            .outerjoin(Article, RevisionModel.target_article_id == Article.article_id)
             .where(
                 and_(
-                    Revision.status == "rejected",
+                    RevisionModel.status == "rejected",
                     or_(
-                        Revision.proposer_id == current_user.id,
-                        Revision.approver_id == current_user.id
+                        RevisionModel.proposer_id == current_user.id,
+                        RevisionModel.approver_id == current_user.id
                     )
                 )
             )
             .offset(skip)
             .limit(limit)
-            .order_by(Revision.created_at.desc())
+            .order_by(RevisionModel.created_at.desc())
         )
-        revisions = result.scalars().all()
+        
+        revisions = []
+        for row in result:
+            revision_dict = {
+                "revision_id": row.RevisionModel.revision_id,
+                "article_number": row.article_number,
+                "reason": row.RevisionModel.reason,
+                "after_title": row.RevisionModel.after_title,
+                "after_info_category": row.RevisionModel.after_info_category,
+                "after_keywords": row.RevisionModel.after_keywords,
+                "after_importance": row.RevisionModel.after_importance,
+                "after_publish_start": row.RevisionModel.after_publish_start,
+                "after_publish_end": row.RevisionModel.after_publish_end,
+                "after_target": row.RevisionModel.after_target,
+                "after_question": row.RevisionModel.after_question,
+                "after_answer": row.RevisionModel.after_answer,
+                "after_additional_comment": row.RevisionModel.after_additional_comment,
+                "status": row.RevisionModel.status,
+                "processed_at": row.RevisionModel.processed_at,
+                "created_at": row.RevisionModel.created_at,
+                "updated_at": row.RevisionModel.updated_at,
+                "proposer_name": row.proposer_name,
+                "approver_name": row.approver_name
+            }
+            revisions.append(revision_dict)
     else:
         # Unknown status
         revisions = []
