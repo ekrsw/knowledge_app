@@ -1,7 +1,7 @@
 """
 Article model for the Knowledge Revision System
 """
-from typing import Optional
+from typing import Optional, List
 from datetime import date
 from uuid import UUID
 from sqlalchemy import String, Text, Boolean, Date, ForeignKey
@@ -48,7 +48,7 @@ class Article(Base):
     # Relationships
     approval_group_obj: Mapped[Optional["ApprovalGroup"]] = relationship("ApprovalGroup", back_populates="articles")
     info_category_obj: Mapped[Optional["InfoCategory"]] = relationship("InfoCategory", back_populates="articles")
-    # Note: revisions relationship is handled from Revision model side only to avoid circular reference issues
+    revisions: Mapped[List["Revision"]] = relationship("Revision", back_populates="target_article", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<Article(article_id='{self.article_id}', title='{self.title}')"

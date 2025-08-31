@@ -19,7 +19,12 @@ class Revision(Base):
     revision_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     
     # Target article information
-    target_article_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)  # Not FK to allow flexibility
+    target_article_id: Mapped[str] = mapped_column(
+        String(100), 
+        ForeignKey("articles.article_id", ondelete="CASCADE"),
+        nullable=False, 
+        index=True
+    )
     
     # Proposer information
     proposer_id: Mapped[UUID] = mapped_column(
@@ -65,8 +70,7 @@ class Revision(Base):
     proposer: Mapped["User"] = relationship("User", back_populates="submitted_revisions", foreign_keys=[proposer_id])
     approver: Mapped[Optional["User"]] = relationship("User", back_populates="approved_revisions", foreign_keys=[approver_id])
     after_info_category_obj: Mapped[Optional["InfoCategory"]] = relationship("InfoCategory", back_populates="revisions")
-    # Note: Since target_article_id is not a foreign key (for flexibility),
-    # we don't define a relationship here. Use repository methods to fetch related articles.
+    target_article: Mapped["Article"] = relationship("Article", back_populates="revisions")
     notifications: Mapped[List["SimpleNotification"]] = relationship("SimpleNotification", back_populates="revision", cascade="all, delete-orphan")
     
     # Table indexes
