@@ -35,26 +35,36 @@ export interface RevisionUpdateData {
 
 /**
  * 修正案一覧を取得
+ * ステータスが指定されている場合は /by-status/{status} を使用、
+ * 指定されていない場合は /revisions を使用
  */
 export async function getRevisions(params: RevisionsListParams = {}): Promise<PaginatedResponse<Revision>> {
   const searchParams = new URLSearchParams();
   
   if (params.skip !== undefined) searchParams.set('skip', params.skip.toString());
   if (params.limit !== undefined) searchParams.set('limit', params.limit.toString());
-  if (params.status) searchParams.set('status', params.status);
   if (params.target_article_id) searchParams.set('target_article_id', params.target_article_id);
 
-  const url = `/revisions/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  let url: string;
+  
+  if (params.status) {
+    // ステータスが指定されている場合は専用エンドポイントを使用
+    url = `/revisions/by-status/${params.status}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  } else {
+    // ステータスが指定されていない場合は全件取得エンドポイントを使用
+    url = `/revisions${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  }
+
   const response = await apiClient.get<Revision[]>(url);
   
-  // バックエンドはList[Revision]を返すので、PaginatedResponseに変換
+  // バックエンドはRevision[]を返すので、PaginatedResponseに変換
   const items = response.data;
   return {
-    items,
-    total: items.length, // 実際のtotalCountが必要な場合は別途APIで取得
+    items: Array.isArray(items) ? items : [],
+    total: Array.isArray(items) ? items.length : 0,
     skip: params.skip || 0,
     limit: params.limit || 100,
-    has_more: items.length === (params.limit || 100)
+    has_more: Array.isArray(items) ? items.length === (params.limit || 100) : false
   };
 }
 
@@ -102,14 +112,14 @@ export async function getMyRevisions(params: Omit<RevisionsListParams, 'target_a
   const url = `/proposals/my-proposals${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
   const response = await apiClient.get<Revision[]>(url);
   
-  // バックエンドはList[Revision]を返すので、PaginatedResponseに変換
+  // バックエンドはRevision[]を返すので、PaginatedResponseに変換
   const items = response.data;
   return {
-    items,
-    total: items.length,
+    items: Array.isArray(items) ? items : [],
+    total: Array.isArray(items) ? items.length : 0,
     skip: params.skip || 0,
     limit: params.limit || 100,
-    has_more: items.length === (params.limit || 100)
+    has_more: Array.isArray(items) ? items.length === (params.limit || 100) : false
   };
 }
 
@@ -126,13 +136,13 @@ export async function getRevisionsByArticle(articleId: string, params: Omit<Revi
   const url = `/revisions/by-article/${articleId}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
   const response = await apiClient.get<Revision[]>(url);
   
-  // バックエンドはList[Revision]を返すので、PaginatedResponseに変換
+  // バックエンドはRevision[]を返すので、PaginatedResponseに変換
   const items = response.data;
   return {
-    items,
-    total: items.length,
+    items: Array.isArray(items) ? items : [],
+    total: Array.isArray(items) ? items.length : 0,
     skip: params.skip || 0,
     limit: params.limit || 100,
-    has_more: items.length === (params.limit || 100)
+    has_more: Array.isArray(items) ? items.length === (params.limit || 100) : false
   };
 }

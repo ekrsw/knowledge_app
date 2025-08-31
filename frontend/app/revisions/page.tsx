@@ -42,9 +42,19 @@ export default function RevisionsPage() {
         ...params
       });
       
-      setRevisions(response.items);
-      setTotalItems(response.total);
-      setTotalPages(Math.ceil(response.total / DEFAULT_PAGE_SIZE));
+      // デバッグ: APIレスポンス構造を確認
+      console.log('API Response:', response);
+      console.log('Response type:', typeof response);
+      console.log('Response.items:', response.items);
+      console.log('Items is array:', Array.isArray(response.items));
+      console.log('Status filter:', statusFilter);
+      console.log('Current page:', currentPage);
+      
+      // APIレスポンスがPaginatedResponse形式であることを確認
+      const items = Array.isArray(response.items) ? response.items : [];
+      setRevisions(items);
+      setTotalItems(response.total || 0);
+      setTotalPages(Math.ceil((response.total || 0) / DEFAULT_PAGE_SIZE));
     } catch (error) {
       console.error('修正案の取得に失敗しました:', error);
       toast.error('修正案の取得に失敗しました');
