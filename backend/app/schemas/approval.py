@@ -66,7 +66,7 @@ class ApprovalQueue(BaseModel):
     """Item in approval queue"""
     revision_id: str
     target_article_id: str
-    target_article_pk: str
+    article_number: Optional[str]  # Article number for display
     proposer_name: str
     reason: str
     priority: str

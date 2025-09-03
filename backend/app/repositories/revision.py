@@ -60,6 +60,7 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
         for row in result:
             revision_dict = {
                 "revision_id": row.Revision.revision_id,
+                "target_article_id": row.Revision.target_article_id,
                 "article_number": row.article_number,
                 "reason": row.Revision.reason,
                 "after_title": row.Revision.after_title,
@@ -191,6 +192,7 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
         for row in result:
             revision_dict = {
                 "revision_id": row.Revision.revision_id,
+                "target_article_id": row.Revision.target_article_id,
                 "article_number": row.article_number,
                 "reason": row.Revision.reason,
                 "after_title": row.Revision.after_title,

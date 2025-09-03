@@ -400,6 +400,7 @@ class TestApprovalQueue:
         # Verify queue item structure
         for item in queue_data:
             assert "revision_id" in item
+            assert "article_number" in item  # Should include article_number
             assert "proposer_name" in item
             assert "submitted_at" in item
             assert "priority" in item

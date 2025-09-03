@@ -3,7 +3,7 @@ Approval service for managing revision proposal approvals
 """
 from typing import List, Dict, Any, Optional, Tuple
 from uuid import UUID
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.revision import Revision
@@ -81,7 +81,7 @@ class ApprovalService:
         update_data = RevisionUpdate(
             status=new_status,
             approver_id=approver.id,
-            processed_at=datetime.utcnow()
+            processed_at=datetime.now(timezone.utc)
         )
         
         revision = await revision_repository.update(db, db_obj=revision, obj_in=update_data)
@@ -217,7 +217,7 @@ class ApprovalService:
         
         if changes_applied:
             # Update the article's updated_at timestamp
-            article.updated_at = datetime.utcnow()
+            article.updated_at = datetime.now(timezone.utc)
             
             # Save changes
             db.add(article)
@@ -240,19 +240,27 @@ class ApprovalService:
         
         queue_items = []
         
-        for revision in submitted_revisions:
+        for revision_dict in submitted_revisions:
             try:
+                # Get the revision object for permission check
+                revision = await revision_repository.get(db, id=revision_dict["revision_id"])
+                if not revision:
+                    continue
+                    
                 # Check if approver can approve this revision
                 await self._verify_approval_permissions(
                     db, revision=revision, approver=approver
                 )
                 
-                # Get additional info for queue display
-                proposer = await user_repository.get(db, id=revision.proposer_id)
-                proposer_name = proposer.full_name if proposer else "Unknown"
+                # Use proposer name from the dict
+                proposer_name = revision_dict.get("proposer_name", "Unknown")
                 
                 # Calculate days pending
-                days_pending = (datetime.utcnow() - revision.created_at).days
+                created_at = revision_dict["created_at"]
+                if created_at.tzinfo is None:
+                    # If created_at is naive, make it UTC aware
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+                days_pending = (datetime.now(timezone.utc) - created_at).days
                 
                 # For now, use default values instead of diff_service to avoid blocking tests
                 # TODO: Fix diff_service integration  
@@ -268,18 +276,21 @@ class ApprovalService:
                 if priority_filter and priority != priority_filter:
                     continue
                 
+                reason = revision_dict["reason"]
+                target_article_id = revision_dict.get("target_article_id")
+                article_number = revision_dict.get("article_number")
                 queue_item = ApprovalQueue(
-                    revision_id=str(revision.revision_id),
-                    target_article_id=revision.target_article_id,
-                    target_article_pk=revision.target_article_id,  # Same as article_id in this system
+                    revision_id=str(revision_dict["revision_id"]),
+                    target_article_id=target_article_id,
+                    article_number=article_number,
                     proposer_name=proposer_name,
-                    reason=revision.reason[:100] + "..." if len(revision.reason) > 100 else revision.reason,
+                    reason=reason[:100] + "..." if len(reason) > 100 else reason,
                     priority=priority,
                     impact_level=impact_level,
                     total_changes=total_changes,
                     critical_changes=critical_changes,
                     estimated_review_time=estimated_review_time,
-                    submitted_at=revision.created_at,
+                    submitted_at=created_at,
                     days_pending=days_pending,
                     is_overdue=is_overdue
                 )
@@ -325,7 +336,7 @@ class ApprovalService:
         
         # Get completed approvals (would typically query approval_history table)
         # For now, estimate based on recently approved revisions
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         week_start = today - timedelta(days=today.weekday())
         
         # This would typically be a more sophisticated query
@@ -356,7 +367,7 @@ class ApprovalService:
         days_back: int = 30
     ) -> ApprovalMetrics:
         """Get approval process metrics"""
-        cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_back)
         
         # Get all revisions from the period
         all_revisions = await revision_repository.get_multi(db, limit=1000)
