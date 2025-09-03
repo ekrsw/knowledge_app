@@ -13,12 +13,23 @@ export const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // プロキシを無効化
+  proxy: false,
+  // サーバーサイドの場合のみhttpアダプターを使用
+  ...(typeof window === 'undefined' ? {
+    adapter: 'http'
+  } : {})
 });
 
 // リクエストインターセプター（JWTトークンを自動で付与）
 apiClient.interceptors.request.use(
   (config) => {
     const token = TokenStorage.getToken();
+    
+    // デバッグ情報をコンソールに出力
+    console.log('[API Client] Request URL:', config.baseURL + config.url);
+    console.log('[API Client] Base URL:', config.baseURL);
+    console.log('[API Client] Request Path:', config.url);
     
     if (token && TokenStorage.isTokenValid(token)) {
       config.headers.Authorization = `Bearer ${token}`;
