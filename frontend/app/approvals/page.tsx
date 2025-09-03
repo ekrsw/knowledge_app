@@ -10,7 +10,6 @@ import {
   getApprovalQueue,
   approveRevision,
   rejectRevision,
-  getApprovalStats,
   type ApprovalQueueItem,
 } from '../../lib/api/approvals';
 
@@ -34,7 +33,6 @@ export default function ApprovalsPage() {
   // 全てのstate hooksを最初に宣言
   const [queue, setQueue] = useState<ApprovalQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ pending: 0, approved_today: 0, rejected_today: 0, average_time: 0 });
   const [priority, setPriority] = useState<string>('');
   const [selectedRevision, setSelectedRevision] = useState<ApprovalQueueItem | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
@@ -50,19 +48,9 @@ export default function ApprovalsPage() {
       const queueData = await getApprovalQueue(priority || undefined);
       setQueue(queueData);
       
-      // 統計データを取得（エラーが発生しても続行）
-      try {
-        const statsData = await getApprovalStats();
-        setStats(statsData);
-      } catch (statsError) {
-        console.warn('Failed to fetch approval stats:', statsError);
-        // デフォルトの統計データを設定
-        setStats({ pending: queueData.length, approved_today: 0, rejected_today: 0, average_time: 0 });
-      }
     } catch (error) {
       console.error('Failed to fetch approval queue:', error);
       setQueue([]);
-      setStats({ pending: 0, approved_today: 0, rejected_today: 0, average_time: 0 });
       toast.error('承認キューの取得に失敗しました');
     } finally {
       setLoading(false);
@@ -282,61 +270,6 @@ export default function ApprovalsPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* 統計情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">承認待ち</h3>
-              <div className="text-yellow-400">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-yellow-400 mt-2">{stats.pending}</p>
-            <p className="text-gray-400 text-sm">承認が必要な修正案</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">今日の承認</h3>
-              <div className="text-green-400">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-green-400 mt-2">{stats.approved_today}</p>
-            <p className="text-gray-400 text-sm">承認した件数</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">今日の却下</h3>
-              <div className="text-red-400">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-red-400 mt-2">{stats.rejected_today}</p>
-            <p className="text-gray-400 text-sm">却下した件数</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">平均処理時間</h3>
-              <div className="text-blue-400">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-blue-400 mt-2">{stats.average_time.toFixed(1)}</p>
-            <p className="text-gray-400 text-sm">時間</p>
-          </div>
-        </div>
-
         {/* ページヘッダー */}
         <div className="flex justify-between items-center">
           <div>
