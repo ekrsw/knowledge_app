@@ -99,3 +99,33 @@ async def update_article(
     # Update article
     updated_article = await article_repository.update(db, db_obj=article, obj_in=article_in)
     return updated_article
+
+
+@router.get("/id-by-number/{article_number}")
+async def get_article_id_by_number(
+    article_number: str,
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Get article_id by article_number"""
+    article_id = await article_repository.get_article_id_by_number(db, article_number=article_number)
+    if not article_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Article not found"
+        )
+    return {"article_id": article_id}
+
+
+@router.get("/number-by-id/{article_id}")
+async def get_article_number_by_id(
+    article_id: str,
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Get article_number by article_id"""
+    article_number = await article_repository.get_article_number_by_id(db, article_id=article_id)
+    if not article_number:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Article not found"
+        )
+    return {"article_number": article_number}

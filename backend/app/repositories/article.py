@@ -50,6 +50,22 @@ class ArticleRepository(BaseRepository[Article, ArticleCreate, ArticleUpdate]):
             select(Article).where(Article.info_category == info_category)
         )
         return result.scalars().all()
+    
+    async def get_article_id_by_number(self, db: AsyncSession, *, article_number: str) -> Optional[str]:
+        """Get article_id by article_number"""
+        result = await db.execute(
+            select(Article.article_id).where(Article.article_number == article_number)
+        )
+        article_id = result.scalars().first()
+        return article_id
+    
+    async def get_article_number_by_id(self, db: AsyncSession, *, article_id: str) -> Optional[str]:
+        """Get article_number by article_id"""
+        result = await db.execute(
+            select(Article.article_number).where(Article.article_id == article_id)
+        )
+        article_number = result.scalars().first()
+        return article_number
 
 
 # Create a singleton instance
