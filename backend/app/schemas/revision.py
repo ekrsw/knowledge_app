@@ -51,6 +51,7 @@ class RevisionUpdate(BaseModel):
     """Schema for updating revisions"""
     reason: Optional[str] = Field(None, min_length=1)
     status: Optional[str] = Field(None, pattern="^(draft|submitted|approved|rejected|deleted)$")
+    submitted_at: Optional[datetime] = None  # Add submitted_at field
     processed_at: Optional[datetime] = None  # Add processed_at field
     approver_id: Optional[UUID] = None  # Add approver_id field
     
@@ -78,6 +79,7 @@ class RevisionInDB(RevisionBase):
     proposer_id: UUID
     status: str
     approver_id: Optional[UUID] = None
+    submitted_at: Optional[datetime] = None
     processed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

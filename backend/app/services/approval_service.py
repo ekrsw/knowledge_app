@@ -255,12 +255,12 @@ class ApprovalService:
                 # Use proposer name from the dict
                 proposer_name = revision_dict.get("proposer_name", "Unknown")
                 
-                # Calculate days pending
-                created_at = revision_dict["created_at"]
-                if created_at.tzinfo is None:
-                    # If created_at is naive, make it UTC aware
-                    created_at = created_at.replace(tzinfo=timezone.utc)
-                days_pending = (datetime.now(timezone.utc) - created_at).days
+                # Calculate days pending using submitted_at (fallback to created_at)
+                submitted_at = revision_dict.get("submitted_at") or revision_dict["created_at"]
+                if submitted_at.tzinfo is None:
+                    # If submitted_at is naive, make it UTC aware
+                    submitted_at = submitted_at.replace(tzinfo=timezone.utc)
+                days_pending = (datetime.now(timezone.utc) - submitted_at).days
                 
                 # For now, use default values instead of diff_service to avoid blocking tests
                 # TODO: Fix diff_service integration  
@@ -290,7 +290,7 @@ class ApprovalService:
                     total_changes=total_changes,
                     critical_changes=critical_changes,
                     estimated_review_time=estimated_review_time,
-                    submitted_at=created_at,
+                    submitted_at=submitted_at,
                     days_pending=days_pending,
                     is_overdue=is_overdue
                 )

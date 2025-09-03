@@ -71,8 +71,12 @@ class ProposalService:
         if revision.status != "draft":
             raise ProposalStatusError(f"Cannot submit proposal with status {revision.status}")
         
-        # Update status to submitted
-        update_data = RevisionUpdate(status="submitted")
+        # Update status to submitted and set submitted_at timestamp
+        from datetime import datetime, timezone
+        update_data = RevisionUpdate(
+            status="submitted",
+            submitted_at=datetime.now(timezone.utc)
+        )
         revision = await revision_repository.update(db, db_obj=revision, obj_in=update_data)
         
         # Notify approvers about the submission
@@ -274,15 +278,30 @@ class ProposalService:
             group_article_ids = {article.article_id for article in group_articles}
             
             # Filter proposals for articles in the approver's group
-            filtered_proposals = [
+            # submitted_proposals is a list of dicts, not objects
+            filtered_proposal_dicts = [
                 proposal for proposal in submitted_proposals
-                if proposal.target_article_id in group_article_ids
+                if proposal["target_article_id"] in group_article_ids
             ]
+            
+            # Convert dicts back to Revision objects
+            filtered_proposals = []
+            for proposal_dict in filtered_proposal_dicts:
+                revision = await revision_repository.get(db, id=proposal_dict["revision_id"])
+                if revision:
+                    filtered_proposals.append(revision)
             
             return filtered_proposals
         
         # If no approval group, return all submitted proposals (for admin)
-        return submitted_proposals
+        # Convert dicts to Revision objects
+        revision_objects = []
+        for proposal_dict in submitted_proposals:
+            revision = await revision_repository.get(db, id=proposal_dict["revision_id"])
+            if revision:
+                revision_objects.append(revision)
+        
+        return revision_objects
     
     async def get_proposal_statistics(
         self,
