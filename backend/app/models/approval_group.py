@@ -33,6 +33,7 @@ class ApprovalGroup(Base):
     # Relationships
     members: Mapped[List["User"]] = relationship("User", back_populates="approval_group")
     articles: Mapped[List["Article"]] = relationship("Article", back_populates="approval_group_obj")
+    revisions: Mapped[List["Revision"]] = relationship("Revision", back_populates="approval_group")
     
     def __repr__(self) -> str:
         return f"<ApprovalGroup(group_id='{self.group_id}', name='{self.group_name}')"

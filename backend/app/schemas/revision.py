@@ -28,6 +28,7 @@ class RevisionBase(BaseModel):
 
 class RevisionCreate(RevisionBase):
     """Schema for creating revisions"""
+    approval_group_id: Optional[UUID] = None
     approver_id: Optional[UUID] = None
     
     @field_validator('after_publish_start', 'after_publish_end', mode='before')
@@ -38,7 +39,7 @@ class RevisionCreate(RevisionBase):
             return None
         return v
     
-    @field_validator('approver_id', mode='before')
+    @field_validator('approval_group_id', 'approver_id', mode='before')
     @classmethod
     def parse_empty_uuid(cls, v):
         """Convert empty string to None for optional UUID fields"""
@@ -53,6 +54,7 @@ class RevisionUpdate(BaseModel):
     status: Optional[str] = Field(None, pattern="^(draft|submitted|approved|rejected|deleted)$")
     submitted_at: Optional[datetime] = None  # Add submitted_at field
     processed_at: Optional[datetime] = None  # Add processed_at field
+    approval_group_id: Optional[UUID] = None  # Add approval_group_id field
     approver_id: Optional[UUID] = None  # Add approver_id field
     
     # After fields (all optional)
@@ -78,6 +80,7 @@ class RevisionInDB(RevisionBase):
     revision_id: UUID
     proposer_id: UUID
     status: str
+    approval_group_id: Optional[UUID] = None
     approver_id: Optional[UUID] = None
     submitted_at: Optional[datetime] = None
     processed_at: Optional[datetime] = None

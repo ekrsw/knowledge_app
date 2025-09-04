@@ -59,6 +59,11 @@ class Revision(Base):
     )
     
     # Approval information
+    approval_group_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey("approval_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     approver_id: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
@@ -69,6 +74,7 @@ class Revision(Base):
     
     # Relationships
     proposer: Mapped["User"] = relationship("User", back_populates="submitted_revisions", foreign_keys=[proposer_id])
+    approval_group: Mapped[Optional["ApprovalGroup"]] = relationship("ApprovalGroup", back_populates="revisions")
     approver: Mapped[Optional["User"]] = relationship("User", back_populates="approved_revisions", foreign_keys=[approver_id])
     after_info_category_obj: Mapped[Optional["InfoCategory"]] = relationship("InfoCategory", back_populates="revisions")
     target_article: Mapped["Article"] = relationship("Article", back_populates="revisions")
