@@ -118,14 +118,17 @@ async def create_revision(
             detail="Target article not found"
         )
     
-    # Validate approval group exists (only if approval_group_id is provided)
-    if revision_in.approval_group_id:
+    # Auto-set approval_group_id from target_article
+    approval_group_id_to_use = article.approval_group
+    
+    # Validate approval group exists (if target_article has one)
+    if approval_group_id_to_use:
         from app.repositories.approval_group import approval_group_repository
-        approval_group = await approval_group_repository.get_by_id(db, group_id=revision_in.approval_group_id)
+        approval_group = await approval_group_repository.get_by_id(db, group_id=approval_group_id_to_use)
         if not approval_group:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Specified approval group not found"
+                detail="Target article's approval group not found"
             )
     
     # Validate info category if provided
@@ -145,9 +148,10 @@ async def create_revision(
                 detail="Specified info category not found"
             )
     
-    # Create revision with proposer_id from current user
+    # Create revision with proposer_id from current user and determined approval_group_id
     revision_data = revision_in.model_dump()
     revision_data["proposer_id"] = current_user.id
+    revision_data["approval_group_id"] = approval_group_id_to_use
     revision = await revision_repository.create_with_proposer(db, obj_in=revision_data)
     return revision
 
