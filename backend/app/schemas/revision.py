@@ -29,7 +29,6 @@ class RevisionBase(BaseModel):
 class RevisionCreate(RevisionBase):
     """Schema for creating revisions"""
     approval_group_id: Optional[UUID] = None
-    approver_id: Optional[UUID] = None
     
     @field_validator('after_publish_start', 'after_publish_end', mode='before')
     @classmethod
@@ -39,7 +38,7 @@ class RevisionCreate(RevisionBase):
             return None
         return v
     
-    @field_validator('approval_group_id', 'approver_id', mode='before')
+    @field_validator('approval_group_id', mode='before')
     @classmethod
     def parse_empty_uuid(cls, v):
         """Convert empty string to None for optional UUID fields"""
