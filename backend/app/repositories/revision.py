@@ -539,6 +539,63 @@ class RevisionRepository(BaseRepository[Revision, RevisionCreate, RevisionUpdate
             revisions_with_names.append(revision_dict)
         
         return revisions_with_names
+    
+    async def get_by_proposer_with_names(
+        self,
+        db: AsyncSession,
+        *,
+        proposer_id: UUID,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """Get revisions by proposer with proposer and approver names, and article number"""
+        # Create aliases for proposer and approver
+        proposer = aliased(User)
+        approver = aliased(User)
+        
+        result = await db.execute(
+            select(
+                Revision,
+                proposer.full_name.label("proposer_name"),
+                approver.full_name.label("approver_name"),
+                Article.article_number
+            )
+            .join(proposer, Revision.proposer_id == proposer.id)
+            .outerjoin(approver, Revision.approver_id == approver.id)
+            .outerjoin(Article, Revision.target_article_id == Article.article_id)
+            .where(Revision.proposer_id == proposer_id)
+            .offset(skip)
+            .limit(limit)
+            .order_by(Revision.created_at.desc())
+        )
+        
+        revisions_with_names = []
+        for row in result:
+            revision_dict = {
+                "revision_id": row.Revision.revision_id,
+                "article_number": row.article_number,  # Use article_number instead of target_article_id
+                "reason": row.Revision.reason,
+                "after_title": row.Revision.after_title,
+                "after_info_category": row.Revision.after_info_category,
+                "after_keywords": row.Revision.after_keywords,
+                "after_importance": row.Revision.after_importance,
+                "after_publish_start": row.Revision.after_publish_start,
+                "after_publish_end": row.Revision.after_publish_end,
+                "after_target": row.Revision.after_target,
+                "after_question": row.Revision.after_question,
+                "after_answer": row.Revision.after_answer,
+                "after_additional_comment": row.Revision.after_additional_comment,
+                "status": row.Revision.status,
+                "submitted_at": row.Revision.submitted_at,
+                "processed_at": row.Revision.processed_at,
+                "created_at": row.Revision.created_at,
+                "updated_at": row.Revision.updated_at,
+                "proposer_name": row.proposer_name,
+                "approver_name": row.approver_name
+            }
+            revisions_with_names.append(revision_dict)
+        
+        return revisions_with_names
 
 
 # Create a singleton instance

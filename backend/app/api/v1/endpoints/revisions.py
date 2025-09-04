@@ -40,6 +40,23 @@ async def get_revisions(
     return revisions
 
 
+@router.get("/my-revisions", response_model=List[RevisionWithNames])
+async def get_my_revisions(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get current user's own revisions with names and article numbers
+    - Returns all revisions where the current user is the proposer
+    - Includes proposer/approver names and article numbers for better display
+    """
+    revisions = await revision_repository.get_by_proposer_with_names(
+        db, proposer_id=current_user.id, skip=skip, limit=limit
+    )
+    return revisions
+
+
 @router.get("/{revision_id}", response_model=Revision)
 async def get_revision(
     revision_id: UUID,

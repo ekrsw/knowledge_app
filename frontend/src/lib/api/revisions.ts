@@ -109,7 +109,7 @@ export async function getMyRevisions(params: Omit<RevisionsListParams, 'target_a
   if (params.limit !== undefined) searchParams.set('limit', params.limit.toString());
   if (params.status) searchParams.set('status', params.status);
 
-  const url = `/proposals/my-proposals${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  const url = `/revisions/my-revisions${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
   const response = await apiClient.get<Revision[]>(url);
   
   // バックエンドはRevision[]を返すので、PaginatedResponseに変換
