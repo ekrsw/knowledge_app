@@ -101,7 +101,13 @@
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/conftest.py --collect-only -q)",
       "Bash(git remote set-url:*)",
       "Bash(git config:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_articles_api.py -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_articles_api.py::TestArticleIdConversion::test_get_article_id_by_number_success -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_articles_api.py::TestArticleIdConversion::test_get_article_id_by_number_success -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_revisions_api.py::TestMyRevisions::test_get_my_revisions_success -v)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_revisions_api.py::TestMyRevisions::test_get_my_revisions_success -v -s)",
+      "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest tests/integration/test_revisions_api.py::TestMyRevisions -v)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
