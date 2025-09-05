@@ -12,16 +12,16 @@ import {
   rejectRevision,
   type ApprovalQueueItem,
 } from '@/lib/api/approvals';
+import {
+  getPriorityOptions,
+  getPriorityDisplayName,
+  getImpactDisplayName,
+  getPriorityClassName,
+  getImpactClassName,
+} from '@/lib/utils/priority';
 
 const DEFAULT_PAGE_SIZE = 10;
-
-const priorityOptions = [
-  { value: '', label: '全ての優先度' },
-  { value: 'critical', label: '重大' },
-  { value: 'high', label: '高' },
-  { value: 'medium', label: '中' },
-  { value: 'low', label: '低' }
-];
+const priorityOptions = getPriorityOptions();
 
 export default function ApprovalsPage() {
   const router = useRouter();
@@ -129,20 +129,6 @@ export default function ApprovalsPage() {
     }
   };
 
-  const getPriorityBadgeColor = (priority: string) => {
-    switch (priority) {
-      case 'critical':
-        return 'bg-red-100 text-red-800';
-      case 'high':
-        return 'bg-orange-100 text-orange-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   // 認証チェック（全てのHooks宣言後に配置）
   if (authLoading) {
@@ -190,8 +176,8 @@ export default function ApprovalsPage() {
       title: '優先度',
       width: '100px',
       render: (value: unknown) => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadgeColor(value as string)}`}>
-          {value as string}
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityClassName(value as string)}`}>
+          {getPriorityDisplayName(value as string)}
         </span>
       )
     },
@@ -200,8 +186,8 @@ export default function ApprovalsPage() {
       title: '影響度',
       width: '100px',
       render: (value: unknown) => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadgeColor(value as string)}`}>
-          {value as string}
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getImpactClassName(value as string)}`}>
+          {getImpactDisplayName(value as string)}
         </span>
       )
     },
@@ -326,8 +312,8 @@ export default function ApprovalsPage() {
                   <p><strong>記事番号:</strong> {selectedRevision.article_number || '-'}</p>
                   <p><strong>提案者:</strong> {selectedRevision.proposer_name}</p>
                   <p><strong>修正理由:</strong> {selectedRevision.reason}</p>
-                  <p><strong>優先度:</strong> {selectedRevision.priority}</p>
-                  <p><strong>影響度:</strong> {selectedRevision.impact_level}</p>
+                  <p><strong>優先度:</strong> {getPriorityDisplayName(selectedRevision.priority)}</p>
+                  <p><strong>影響度:</strong> {getImpactDisplayName(selectedRevision.impact_level)}</p>
                 </div>
               </div>
               
