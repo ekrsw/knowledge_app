@@ -111,7 +111,8 @@
       "Bash(DATABASE_URL=postgresql://postgres:password@localhost:5432/knowledge_revision uv run alembic revision --autogenerate -m \"Add approval_group_id to revisions table\")",
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_revisions_api.py -v)",
       "Bash(PORT=3001 timeout 10s npm run dev:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(del nul)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
