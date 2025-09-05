@@ -5,7 +5,7 @@
 /**
  * 優先度・影響度レベルの型定義
  */
-export type PriorityLevel = 'critical' | 'high' | 'medium' | 'low';
+export type PriorityLevel = 'urgent' | 'high' | 'medium' | 'low';
 
 /**
  * 優先度・影響度設定の型定義
@@ -19,8 +19,8 @@ export interface PriorityConfig {
  * 優先度設定マップ
  */
 export const priorityConfig: Record<PriorityLevel, PriorityConfig> = {
-  critical: {
-    label: '重大',
+  urgent: {
+    label: '緊急',
     className: 'bg-red-100 text-red-800'
   },
   high: {
@@ -41,8 +41,8 @@ export const priorityConfig: Record<PriorityLevel, PriorityConfig> = {
  * 影響度設定マップ（優先度と同じレベル体系）
  */
 export const impactConfig: Record<PriorityLevel, PriorityConfig> = {
-  critical: {
-    label: '重大',
+  urgent: {
+    label: '緊急',
     className: 'bg-red-100 text-red-800'
   },
   high: {
@@ -107,7 +107,7 @@ export function getImpactConfig(impact: string): PriorityConfig | null {
 export function getPriorityOptions() {
   return [
     { value: '', label: '全ての優先度' },
-    { value: 'critical', label: getPriorityDisplayName('critical') },
+    { value: 'urgent', label: getPriorityDisplayName('urgent') },
     { value: 'high', label: getPriorityDisplayName('high') },
     { value: 'medium', label: getPriorityDisplayName('medium') },
     { value: 'low', label: getPriorityDisplayName('low') }
@@ -120,7 +120,7 @@ export function getPriorityOptions() {
 export function getImpactOptions() {
   return [
     { value: '', label: '全ての影響度' },
-    { value: 'critical', label: getImpactDisplayName('critical') },
+    { value: 'urgent', label: getImpactDisplayName('urgent') },
     { value: 'high', label: getImpactDisplayName('high') },
     { value: 'medium', label: getImpactDisplayName('medium') },
     { value: 'low', label: getImpactDisplayName('low') }
