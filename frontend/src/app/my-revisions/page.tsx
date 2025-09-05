@@ -4,22 +4,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { MainLayout } from '@/components/layout';
-import { DataTable, Pagination, StatusBadge, Button, Select } from '../../components/ui';
-import { useToast } from '../../components/ui';
+import { DataTable, Pagination, StatusBadge, Button, Select } from '@/components/ui';
+import { useToast } from '@/components/ui';
 import { getMyRevisions, RevisionsListParams } from '@/lib/api/revisions';
 import { Revision, RevisionStatus } from '@/types';
 import { PaginatedResponse } from '@/types/api';
+import { getStatusOptions } from '@/lib/utils/status';
 
 const DEFAULT_PAGE_SIZE = 10;
-
-const statusOptions = [
-  { value: '', label: '全てのステータス' },
-  { value: 'draft', label: '下書き' },
-  { value: 'submitted', label: '提出済み' },
-  { value: 'approved', label: '承認済み' },
-  { value: 'rejected', label: '却下' },
-  { value: 'deleted', label: '削除済み' }
-];
+const statusOptions = getStatusOptions();
 
 export default function MyRevisionsPage() {
   const router = useRouter();

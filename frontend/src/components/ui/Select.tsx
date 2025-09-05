@@ -1,5 +1,5 @@
 import { SelectHTMLAttributes, forwardRef, ReactNode, useId } from 'react';
-import { cn } from '../../utils/cn';
+import { cn } from '@/cn';
 
 export interface SelectOption {
   value: string;

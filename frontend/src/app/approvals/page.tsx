@@ -4,14 +4,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { MainLayout } from '@/components/layout';
-import { DataTable, Button, Select, StatusBadge, Modal } from '../../components/ui';
-import { useToast } from '../../components/ui';
+import { DataTable, Button, Select, StatusBadge, Modal } from '@/components/ui';
+import { useToast } from '@/components/ui';
 import {
   getApprovalQueue,
   approveRevision,
   rejectRevision,
   type ApprovalQueueItem,
-} from '../../lib/api/approvals';
+} from '@/lib/api/approvals';
 
 const DEFAULT_PAGE_SIZE = 10;
 

@@ -11,7 +11,7 @@ import {
   ModalBody, 
   ModalFooter, 
   useToast 
-} from '../../components/ui';
+} from '@/components/ui';
 
 export default function UITestPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);

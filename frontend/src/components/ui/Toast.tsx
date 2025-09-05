@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useReducer, ReactNode, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { cn } from '../../utils/cn';
+import { cn } from '@/cn';
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
 

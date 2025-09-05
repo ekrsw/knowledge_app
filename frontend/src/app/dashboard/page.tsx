@@ -2,6 +2,7 @@
 
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { MainLayout } from '@/components/layout';
+import { getStatusDisplayName } from '@/lib/utils/status';
 
 /**
  * ダッシュボードページ（認証が必要）
@@ -36,13 +37,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="bg-gray-800 rounded-lg p-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-400">下書き</h3>
+              <h3 className="text-sm font-medium text-gray-400">{getStatusDisplayName('draft')}</h3>
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </div>
             <p className="text-2xl font-bold text-white mt-2">0</p>
-            <p className="text-gray-500 text-xs">下書き中の修正案</p>
+            <p className="text-gray-500 text-xs">{getStatusDisplayName('draft')}中の修正案</p>
           </div>
           
           <div className="bg-gray-800 rounded-lg p-6">
@@ -58,13 +59,13 @@ export default function DashboardPage() {
           
           <div className="bg-gray-800 rounded-lg p-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-400">承認済み</h3>
+              <h3 className="text-sm font-medium text-gray-400">{getStatusDisplayName('approved')}</h3>
               <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <p className="text-2xl font-bold text-green-400 mt-2">0</p>
-            <p className="text-gray-500 text-xs">承認済み</p>
+            <p className="text-gray-500 text-xs">{getStatusDisplayName('approved')}</p>
           </div>
 
           <div className="bg-gray-800 rounded-lg p-6">
@@ -98,19 +99,19 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold mb-4">自分の修正案</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">下書き</span>
+                  <span className="text-gray-400">{getStatusDisplayName('draft')}</span>
                   <span className="text-white">0件</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">提出済み</span>
+                  <span className="text-gray-400">{getStatusDisplayName('submitted')}</span>
                   <span className="text-yellow-400">0件</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">承認済み</span>
+                  <span className="text-gray-400">{getStatusDisplayName('approved')}</span>
                   <span className="text-green-400">0件</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">却下済み</span>
+                  <span className="text-gray-400">{getStatusDisplayName('rejected')}済み</span>
                   <span className="text-red-400">0件</span>
                 </div>
               </div>

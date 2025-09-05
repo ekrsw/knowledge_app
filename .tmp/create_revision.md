@@ -11,6 +11,8 @@
 |after_answer|回答|Text|
 |after_additional_comment|追加コメント|Text|
 |reason|理由|Text|
+
+
 {
   "target_article_id": "string",
   "reason": "string",

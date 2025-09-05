@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { cn } from '../../utils/cn';
+import { cn } from '@/cn';
 
 export interface AlertProps {
   variant?: 'info' | 'success' | 'warning' | 'error';

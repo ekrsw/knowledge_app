@@ -1,4 +1,4 @@
-import { apiClient } from '../../src/lib/api/client';
+import { apiClient } from './client';
 
 // Types
 export interface ApprovalQueueItem {

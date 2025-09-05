@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { cn } from '../../utils/cn';
+import { cn } from '@/cn';
 
 export interface ModalProps {
   isOpen: boolean;
