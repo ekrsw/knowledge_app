@@ -148,7 +148,7 @@ async def delete_proposal(
         )
 
 
-@router.get("/my-proposals", response_model=List[Revision])
+@router.get("/my-proposals")
 async def get_my_proposals(
     status: Optional[str] = None,
     skip: int = 0,

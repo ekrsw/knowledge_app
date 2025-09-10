@@ -12,6 +12,7 @@ class RevisionBase(BaseModel):
     target_article_id: str = Field(..., min_length=1, max_length=100)
     # target_article_pk: removed field
     reason: str = Field(..., min_length=1)
+    approver_id: UUID = Field(..., description="Required approver for this revision")
     
     # After fields (all optional)
     after_title: Optional[str] = None

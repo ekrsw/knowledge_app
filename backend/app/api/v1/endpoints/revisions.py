@@ -131,6 +131,15 @@ async def create_revision(
                 detail="Target article's approval group not found"
             )
     
+    # Validate approver exists
+    from app.repositories.user import user_repository
+    approver = await user_repository.get(db, id=revision_in.approver_id)
+    if not approver:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specified approver not found"
+        )
+    
     # Validate info category if provided
     if revision_in.after_info_category:
         from app.repositories.info_category import info_category_repository
@@ -286,23 +295,23 @@ async def get_revisions_by_status(
         revisions = []
         for row in result:
             revision_dict = {
-                "revision_id": row.RevisionModel.revision_id,
+                "revision_id": row[0].revision_id,
                 "article_number": row.article_number,
-                "reason": row.RevisionModel.reason,
-                "after_title": row.RevisionModel.after_title,
-                "after_info_category": row.RevisionModel.after_info_category,
-                "after_keywords": row.RevisionModel.after_keywords,
-                "after_importance": row.RevisionModel.after_importance,
-                "after_publish_start": row.RevisionModel.after_publish_start,
-                "after_publish_end": row.RevisionModel.after_publish_end,
-                "after_target": row.RevisionModel.after_target,
-                "after_question": row.RevisionModel.after_question,
-                "after_answer": row.RevisionModel.after_answer,
-                "after_additional_comment": row.RevisionModel.after_additional_comment,
-                "status": row.RevisionModel.status,
-                "processed_at": row.RevisionModel.processed_at,
-                "created_at": row.RevisionModel.created_at,
-                "updated_at": row.RevisionModel.updated_at,
+                "reason": row[0].reason,
+                "after_title": row[0].after_title,
+                "after_info_category": row[0].after_info_category,
+                "after_keywords": row[0].after_keywords,
+                "after_importance": row[0].after_importance,
+                "after_publish_start": row[0].after_publish_start,
+                "after_publish_end": row[0].after_publish_end,
+                "after_target": row[0].after_target,
+                "after_question": row[0].after_question,
+                "after_answer": row[0].after_answer,
+                "after_additional_comment": row[0].after_additional_comment,
+                "status": row[0].status,
+                "processed_at": row[0].processed_at,
+                "created_at": row[0].created_at,
+                "updated_at": row[0].updated_at,
                 "proposer_name": row.proposer_name,
                 "approver_name": row.approver_name
             }
