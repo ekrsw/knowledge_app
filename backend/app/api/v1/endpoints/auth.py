@@ -130,3 +130,37 @@ async def test_token(
 ):
     """Test access token"""
     return current_user
+
+@router.post("/logout")
+async def logout():
+    """JWT logout endpoint - for stateless JWT, client should discard token"""
+    return {
+        "message": "Successfully logged out", 
+        "detail": "For stateless JWT authentication, please discard the token on client side"
+    }
+
+
+@router.get("/verify") 
+async def verify_token(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Verify JWT token and return user info"""
+    return {
+        "valid": True,
+        "user": current_user,
+        "token_type": "bearer"
+    }
+
+
+@router.get("/status")
+async def auth_status(
+    current_user: User = Depends(get_current_active_user)  
+):
+    """Get current authentication status"""
+    return {
+        "authenticated": True,
+        "user_id": str(current_user.id),
+        "username": current_user.username,
+        "role": current_user.role,
+        "is_active": current_user.is_active
+    }

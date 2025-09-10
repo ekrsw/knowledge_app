@@ -112,7 +112,15 @@
       "Bash(DATABASE_URL=sqlite+aiosqlite:///:memory: ENVIRONMENT=test uv run pytest backend/tests/integration/test_revisions_api.py -v)",
       "Bash(PORT=3001 timeout 10s npm run dev:*)",
       "Bash(tree:*)",
-      "Bash(del nul)"
+      "Bash(del nul)",
+      "mcp__serena__think_about_collected_information",
+      "mcp__serena__activate_project",
+      "mcp__serena__list_dir",
+      "mcp__serena__find_symbol",
+      "mcp__serena__read_file",
+      "mcp__serena__think_about_whether_you_are_done",
+      "mcp__serena__insert_after_symbol",
+      "mcp__serena__replace_regex"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

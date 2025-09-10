@@ -1,11 +1,24 @@
 """
 API v1 router configuration
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from app.api.dependencies import get_current_active_user
 
 from app.api.v1.endpoints import auth, users, revisions, articles, info_categories, approval_groups, notifications, proposals, diffs, approvals, system, analytics
 
 api_router = APIRouter()
+# Alias endpoints for frontend compatibility
+@api_router.get("/health")
+async def health_alias():
+    """Health check alias endpoint - redirects to system/health"""
+    from app.api.v1.endpoints.system import health_check
+    return await health_check()
+
+@api_router.get("/users/me")
+async def users_me_alias(current_user = Depends(get_current_active_user)):
+    """Users me alias endpoint - redirects to auth/me"""  
+    return current_user
 
 # Include all endpoint routers
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
