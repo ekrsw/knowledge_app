@@ -446,8 +446,8 @@ class TestDiffDisplayE2E:
         print("PASS - Diff display integration test completed successfully")
     
     @pytest.mark.asyncio
-    async def test_formatted_diff_display(self, client: AsyncClient, db_session: AsyncSession):
-        """フォーマット済み差分表示テスト"""
+    async def test_diff_summary_display(self, client: AsyncClient, db_session: AsyncSession):
+        """差分サマリー表示テスト"""
         # テストデータ準備
         info_category = await InfoCategoryFactory.create_technology_category(db_session)
         approval_group = await ApprovalGroupFactory.create_development_group(db_session)
@@ -457,8 +457,8 @@ class TestDiffDisplayE2E:
         
         article = await ArticleFactory.create(
             db_session,
-            article_id="E2E_FORMATTED_DIFF_ARTICLE",
-            title="Title for Format Test",
+            article_id="E2E_DIFF_SUMMARY_ARTICLE",
+            title="Title for Summary Test",
             info_category=info_category,
             approval_group=approval_group
         )
@@ -467,8 +467,8 @@ class TestDiffDisplayE2E:
         revision_data = {
             "target_article_id": article.article_id,
             "approver_id": str(approver.id),
-            "reason": "Formatted diff test",
-            "after_title": "Formatted Title for Test"
+            "reason": "Diff summary test",
+            "after_title": "Updated Title for Summary Test"
         }
         
         create_response = await client.post(
@@ -479,18 +479,18 @@ class TestDiffDisplayE2E:
         
         revision_id = create_response.json()["revision_id"]
         
-        # フォーマット済み差分取得
-        formatted_diff_response = await client.get(
-            f"/api/v1/diffs/{revision_id}/formatted",
-            params={"include_formatting": True},
+        # 差分サマリー取得
+        summary_response = await client.get(
+            f"/api/v1/diffs/{revision_id}/summary",
             headers={"Authorization": f"Bearer {token}"}
         )
         
-        assert formatted_diff_response.status_code == 200
-        formatted_diff = formatted_diff_response.json()
-        assert "field_changes" in formatted_diff or "basic_info" in formatted_diff
+        assert summary_response.status_code == 200
+        summary = summary_response.json()
+        assert "total_changes" in summary
+        assert "changes_by_category" in summary
         
-        print("PASS - Formatted diff display test completed successfully")
+        print("PASS - Diff summary display test completed successfully")
 
 
 class TestUserAuthenticationFlowE2E:
