@@ -44,30 +44,7 @@ async def get_my_notifications(
     return notifications
 
 
-@router.get("/statistics", response_model=NotificationStats)
-async def get_notification_statistics(
-    days_back: int = Query(default=30, ge=1, le=365),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """Get notification statistics for current user"""
-    stats = await notification_service.get_user_notification_stats(
-        db, user_id=current_user.id, days_back=days_back
-    )
-    return stats
-
-
-@router.get("/digest", response_model=NotificationDigest)
-async def get_notification_digest(
-    digest_type: str = Query(default="daily", pattern="^(daily|weekly)$"),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """Get notification digest for current user"""
-    digest = await notification_service.create_notification_digest(
-        db, user_id=current_user.id, digest_type=digest_type
-    )
-    return digest
+# Removed: Notification statistics and digest features
 
 
 @router.put("/{notification_id}/read", response_model=SimpleNotification)
@@ -105,23 +82,7 @@ async def mark_all_notifications_as_read(
     return {"message": f"{count}件の通知を既読にしました"}
 
 
-@router.post("/batch", response_model=BulkNotificationResult)
-async def create_batch_notifications(
-    batch_request: NotificationBatch,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
-):
-    """Create notifications for multiple users (admin only)"""
-    if len(batch_request.user_ids) > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Maximum 100 users allowed per batch"
-        )
-    
-    result = await notification_service.create_batch_notification(
-        db, batch_request=batch_request
-    )
-    return result
+# Removed: Batch notification creation feature
 
 
 # Legacy endpoints for backward compatibility

@@ -524,96 +524,7 @@ class TestApprovalQueue:
         assert len(queue_data) == 0
 
 
-class TestApprovalWorkload:
-    """Test approval workload endpoints"""
-    
-    async def test_get_own_workload_as_approver(self, client: AsyncClient, db_session: AsyncSession):
-        """Test getting own workload information as approver"""
-        # Create approver
-        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
-        approver = await UserFactory.create_approver(db_session, approval_group, username="workload_approver", email="workload_approver@example.com")
-        
-        # Login as approver
-        login_response = await client.post(
-            "/api/v1/auth/login/json",
-            json={"email": "workload_approver@example.com", "password": "testpassword123"}
-        )
-        token = login_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Get workload
-        response = await client.get("/api/v1/approvals/workload", headers=headers)
-        
-        assert response.status_code == 200
-        workload_data = response.json()
-        
-        # Verify workload data structure
-        assert "approver_id" in workload_data
-        assert "pending_count" in workload_data
-        assert "average_review_time" in workload_data
-        assert "current_capacity" in workload_data
-        assert workload_data["approver_id"] == str(approver.id)
-    
-    async def test_get_specific_approver_workload_as_admin(self, client: AsyncClient, db_session: AsyncSession):
-        """Test getting specific approver's workload as admin"""
-        # Create approver and admin
-        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
-        approver = await UserFactory.create_approver(db_session, approval_group, username="target_approver", email="target_approver@example.com")
-        admin = await UserFactory.create_admin(db_session, username="workload_admin", email="workload_admin@example.com")
-        
-        # Login as admin
-        login_response = await client.post(
-            "/api/v1/auth/login/json",
-            json={"email": "workload_admin@example.com", "password": "testpassword123"}
-        )
-        token = login_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Get specific approver's workload
-        response = await client.get(f"/api/v1/approvals/workload/{approver.id}", headers=headers)
-        
-        assert response.status_code == 200
-        workload_data = response.json()
-        assert workload_data["approver_id"] == str(approver.id)
-    
-    async def test_get_specific_approver_workload_permission_denied_non_admin(self, client: AsyncClient, db_session: AsyncSession):
-        """Test getting specific approver's workload denied for non-admin"""
-        # Create approvers
-        approval_group = await ApprovalGroupFactory.create_development_group(db_session)
-        approver1 = await UserFactory.create_approver(db_session, approval_group, username="approver1", email="approver1@example.com")
-        approver2 = await UserFactory.create_approver(db_session, approval_group, username="approver2", email="approver2@example.com")
-        
-        # Login as approver1
-        login_response = await client.post(
-            "/api/v1/auth/login/json",
-            json={"email": "approver1@example.com", "password": "testpassword123"}
-        )
-        token = login_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Try to get approver2's workload (should fail)
-        response = await client.get(f"/api/v1/approvals/workload/{approver2.id}", headers=headers)
-        
-        assert response.status_code == 403
-        assert "permission" in response.json()["detail"].lower()
-    
-    async def test_get_workload_nonexistent_approver(self, client: AsyncClient, test_users):
-        """Test getting workload for non-existent approver"""
-        # Login as admin
-        admin = test_users["admin"]
-        login_response = await client.post(
-            "/api/v1/auth/login/json",
-            json={"email": admin.email, "password": "testpassword123"}
-        )
-        token = login_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Try to get workload for non-existent approver
-        fake_approver_id = str(uuid4())
-        response = await client.get(f"/api/v1/approvals/workload/{fake_approver_id}", headers=headers)
-        
-        assert response.status_code == 404
-        assert "not found" in response.json()["detail"].lower()
+# Removed: Workload-related tests for deleted endpoints
 
 
 class TestApprovalPermissionMatrix:
@@ -630,15 +541,7 @@ class TestApprovalPermissionMatrix:
         ("approver", "/api/v1/approvals/queue", 200),
         ("user", "/api/v1/approvals/queue", 403),
         
-        # Own workload endpoint
-        ("admin", "/api/v1/approvals/workload", 200),
-        ("approver", "/api/v1/approvals/workload", 200),
-        ("user", "/api/v1/approvals/workload", 403),
-        
-        # Specific workload endpoint (admin only)
-        ("admin", "/api/v1/approvals/workload/{approver_id}", [200, 404]),
-        ("approver", "/api/v1/approvals/workload/{approver_id}", 403),
-        ("user", "/api/v1/approvals/workload/{approver_id}", 403),
+        # Removed: Workload endpoints tests
     ])
     async def test_approval_permission_matrix(self, client: AsyncClient, test_users, db_session: AsyncSession, 
                                             role, endpoint, expected_status):

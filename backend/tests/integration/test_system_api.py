@@ -181,104 +181,7 @@ class TestSystemStats:
         assert response.status_code == 401
 
 
-class TestSystemConfig:
-    """Test system configuration endpoints"""
-    
-    async def test_get_system_config_admin_success(self, authenticated_admin_client):
-        """Test getting system config as admin"""
-        response = await authenticated_admin_client.get("/api/v1/system/config")
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        # Check required fields
-        assert "environment" in data
-        assert "debug" in data
-        assert "api_version" in data
-        assert "cors_origins" in data
-        assert "features" in data
-        assert "limits" in data
-        
-        # Check values
-        assert data["api_version"] == "v1"
-        assert isinstance(data["cors_origins"], list)
-        assert isinstance(data["features"], dict)
-        assert isinstance(data["limits"], dict)
-        
-        # Check features
-        features = data["features"]
-        assert "bulk_operations" in features
-        assert "approval_groups" in features
-        assert "diff_analysis" in features
-        assert "metrics_dashboard" in features
-        
-        # Check limits
-        limits = data["limits"]
-        assert "max_bulk_notifications" in limits
-        assert "max_bulk_approvals" in limits
-        assert "max_diff_comparisons" in limits
-        assert "max_queue_size" in limits
-        
-        # Check limit values
-        assert limits["max_bulk_notifications"] == 100
-        assert limits["max_bulk_approvals"] == 20
-        assert limits["max_diff_comparisons"] == 50
-        assert limits["max_queue_size"] == 100
-    
-    async def test_get_system_config_regular_user_forbidden(self, authenticated_user_client):
-        """Test getting system config as regular user should be forbidden"""
-        response = await authenticated_user_client.get("/api/v1/system/config")
-        
-        assert response.status_code == 403
-    
-    async def test_get_system_config_unauthenticated(self, client: AsyncClient):
-        """Test getting system config without authentication"""
-        response = await client.get("/api/v1/system/config")
-        
-        assert response.status_code == 401
-
-
-class TestSystemMaintenance:
-    """Test system maintenance endpoints"""
-    
-    async def test_trigger_maintenance_admin_success(self, authenticated_admin_client):
-        """Test triggering maintenance as admin"""
-        response = await authenticated_admin_client.post("/api/v1/system/maintenance")
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        # Check structure
-        assert "maintenance_run" in data
-        assert "results" in data
-        assert "summary" in data
-        
-        # Check results structure
-        results = data["results"]
-        assert "notification_cleanup" in results
-        assert "cache_cleanup" in results
-        assert "database_optimization" in results
-        
-        # Check summary
-        summary = data["summary"]
-        assert "completed_tasks" in summary
-        assert "failed_tasks" in summary
-        assert "skipped_tasks" in summary
-        assert isinstance(summary["completed_tasks"], int)
-        assert isinstance(summary["failed_tasks"], int)
-        assert isinstance(summary["skipped_tasks"], int)
-    
-    async def test_trigger_maintenance_regular_user_forbidden(self, authenticated_user_client):
-        """Test triggering maintenance as regular user should be forbidden"""
-        response = await authenticated_user_client.post("/api/v1/system/maintenance")
-        
-        assert response.status_code == 403
-    
-    async def test_trigger_maintenance_unauthenticated(self, client: AsyncClient):
-        """Test triggering maintenance without authentication"""
-        response = await client.post("/api/v1/system/maintenance")
-        
-        assert response.status_code == 401
+# Removed: System config and maintenance tests for deleted endpoints
 
 
 class TestSystemDocumentation:
@@ -341,17 +244,9 @@ class TestSystemEndpointsIntegration:
         stats_response = await authenticated_admin_client.get("/api/v1/system/stats")
         assert stats_response.status_code == 200
         
-        # System config
-        config_response = await authenticated_admin_client.get("/api/v1/system/config")
-        assert config_response.status_code == 200
-        
         # API documentation
         docs_response = await authenticated_admin_client.get("/api/v1/system/api-documentation")
         assert docs_response.status_code == 200
-        
-        # Maintenance
-        maintenance_response = await authenticated_admin_client.post("/api/v1/system/maintenance")
-        assert maintenance_response.status_code == 200
     
     async def test_regular_user_limited_system_access(self, authenticated_user_client):
         """Test regular user has limited access to system endpoints"""
@@ -369,8 +264,4 @@ class TestSystemEndpointsIntegration:
         stats_response = await authenticated_user_client.get("/api/v1/system/stats")
         assert stats_response.status_code == 403
         
-        config_response = await authenticated_user_client.get("/api/v1/system/config")
-        assert config_response.status_code == 403
-        
-        maintenance_response = await authenticated_user_client.post("/api/v1/system/maintenance")
-        assert maintenance_response.status_code == 403
+        # Removed: config and maintenance endpoints tests

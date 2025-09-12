@@ -83,32 +83,7 @@ async def get_approver_workload(
     return workload
 
 
-@router.get("/workload/{approver_id}", response_model=ApprovalWorkload)
-async def get_specific_approver_workload(
-    approver_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
-):
-    """Get workload information for a specific approver (admin only)"""
-    from app.repositories.user import user_repository
-    
-    approver = await user_repository.get(db, id=approver_id)
-    if not approver:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Approver not found"
-        )
-    
-    if approver.role not in ["approver", "admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not an approver"
-        )
-    
-    workload = await approval_service.get_approver_workload(
-        db, approver=approver
-    )
-    return workload
+# Removed: Specific approver workload feature
 
 
 @router.get("/metrics", response_model=ApprovalMetrics)
@@ -124,24 +99,7 @@ async def get_approval_metrics(
     return metrics
 
 
-@router.post("/bulk", response_model=Dict[str, Any])
-async def process_bulk_approvals(
-    bulk_request: BulkApprovalRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_approver_user)
-):
-    """Process multiple approvals at once"""
-    if len(bulk_request.revision_ids) > 20:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Maximum 20 revisions allowed per bulk operation"
-        )
-    
-    results = await approval_service.process_bulk_approval(
-        db, approver=current_user, bulk_request=bulk_request
-    )
-    
-    return results
+# Removed: Bulk approval feature
 
 
 @router.get("/{revision_id}/can-approve")
@@ -225,55 +183,7 @@ async def get_approval_dashboard(
     return dashboard
 
 
-@router.get("/team-overview")
-async def get_team_approval_overview(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
-):
-    """Get team-wide approval overview (admin only)"""
-    from app.repositories.user import user_repository
-    
-    # Get all approvers
-    approvers = await user_repository.get_by_role(db, role="approver")
-    admin_users = await user_repository.get_by_role(db, role="admin")
-    all_approvers = approvers + admin_users
-    
-    team_data = []
-    
-    for approver in all_approvers:
-        try:
-            workload = await approval_service.get_approver_workload(
-                db, approver=approver
-            )
-            team_data.append(workload)
-        except Exception:
-            # Skip approvers that can't be processed
-            continue
-    
-    # Calculate team metrics
-    total_pending = sum(w.pending_count for w in team_data)
-    total_overdue = sum(w.overdue_count for w in team_data)
-    
-    # Identify bottlenecks
-    overloaded_approvers = [w for w in team_data if w.current_capacity == "overloaded"]
-    high_workload_approvers = [w for w in team_data if w.current_capacity == "high"]
-    
-    return {
-        "team_workloads": team_data,
-        "team_summary": {
-            "total_approvers": len(team_data),
-            "total_pending": total_pending,
-            "total_overdue": total_overdue,
-            "overloaded_count": len(overloaded_approvers),
-            "high_workload_count": len(high_workload_approvers),
-            "average_pending": total_pending / len(team_data) if team_data else 0
-        },
-        "recommendations": {
-            "redistribute_workload": len(overloaded_approvers) > 0,
-            "urgent_attention_needed": total_overdue > 10,
-            "team_capacity_status": "overloaded" if len(overloaded_approvers) > len(team_data) // 2 else "normal"
-        }
-    }
+# Removed: Team overview feature
 
 
 @router.post("/{revision_id}/quick-actions/{action}")
@@ -311,88 +221,7 @@ async def quick_approval_action(
         )
 
 
-@router.get("/workflow/recommendations")
-async def get_workflow_recommendations(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_approver_user)
-):
-    """Get workflow recommendations for improving approval efficiency"""
-    from app.utils.approval_workflow import approval_workflow_utils
-    
-    # Get approver's queue and workload
-    queue = await approval_service.get_approval_queue(
-        db, approver=current_user, limit=100
-    )
-    workload = await approval_service.get_approver_workload(
-        db, approver=current_user
-    )
-    
-    # Generate recommendations
-    recommendations = approval_workflow_utils.generate_approval_recommendations(
-        queue, workload.current_capacity
-    )
-    
-    # Calculate workflow metrics
-    metrics = approval_workflow_utils.calculate_workflow_metrics(queue)
-    
-    return {
-        "recommendations": recommendations,
-        "workflow_metrics": metrics,
-        "queue_summary": {
-            "total_items": len(queue),
-            "urgent_items": len([q for q in queue if q.priority == "urgent"]),
-            "overdue_items": len([q for q in queue if q.is_overdue]),
-            "capacity_status": workload.current_capacity
-        }
-    }
+# Removed: Workflow recommendations feature
 
 
-@router.get("/workflow/checklist/{revision_id}")
-async def get_approval_checklist(
-    revision_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_approver_user)
-):
-    """Get dynamic approval checklist for a revision"""
-    from app.utils.approval_workflow import approval_workflow_utils
-    from app.services.diff_service import diff_service
-    
-    # Check permissions
-    can_approve = await approval_service.can_approve_revision(
-        db, revision_id=revision_id, approver=current_user
-    )
-    
-    if not can_approve:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions to approve this revision"
-        )
-    
-    try:
-        # Get diff information
-        diff = await diff_service.generate_revision_diff(
-            db, revision_id=str(revision_id)
-        )
-        
-        # Generate checklist
-        checklist = approval_workflow_utils.create_approval_checklist(
-            diff.impact_level,
-            diff.critical_changes,
-            diff.change_categories
-        )
-        
-        return {
-            "revision_id": str(revision_id),
-            "checklist": checklist,
-            "summary": {
-                "total_items": len(checklist),
-                "required_items": len([item for item in checklist if item["required"]]),
-                "estimated_time": sum(5 if item["required"] else 2 for item in checklist)
-            }
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Could not generate checklist: {str(e)}"
-        )
+# Removed: Dynamic approval checklist feature

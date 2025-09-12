@@ -93,76 +93,10 @@ async def get_system_stats(
     }
 
 
-@router.get("/config", dependencies=[Depends(get_current_admin_user)])
-async def get_system_config():
-    """Get system configuration (admin only)"""
-    return {
-        "environment": settings.ENVIRONMENT,
-        "debug": settings.DEBUG,
-        "api_version": "v1",
-        "cors_origins": settings.get_cors_origins(),
-        "features": {
-            "email_notifications": False,  # Placeholder
-            "sms_notifications": False,   # Placeholder
-            "webhook_notifications": False,  # Placeholder
-            "bulk_operations": True,
-            "approval_groups": True,
-            "diff_analysis": True,
-            "metrics_dashboard": True
-        },
-        "limits": {
-            "max_bulk_notifications": 100,
-            "max_bulk_approvals": 20,
-            "max_diff_comparisons": 50,
-            "max_queue_size": 100
-        }
-    }
+# Removed: System configuration feature
 
 
-@router.post("/maintenance", dependencies=[Depends(get_current_admin_user)])
-async def trigger_maintenance_tasks(
-    db: AsyncSession = Depends(get_db)
-):
-    """Trigger system maintenance tasks (admin only)"""
-    from app.services.notification_service import notification_service
-    
-    results = {}
-    
-    try:
-        # Clean up old notifications
-        deleted_count = await notification_service.cleanup_expired_notifications(
-            db, days_old=30
-        )
-        results["notification_cleanup"] = {
-            "status": "completed",
-            "deleted_count": deleted_count
-        }
-    except Exception as e:
-        results["notification_cleanup"] = {
-            "status": "failed",
-            "error": str(e)
-        }
-    
-    # Add other maintenance tasks here
-    results["cache_cleanup"] = {
-        "status": "skipped",
-        "reason": "No cache configured"
-    }
-    
-    results["database_optimization"] = {
-        "status": "skipped",
-        "reason": "Manual optimization required"
-    }
-    
-    return {
-        "maintenance_run": datetime.utcnow().isoformat(),
-        "results": results,
-        "summary": {
-            "completed_tasks": len([r for r in results.values() if r["status"] == "completed"]),
-            "failed_tasks": len([r for r in results.values() if r["status"] == "failed"]),
-            "skipped_tasks": len([r for r in results.values() if r["status"] == "skipped"])
-        }
-    }
+# Removed: Maintenance tasks feature
 
 
 @router.get("/api-documentation")

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_current_active_user
 
-from app.api.v1.endpoints import auth, users, revisions, articles, info_categories, approval_groups, notifications, proposals, diffs, approvals, system, analytics
+from app.api.v1.endpoints import auth, users, revisions, articles, info_categories, approval_groups, notifications, proposals, diffs, approvals, system
 
 api_router = APIRouter()
 # Alias endpoints for frontend compatibility
@@ -32,4 +32,3 @@ api_router.include_router(info_categories.router, prefix="/info-categories", tag
 api_router.include_router(approval_groups.router, prefix="/approval-groups", tags=["approval-groups"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(system.router, prefix="/system", tags=["system"])
-api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
