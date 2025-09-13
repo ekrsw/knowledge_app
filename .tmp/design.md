@@ -280,9 +280,19 @@ CREATE TABLE revisions (
 ```python
 # 依存関数による権限チェック
 get_current_active_user()      # 認証済みアクティブユーザー
-get_current_approver_user()    # 承認者権限チェック
+get_current_approver_user()    # 承認者権限チェック  
 get_current_admin_user()       # 管理者権限チェック
 ```
+
+**実装されている認証エンドポイント**:
+- `POST /api/v1/auth/login` - OAuth2ログイン
+- `POST /api/v1/auth/login/json` - JSONログイン
+- `POST /api/v1/auth/register` - ユーザー登録
+- `GET /api/v1/auth/me` - 現在のユーザー情報
+- `POST /api/v1/auth/test-token` - トークンテスト
+- `POST /api/v1/auth/logout` - JWTログアウト
+- `GET /api/v1/auth/verify` - トークン検証
+- `GET /api/v1/auth/status` - 認証状態確認
 
 #### 権限ベースアクセス制御
 - **一般ユーザー**: 自分の修正案のみ操作可能
@@ -552,28 +562,58 @@ def generate_diff(article: Article, revision: Revision) -> Dict[str, FieldDiff]:
 
 ### 11.2 承認者必須指定の実装
 ```python
-# 修正案作成時のバリデーション
-class RevisionCreate(BaseModel):
-    target_article_id: str
-    approver_id: UUID  # 必須フィールド
-    reason: str
-    # ... after フィールド
+# 修正案作成時のバリデーション（実装済み）
+class RevisionCreate(RevisionBase):
+    """Schema for creating revisions"""
+    target_article_id: str = Field(..., min_length=1, max_length=100)
+    reason: str = Field(..., min_length=1)
+    approver_id: UUID = Field(..., description="Required approver for this revision")
     
-    @validator('approver_id')
-    def validate_approver(cls, v, values):
-        # 承認者の権限チェックは Service層で実行
-        return v
+    # After fields (all optional) - 実装では全て Optional[型] として正しく定義
+    after_title: Optional[str] = None
+    after_info_category: Optional[UUID] = None
+    after_keywords: Optional[str] = None
+    after_importance: Optional[bool] = None
+    after_publish_start: Optional[date] = None
+    after_publish_end: Optional[date] = None
+    after_target: Optional[str] = Field(None, max_length=100)
+    after_question: Optional[str] = None
+    after_answer: Optional[str] = None
+    after_additional_comment: Optional[str] = None
 ```
 
-### 11.3 権限ベースクエリの実装
+### 11.3 権限ベースクエリの実装（混合アクセス制御モデル）
 ```python
-async def get_revisions_for_user(db: AsyncSession, user: User) -> List[Revision]:
-    if user.role == "admin":
-        return await revision_repository.get_all(db)
-    elif user.role == "approver":
-        return await revision_repository.get_by_approval_group(db, user.approval_group_id)
+# 実装済み：Mixed Access Control（混合アクセス制御）
+async def get_revisions(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get revisions based on user permissions with proposer and approver names
+    - Admin: can see all revisions
+    - All authenticated users: can see submitted/approved revisions + their own draft/rejected
+    """
+    if current_user.role == "admin":
+        # Admin can see all revisions with names
+        revisions = await revision_repository.get_with_names(db, skip=skip, limit=limit)
     else:
-        return await revision_repository.get_by_proposer(db, user.id)
+        # All users can see:
+        # 1. Public revisions (submitted/approved by anyone)
+        # 2. Their own private revisions (draft/rejected)
+        revisions = await revision_repository.get_mixed_access_with_names(
+            db, user_id=current_user.id, skip=skip, limit=limit
+        )
+    return revisions
 ```
+
+**実装された権限マトリックス**:
+| ステータス | Admin | 認証ユーザー | 作成者のみ |
+|-----------|-------|------------|------------|
+| submitted | ✓     | ✓          | -          |
+| approved  | ✓     | ✓          | -          |
+| draft     | ✓     | -          | ✓          |
+| rejected  | ✓     | -          | ✓          |
 
 これらの設計により、実装済みのシステムは要件を満たし、効率的で保守可能な構造を実現している。
