@@ -22,16 +22,6 @@ AsyncSessionLocal = sessionmaker(
 )
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Dependency function that yields db sessions
-    """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
-
 
 async def init_db() -> None:
     """

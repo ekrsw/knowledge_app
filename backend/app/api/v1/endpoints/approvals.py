@@ -1,28 +1,24 @@
 """
 Approval management endpoints
 """
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_db, get_current_active_user, get_current_approver_user, get_current_admin_user
+from app.api.dependencies import get_db, get_current_active_user, get_current_approver_user
 from app.services.approval_service import approval_service
 from app.schemas.approval import (
     ApprovalAction,
     ApprovalDecision,
-    ApprovalRequest,
     ApprovalHistory,
-    ApprovalSummary,
     ApprovalQueue,
     ApprovalWorkload,
-    ApprovalMetrics,
-    BulkApprovalRequest
+    ApprovalMetrics
 )
 from app.schemas.revision import Revision
 from app.models.user import User
 from app.core.exceptions import (
-    ApprovalError,
     ApprovalPermissionError,
     ApprovalStatusError,
     ProposalNotFoundError

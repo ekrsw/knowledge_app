@@ -3,6 +3,7 @@ Diff service for analyzing and visualizing changes in revision proposals
 """
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.revision import Revision
@@ -98,7 +99,6 @@ class DiffService:
     ) -> RevisionDiff:
         """Generate complete diff for a revision proposal"""
         # Get the revision - convert string ID to UUID
-        from uuid import UUID
         revision_uuid = UUID(revision_id) if isinstance(revision_id, str) else revision_id
         revision = await revision_repository.get(db, id=revision_uuid)
         if not revision:
@@ -337,7 +337,6 @@ class DiffService:
     ) -> Dict[str, Any]:
         """Compare two revisions of the same article"""
         # Get both revisions - convert string IDs to UUID
-        from uuid import UUID
         revision1_uuid = UUID(revision_id_1) if isinstance(revision_id_1, str) else revision_id_1
         revision2_uuid = UUID(revision_id_2) if isinstance(revision_id_2, str) else revision_id_2
         revision1 = await revision_repository.get(db, id=revision1_uuid)

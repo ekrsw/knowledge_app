@@ -17,8 +17,7 @@ except ImportError:
     fakeredis = None
 
 from app.core.config import settings
-from app.database import get_db as database_get_db
-from app.api.dependencies import get_db as dependencies_get_db
+from app.api.dependencies import get_db
 from app.models import Base
 from app.models.user import User
 from app.models.approval_group import ApprovalGroup
@@ -123,9 +122,8 @@ async def client(test_engine, db_session: AsyncSession, fake_redis) -> AsyncGene
     async def override_get_db():
         yield db_session
     
-    # Override both database dependency functions
-    test_app.dependency_overrides[database_get_db] = override_get_db
-    test_app.dependency_overrides[dependencies_get_db] = override_get_db
+    # Override the database dependency function
+    test_app.dependency_overrides[get_db] = override_get_db
     
     async with AsyncClient(
         transport=ASGITransport(app=test_app),

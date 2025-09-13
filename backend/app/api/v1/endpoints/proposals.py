@@ -8,15 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_active_user, get_current_approver_user
 from app.services.proposal_service import proposal_service
-from app.schemas.revision import Revision, RevisionCreate, RevisionUpdate
+from app.schemas.revision import Revision, RevisionUpdate
 from app.models.user import User
 from app.core.exceptions import (
-    ProposalError,
     ProposalNotFoundError,
     ProposalPermissionError,
-    ProposalStatusError,
-    ProposalValidationError,
-    ArticleNotFoundError
+    ProposalStatusError
 )
 
 router = APIRouter()
