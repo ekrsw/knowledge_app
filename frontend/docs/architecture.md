@@ -38,46 +38,84 @@ graph TD
 
 ```mermaid
 graph TD
-    A[app/] --> B[layout.tsx<br/>Root Layout + 認証]
+    A[app/] --> B[layout.tsx<br/>Root Layout + サイドバーナビ]
     A --> C[page.tsx<br/>Dashboard Redirect]
-    A --> D[login/page.tsx]
-    A --> E[dashboard/page.tsx<br/>ロール別分岐]
-    
-    A --> F[approvals/]
-    F --> G[queue/page.tsx<br/>承認キュー]
-    F --> H["review/[id]/page.tsx<br/>承認レビュー ⭐最重要"]
-    F --> I[history/page.tsx<br/>承認履歴]
-    
-    A --> J[proposals/]
-    J --> K[new/page.tsx<br/>新規提案]
-    J --> L[my/page.tsx<br/>自分の提案]
-    J --> M["edit/[id]/page.tsx<br/>提案編集"]
-    
-    A --> N[admin/]
-    N --> O[users/page.tsx<br/>ユーザー管理]
-    N --> P[stats/page.tsx<br/>システム統計]
+    A --> D[login/page.tsx<br/>認証ページのみ]
+
+    B --> E[サイドバーナビゲーション]
+    E --> F[メインコンテンツエリア]
+
+    F --> G[dashboard/page.tsx<br/>ロール別ダッシュボード]
+
+    F --> H[approvals/]
+    H --> I[queue/page.tsx<br/>承認キュー]
+    H --> J["review/[id]/page.tsx<br/>承認レビュー ⭐最重要"]
+    H --> K[history/page.tsx<br/>承認履歴]
+
+    F --> L[proposals/]
+    L --> M[new/page.tsx<br/>新規提案]
+    L --> N[my/page.tsx<br/>自分の提案]
+    L --> O["edit/[id]/page.tsx<br/>提案編集"]
+
+    F --> P[admin/]
+    P --> Q[users/page.tsx<br/>ユーザー管理]
+    P --> R[stats/page.tsx<br/>システム統計]
+```
+
+#### サイドバーナビゲーション構成
+```mermaid
+graph TD
+    S[サイドバー 220px] --> T[ユーザー情報<br/>・アバター<br/>・名前<br/>・ロール]
+    S --> U[メインメニュー]
+    S --> V[クイックアクション]
+
+    U --> W[ダッシュボード<br/>📊 Overview]
+    U --> X[承認関連<br/>📋 Approvals]
+    U --> Y[提案関連<br/>📝 Proposals]
+    U --> Z[管理機能<br/>⚙️ Admin]
+
+    X --> AA[承認キュー<br/>✅ Queue]
+    X --> BB[承認履歴<br/>📈 History]
+
+    Y --> CC[新規作成<br/>➕ Create New]
+    Y --> DD[自分の提案<br/>📄 My Proposals]
+
+    Z --> EE[ユーザー管理<br/>👥 Users]
+    Z --> FF[システム統計<br/>📊 Statistics]
 ```
 
 ## 🎨 承認レビューページ設計 (核心機能)
 
 ### レイアウト構成
 
-#### デスクトップレイアウト（3列グリッド）
+#### サイドバーナビゲーション + メインコンテンツ
 ```mermaid
 flowchart LR
-    A[Summary<br/>1/4 width<br/>・記事情報<br/>・提案者<br/>・重要度<br/>・変更統計] --- B[DiffViewer<br/>2/4 width<br/>・Before/After<br/>・変更ハイライト<br/>・フィールド別表示<br/>・critical強調] --- C[Actions<br/>1/4 width<br/>・判定ボタン<br/>・コメント欄<br/>・操作ガイド<br/>・ナビゲーション]
+    A[サイドバー<br/>220px fixed<br/>・ナビゲーション<br/>・ユーザー情報<br/>・メニュー<br/>・クイックアクション] --- B[メインコンテンツ<br/>flex-1<br/>・承認レビューページ<br/>・承認キュー<br/>・提案管理<br/>・システム統計]
+
+    B --> C[承認レビュー詳細<br/>・Summary Panel<br/>・DiffViewer<br/>・Action Panel]
+```
+
+#### 承認レビューページ内部構成
+```mermaid
+flowchart TD
+    D[承認レビューページ] --> E[ヘッダー<br/>・パンくずナビ<br/>・案件番号<br/>・進捗表示]
+    D --> F[メインエリア<br/>2列レイアウト]
+
+    F --> G[左カラム 60%<br/>・記事情報Summary<br/>・DiffViewer]
+    F --> H[右カラム 40%<br/>・判定Actions<br/>・コメント欄<br/>・Next/Previous<br/>・履歴表示]
 ```
 
 #### レスポンシブ対応
 ```mermaid
 graph TD
-    D[画面サイズ] --> E[Desktop 1024px+]
-    D --> F[Tablet 768px+]
-    D --> G[Mobile ~768px]
-    
-    E --> H["3列グリッド<br/>Summary → DiffViewer → Actions"]
-    F --> I["2列グリッド<br/>Diff+Actions → Summary"]
-    G --> J[縦スタック<br/>Summary<br/>↓<br/>DiffViewer<br/>↓<br/>Actions]
+    I[画面サイズ] --> J[Desktop 1024px+]
+    I --> K[Tablet 768px+]
+    I --> L[Mobile ~768px]
+
+    J --> M["サイドバー(220px) + メインコンテンツ<br/>承認レビュー: 左60% + 右40%"]
+    K --> N["サイドバー(180px) + メインコンテンツ<br/>承認レビュー: 縦積み表示"]
+    L --> O["ハンバーガーメニュー<br/>承認レビュー: 単一カラム<br/>タブ切り替え形式"]
 ```
 
 ### データフロー
