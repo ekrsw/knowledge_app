@@ -15,58 +15,69 @@
 ## 🏗️ システムアーキテクチャ
 
 ### 技術スタック
-```
-Frontend Stack:
-├── Next.js 15 (App Router + Turbopack)
-├── React 19
-├── TailwindCSS v4
-├── TypeScript (strict mode)
-└── react-diff-viewer-continued (差分表示)
 
-Backend Integration:
-├── FastAPI REST API (localhost:8000/api/v1)
-├── JWT Bearer Authentication
-└── PostgreSQL データベース
+#### フロントエンドスタック
+```mermaid
+graph TD
+    A[Frontend Stack] --> B[Next.js 15<br/>App Router + Turbopack]
+    A --> C[React 19]
+    A --> D[TailwindCSS v4]
+    A --> E[TypeScript<br/>strict mode]
+    A --> F[react-diff-viewer-continued<br/>差分表示]
+```
+
+#### バックエンド統合
+```mermaid
+graph TD
+    G[Backend Integration] --> H[FastAPI REST API<br/>localhost:8000/api/v1]
+    G --> I[JWT Bearer Authentication]
+    G --> J[PostgreSQL データベース]
 ```
 
 ### ページ構成とルーティング
-```
-app/
-├── layout.tsx (Root Layout + 認証)
-├── page.tsx (Dashboard Redirect)
-├── login/page.tsx
-├── dashboard/page.tsx (ロール別分岐)
-├── approvals/
-│   ├── queue/page.tsx (承認キュー)
-│   ├── review/[id]/page.tsx (承認レビュー ⭐最重要)
-│   └── history/page.tsx (承認履歴)
-├── proposals/
-│   ├── new/page.tsx (新規提案)
-│   ├── my/page.tsx (自分の提案)
-│   └── edit/[id]/page.tsx (提案編集)
-└── admin/
-    ├── users/page.tsx (ユーザー管理)
-    └── stats/page.tsx (システム統計)
+
+```mermaid
+graph TD
+    A[app/] --> B[layout.tsx<br/>Root Layout + 認証]
+    A --> C[page.tsx<br/>Dashboard Redirect]
+    A --> D[login/page.tsx]
+    A --> E[dashboard/page.tsx<br/>ロール別分岐]
+    
+    A --> F[approvals/]
+    F --> G[queue/page.tsx<br/>承認キュー]
+    F --> H[review/[id]/page.tsx<br/>承認レビュー ⭐最重要]
+    F --> I[history/page.tsx<br/>承認履歴]
+    
+    A --> J[proposals/]
+    J --> K[new/page.tsx<br/>新規提案]
+    J --> L[my/page.tsx<br/>自分の提案]
+    J --> M[edit/[id]/page.tsx<br/>提案編集]
+    
+    A --> N[admin/]
+    N --> O[users/page.tsx<br/>ユーザー管理]
+    N --> P[stats/page.tsx<br/>システム統計]
 ```
 
 ## 🎨 承認レビューページ設計 (核心機能)
 
 ### レイアウト構成
-```
-┌─────────────┬─────────────────────┬─────────────┐
-│ Summary     │ DiffViewer         │ Actions     │
-│ (1/4 width) │ (2/4 width)       │ (1/4 width) │
-│             │                   │             │
-│ ・記事情報   │ ・Before/After    │ ・判定ボタン │
-│ ・提案者    │ ・変更ハイライト   │ ・コメント欄 │
-│ ・重要度    │ ・フィールド別表示 │ ・操作ガイド    │
-│ ・変更統計  │ ・critical強調    │ ・ナビゲーション │
-└─────────────┴─────────────────────┴─────────────┘
 
-レスポンシブ対応:
-- Desktop (1024px+): 3列グリッド
-- Tablet (768px+): 2列グリッド (Diff+Actions | Summary)
-- Mobile (~768px): 縦スタック
+#### デスクトップレイアウト（3列グリッド）
+```mermaid
+flowchart LR
+    A[Summary<br/>1/4 width<br/>・記事情報<br/>・提案者<br/>・重要度<br/>・変更統計] --- B[DiffViewer<br/>2/4 width<br/>・Before/After<br/>・変更ハイライト<br/>・フィールド別表示<br/>・critical強調] --- C[Actions<br/>1/4 width<br/>・判定ボタン<br/>・コメント欄<br/>・操作ガイド<br/>・ナビゲーション]
+```
+
+#### レスポンシブ対応
+```mermaid
+graph TD
+    D[画面サイズ] --> E[Desktop 1024px+]
+    D --> F[Tablet 768px+]
+    D --> G[Mobile ~768px]
+    
+    E --> H[3列グリッド<br/>Summary | DiffViewer | Actions]
+    F --> I[2列グリッド<br/>Diff+Actions | Summary]
+    G --> J[縦スタック<br/>Summary<br/>↓<br/>DiffViewer<br/>↓<br/>Actions]
 ```
 
 ### データフロー
@@ -98,32 +109,97 @@ graph TD
 
 ## 🚀 開発フェーズ計画
 
-### Phase 1: 認証・ナビゲーション基盤 (Week 1-2)
-- JWT認証システム
-- ロール別ダッシュボード
-- 基本ナビゲーション・レイアウト
-- AuthGuard実装
+### 開発タイムライン
+```mermaid
+gantt
+    title KSAP フロントエンド開発スケジュール
+    dateFormat X
+    axisFormat %s
+    
+    section Phase 1: 基盤
+    JWT認証システム           :done, p1a, 0, 3d
+    ロール別ダッシュボード      :done, p1b, after p1a, 2d
+    基本ナビゲーション         :done, p1c, after p1b, 2d
+    AuthGuard実装            :done, p1d, after p1c, 1d
+    
+    section Phase 2: 承認ワークフロー ⭐
+    承認キュー画面            :active, p2a, after p1d, 3d
+    承認レビューページ         :p2b, after p2a, 4d
+    差分表示コンポーネント      :p2c, after p2b, 3d
+    判定アクション機能         :p2d, after p2c, 2d
+    ナビゲーション機能         :p2e, after p2d, 2d
+    
+    section Phase 3: 提案管理
+    提案作成フォーム          :p3a, after p2e, 4d
+    提案一覧・編集機能         :p3b, after p3a, 3d
+    自分の提案管理            :p3c, after p3b, 2d
+    
+    section Phase 4: 管理・最適化
+    通知システム              :p4a, after p3c, 2d
+    管理者機能               :p4b, after p4a, 3d
+    パフォーマンス最適化       :p4c, after p4b, 2d
+    エラーハンドリング強化     :p4d, after p4c, 1d
+```
 
-### Phase 2: 承認ワークフロー (Week 3-4) ⭐最重要
-- 承認キュー画面
-- 承認レビューページ (3列レイアウト)
-- 差分表示コンポーネント (基本版)
-- 判定アクション機能
-- Next/Previous ナビゲーション
+### フェーズ詳細
 
-### Phase 3: 提案管理機能 (Week 5-6)
-- 提案作成フォーム
-- 提案一覧・編集機能
-- 自分の提案管理
+#### Phase 1: 認証・ナビゲーション基盤 (Week 1-2)
+```mermaid
+graph TD
+    A[Phase 1: 基盤構築] --> B[JWT認証システム]
+    A --> C[ロール別ダッシュボード]
+    A --> D[基本ナビゲーション・レイアウト]
+    A --> E[AuthGuard実装]
+    
+    B --> F[認証完了]
+    C --> F
+    D --> F
+    E --> F
+    F --> G[Phase 2開始可能]
+```
 
-### Phase 4: 管理機能・最適化 (Week 7-8)
-- 通知システム
-- 管理者機能
-- パフォーマンス最適化
-- エラーハンドリング強化
+#### Phase 2: 承認ワークフロー (Week 3-4) ⭐最重要
+```mermaid
+graph TD
+    H[Phase 2: 承認ワークフロー] --> I[承認キュー画面]
+    H --> J[承認レビューページ<br/>3列レイアウト]
+    H --> K[差分表示コンポーネント<br/>基本版]
+    H --> L[判定アクション機能]
+    H --> M[Next/Previous ナビゲーション]
+    
+    I --> N[承認システム完成]
+    J --> N
+    K --> N
+    L --> N
+    M --> N
+    N --> O[MVP完成]
+```
 
 ## 📊 ユーザーロール別機能マトリクス
 
+### 機能アクセス権限図
+```mermaid
+graph TD
+    A[KSAP システム] --> B[一般ユーザー]
+    A --> C[承認者]
+    A --> D[管理者]
+    
+    B --> E[提案作成・編集 ✅]
+    
+    C --> F[承認キュー ✅]
+    C --> G[承認レビュー ✅]
+    C --> H[全提案閲覧 △<br/>担当分のみ]
+    C --> I[システム統計 △<br/>限定表示]
+    
+    D --> J[提案作成・編集 ✅]
+    D --> K[承認キュー ✅]
+    D --> L[承認レビュー ✅]
+    D --> M[全提案閲覧 ✅]
+    D --> N[ユーザー管理 ✅]
+    D --> O[システム統計 ✅]
+```
+
+### 権限マトリクス表
 | 機能 | 一般ユーザー | 承認者 | 管理者 |
 |------|-------------|-------|-------|
 | 提案作成・編集 | ✅ | ❌ | ✅ |
@@ -153,13 +229,34 @@ graph TD
 
 ## 📈 将来の拡張性
 
-### 高機能化への道筋
-- **差分表示**: Monaco Editor統合、セマンティック差分
-- **判定支援**: 機械学習判定支援、予測入力
-- **リアルタイム**: WebSocket通知、協調編集
-- **分析機能**: 承認パターン分析、効率性メトリクス
+### 高機能化ロードマップ
+```mermaid
+graph TD
+    A[現在のMVP] --> B[Phase 1: 基本機能強化]
+    B --> C[Phase 2: AI・分析機能]
+    C --> D[Phase 3: リアルタイム協調]
+    
+    B --> E[差分表示強化<br/>Monaco Editor統合<br/>セマンティック差分]
+    
+    C --> F[判定支援AI<br/>機械学習判定支援<br/>予測入力]
+    C --> G[分析機能<br/>承認パターン分析<br/>効率性メトリクス]
+    
+    D --> H[リアルタイム機能<br/>WebSocket通知<br/>協調編集]
+```
 
-### スケーラビリティ
-- **フロントエンド**: React Query導入、仮想スクロール
-- **状態管理**: Zustand/Redux Toolkit移行検討
-- **キャッシュ**: Service Worker、オフライン対応
+### 技術スケーラビリティ
+```mermaid
+graph TD
+    I[現在の技術スタック] --> J[パフォーマンス最適化]
+    I --> K[状態管理強化]
+    I --> L[キャッシュ戦略]
+    
+    J --> M[React Query導入<br/>データ取得最適化]
+    J --> N[仮想スクロール<br/>大量データ対応]
+    
+    K --> O[Zustand導入<br/>軽量状態管理]
+    K --> P[Redux Toolkit<br/>複雑状態管理]
+    
+    L --> Q[Service Worker<br/>オフライン対応]
+    L --> R[ブラウザキャッシュ<br/>高速化]
+```
