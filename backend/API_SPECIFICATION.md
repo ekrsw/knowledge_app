@@ -1,12 +1,12 @@
-# Knowledge System Approval Platform (KSAP) API仕様書
+# Knowledge System Approval Platform (KSAP) API仕様書（実装準拠版）
 
 ## 概要
 
-Knowledge System Approval Platform (KSAP)は、知識改訂提案の作成、承認ワークフロー、変更追跡を管理するためのRESTful APIです。
+Knowledge System Approval Platform (KSAP)は、知識改訂提案の作成、承認ワークフロー、変更追跡を管理するためのRESTful APIです。本書は 2025-09-14 時点の実装（`backend/app/api/v1`）に準拠しています。
 
-- **ベースURL**: `http://localhost:8000/api/v1`
-- **認証方式**: JWT Bearer Token
-- **API ドキュメント**: `http://localhost:8000/docs` (開発環境)
+- ベースURL: `http://localhost:8000/api/v1`
+- 認証方式: JWT Bearer Token
+- APIドキュメント（開発環境）: `http://localhost:8000/docs`（OpenAPI: `/api/v1/openapi.json`）
 
 ## 認証とロール
 
@@ -15,7 +15,7 @@ Knowledge System Approval Platform (KSAP)は、知識改訂提案の作成、承
 | ロール | 説明 | 権限 |
 |--------|------|------|
 | `user` | 一般ユーザー | 自身の改訂提案の作成・管理 |
-| `approver` | 承認者 | 割り当てられたドメインの提案レビュー・承認/却下 |
+| `approver` | 承認者 | 担当領域の提案レビュー・承認/却下 |
 | `admin` | 管理者 | システム全体へのフルアクセス |
 
 ### 認証フロー
@@ -24,118 +24,92 @@ Knowledge System Approval Platform (KSAP)は、知識改訂提案の作成、承
 2. JWTトークンを受け取る
 3. 以降のリクエストでは `Authorization: Bearer {token}` ヘッダーを付与
 
+---
+
 ## APIエンドポイント仕様
+
+以下は実装されているエンドポイントと入出力・権限制約です。
 
 ### 1. 認証 (Authentication)
 
 #### POST `/auth/login`
-OAuth2互換のトークンログイン
+OAuth2互換のトークンログイン（`form-data`）
 
-**リクエストボディ** (form-data):
+リクエスト（form-data）:
 ```
 username: string
 password: string
 ```
 
-**レスポンス**:
+レスポンス:
 ```json
-{
-  "access_token": "string",
-  "token_type": "bearer"
-}
+{ "access_token": "string", "token_type": "bearer" }
 ```
 
-**アクセス可能ロール**: 全ユーザー
+アクセス: 全ユーザー
+
+---
+
+#### POST `/auth/test-token`
+トークン検証（現在のユーザー情報を返す）
+
+レスポンス: `GET /auth/me` と同じ
+
+アクセス: 認証済みユーザー
 
 ---
 
 #### POST `/auth/login/json`
 JSON形式でのログイン
 
-**リクエストボディ**:
+リクエスト:
 ```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
+{ "email": "user@example.com", "password": "password123" }
 ```
 
-**レスポンス**:
+レスポンス:
 ```json
-{
-  "access_token": "string",
-  "token_type": "bearer"
-}
+{ "access_token": "string", "token_type": "bearer" }
 ```
 
-**アクセス可能ロール**: 全ユーザー
+アクセス: 全ユーザー
 
 ---
 
 #### POST `/auth/register`
 新規ユーザー登録
 
-**リクエストボディ**:
+リクエスト:
 ```json
 {
   "username": "string",
   "email": "user@example.com",
   "password": "password123",
   "full_name": "string",
-  "sweet_name": "string",  // optional
-  "ctstage_name": "string" // optional
-}
-```
-
-**レスポンス**:
-```json
-{
-  "id": "uuid",
-  "username": "string",
-  "email": "user@example.com",
-  "full_name": "string",
   "sweet_name": "string",
-  "ctstage_name": "string",
-  "role": "user",
-  "approval_group_id": null,
-  "is_active": true,
-  "created_at": "2024-01-01T00:00:00",
-  "updated_at": "2024-01-01T00:00:00"
+  "ctstage_name": "string"
 }
 ```
 
-**アクセス可能ロール**: 全ユーザー
+レスポンス（User）: 作成されたユーザー
+
+アクセス: 全ユーザー
 
 ---
 
 #### GET `/auth/me`
 現在のユーザー情報取得
 
-**レスポンス**:
-```json
-{
-  "id": "uuid",
-  "username": "string",
-  "email": "user@example.com",
-  "full_name": "string",
-  "sweet_name": "string",
-  "ctstage_name": "string",
-  "role": "user",
-  "approval_group_id": "uuid",
-  "is_active": true,
-  "created_at": "2024-01-01T00:00:00",
-  "updated_at": "2024-01-01T00:00:00"
-}
-```
+レスポンス（User）
 
-**アクセス可能ロール**: 認証済みユーザー
+アクセス: 認証済みユーザー
 
 ---
 
 #### POST `/auth/logout`
-ログアウト（クライアント側でトークンを破棄）
+ログアウト（クライアント側でトークン破棄）
 
-**レスポンス**:
+レスポンス:
 ```json
 {
   "message": "Successfully logged out",
@@ -143,54 +117,44 @@ JSON形式でのログイン
 }
 ```
 
-**アクセス可能ロール**: 認証済みユーザー
+アクセス: 認証済みユーザー
 
 ---
 
 #### GET `/auth/verify`
-JWTトークンの検証
+JWTトークン検証（ユーザー含む簡易応答）
 
-**レスポンス**:
+レスポンス:
 ```json
-{
-  "valid": true,
-  "user": { /* User object */ },
-  "token_type": "bearer"
-}
+{ "valid": true, "user": { /* User */ }, "token_type": "bearer" }
 ```
 
-**アクセス可能ロール**: 認証済みユーザー
+アクセス: 認証済みユーザー
 
 ---
 
 #### GET `/auth/status`
-認証ステータス取得
+認証ステータス
 
-**レスポンス**:
+レスポンス:
 ```json
-{
-  "authenticated": true,
-  "user_id": "uuid",
-  "username": "string",
-  "role": "user",
-  "is_active": true
-}
+{ "authenticated": true, "user_id": "uuid", "username": "string", "role": "user", "is_active": true }
 ```
 
-**アクセス可能ロール**: 認証済みユーザー
+アクセス: 認証済みユーザー
 
 ---
 
 ### 2. 改訂提案 (Revisions)
 
 #### GET `/revisions/`
-改訂一覧取得（権限に基づくフィルタリング）
+改訂一覧取得（権限フィルタ）。レスポンスは提案者/承認者名と記事番号を含む拡張形。
 
-**クエリパラメータ**:
+クエリ:
 - `skip`: integer (default: 0)
 - `limit`: integer (default: 100)
 
-**レスポンス**:
+レスポンス（RevisionWithNames）例:
 ```json
 [
   {
@@ -217,750 +181,192 @@ JWTトークンの検証
 ]
 ```
 
-**アクセス可能ロール**:
-- `admin`: 全ての改訂を閲覧可能
-- その他: submitted/approved改訂 + 自身のdraft/rejected改訂を閲覧可能
+アクセス:
+- `admin`: 全件
+- その他: submitted/approved + 自身の draft/rejected
 
 ---
 
 #### GET `/revisions/my-revisions`
-自分の改訂一覧取得
-
-**クエリパラメータ**:
-- `skip`: integer (default: 0)
-- `limit`: integer (default: 100)
-
-**レスポンス**: 上記と同じ形式
-
-**アクセス可能ロール**: 認証済みユーザー
+自分の改訂一覧（拡張形）
 
 ---
 
 #### GET `/revisions/{revision_id}`
 特定の改訂取得
 
-**レスポンス**:
-```json
-{
-  "revision_id": "uuid",
-  "target_article_id": "string",
-  "reason": "string",
-  "approver_id": "uuid",
-  "after_title": "string",
-  "after_info_category": "uuid",
-  "after_keywords": "string",
-  "after_importance": true,
-  "after_publish_start": "2024-01-01",
-  "after_publish_end": "2024-12-31",
-  "after_target": "string",
-  "after_question": "string",
-  "after_answer": "string",
-  "after_additional_comment": "string",
-  "proposer_id": "uuid",
-  "status": "draft",
-  "approval_group_id": "uuid",
-  "submitted_at": null,
-  "processed_at": null,
-  "created_at": "2024-01-01T00:00:00",
-  "updated_at": "2024-01-01T00:00:00"
-}
-```
-
-**アクセス可能ロール**:
-- `admin`: 全て閲覧可能
-- その他: submitted/approved は全員閲覧可能、draft/rejectedは提案者のみ
+アクセス:
+- `admin`: 全て
+- `submitted/approved`: 全員
+- `draft`: 提案者のみ
+- `rejected`: 提案者または承認者
 
 ---
 
 #### POST `/revisions/`
-新規改訂作成
+新規改訂作成（`proposer_id` はログインユーザーに自動設定）
 
-**リクエストボディ**:
-```json
-{
-  "target_article_id": "string",
-  "reason": "string",
-  "approver_id": "uuid",
-  "after_title": "string",
-  "after_info_category": "uuid",
-  "after_keywords": "string",
-  "after_importance": true,
-  "after_publish_start": "2024-01-01",
-  "after_publish_end": "2024-12-31",
-  "after_target": "string",
-  "after_question": "string",
-  "after_answer": "string",
-  "after_additional_comment": "string"
-}
-```
-
-**レスポンス**: 作成された改訂オブジェクト
-
-**アクセス可能ロール**: 認証済みユーザー
+リクエスト（RevisionCreate）: `target_article_id`, `reason`, `approver_id` は必須。`after_*` は任意。
 
 ---
 
 #### PUT `/revisions/{revision_id}`
 改訂更新
 
-**リクエストボディ**:
-```json
-{
-  "reason": "string",
-  "status": "draft",
-  "after_title": "string",
-  "after_info_category": "uuid",
-  "after_keywords": "string",
-  "after_importance": true,
-  "after_publish_start": "2024-01-01",
-  "after_publish_end": "2024-12-31",
-  "after_target": "string",
-  "after_question": "string",
-  "after_answer": "string",
-  "after_additional_comment": "string"
-}
-```
-
-**レスポンス**: 更新された改訂オブジェクト
-
-**アクセス可能ロール**:
-- draft改訂: 提案者のみ
-- approved改訂: 承認者またはadmin
+アクセス:
+- draft: 提案者のみ
+- approved: 承認者または `admin`（一部メタデータ更新は制限）
 
 ---
 
 #### PATCH `/revisions/{revision_id}/status`
-改訂ステータス更新
+改訂ステータス更新（`submitted|approved|rejected|deleted`）
 
-**リクエストボディ**:
-```json
-{
-  "status": "submitted" // submitted, approved, rejected, deleted
-}
-```
-
-**レスポンス**: 更新された改訂オブジェクト
-
-**アクセス可能ロール**: `approver`, `admin`
+アクセス: `approver`, `admin`
 
 ---
 
 #### GET `/revisions/by-status/{status}`
-ステータス別改訂取得
-
-**クエリパラメータ**:
-- `skip`: integer (default: 0)
-- `limit`: integer (default: 100)
-
-**レスポンス**: 改訂リスト
-
-**アクセス可能ロール**:
-- `admin`: 全ステータス閲覧可能
-- その他: submitted/approvedは全員、draft/rejectedは権限に応じて
+ステータス別改訂（`RevisionWithNames` 配列）
 
 ---
 
 #### GET `/revisions/by-article/{target_article_id}`
-記事別改訂取得（公開改訂のみ）
+記事別の公開改訂（`submitted`/`approved` のみ）
 
-**クエリパラメータ**:
-- `skip`: integer (default: 0)
-- `limit`: integer (default: 100)
+---
 
-**レスポンス**: 改訂リスト
-
-**アクセス可能ロール**: 認証済みユーザー
+#### GET `/revisions/by-proposer/{proposer_id}`
+提案者別改訂（本人または `admin`）
 
 ---
 
 ### 3. 提案管理 (Proposals)
 
+提案の作成は `/revisions/` に統合済み。以下はビジネス操作のエンドポイント。
+
 #### PUT `/proposals/{revision_id}`
-提案更新（ドラフトのみ）
-
-**リクエストボディ**:
-```json
-{
-  "reason": "string",
-  "after_title": "string",
-  "after_info_category": "uuid",
-  "after_keywords": "string",
-  "after_importance": true,
-  "after_publish_start": "2024-01-01",
-  "after_publish_end": "2024-12-31",
-  "after_target": "string",
-  "after_question": "string",
-  "after_answer": "string",
-  "after_additional_comment": "string"
-}
-```
-
-**レスポンス**: 更新された改訂オブジェクト
-
-**アクセス可能ロール**: 提案者本人
-
----
+ドラフト提案の更新（本人のみ）
 
 #### POST `/proposals/{revision_id}/submit`
-提案を承認申請
-
-**レスポンス**: 更新された改訂オブジェクト（status: "submitted"）
-
-**アクセス可能ロール**: 提案者本人
-
----
+承認申請（ステータスを `submitted`）
 
 #### POST `/proposals/{revision_id}/withdraw`
-提案を取り下げ（ドラフトに戻す）
-
-**レスポンス**: 更新された改訂オブジェクト（status: "draft"）
-
-**アクセス可能ロール**: 提案者本人
-
----
+取り下げ（`draft` に戻す）
 
 #### PUT `/proposals/{revision_id}/approved-update`
-承認済み提案の更新
-
-**リクエストボディ**: 改訂更新と同じ
-
-**レスポンス**: 更新された改訂オブジェクト
-
-**アクセス可能ロール**: `approver`, `admin`
-
----
+承認済み提案の更新（承認者または `admin`）
 
 #### DELETE `/proposals/{revision_id}`
-提案削除（ドラフトのみ）
-
-**レスポンス**: 204 No Content
-
-**アクセス可能ロール**: 提案者本人
-
----
+ドラフト提案の削除
 
 #### GET `/proposals/my-proposals`
-自分の提案一覧
-
-**クエリパラメータ**:
-- `status`: string (optional)
-- `skip`: integer (default: 0)
-- `limit`: integer (default: 100)
-
-**レスポンス**: 改訂リスト
-
-**アクセス可能ロール**: 認証済みユーザー
-
----
+自分の提案一覧（`status`/`skip`/`limit`）
 
 #### GET `/proposals/for-approval`
-承認待ち提案一覧
-
-**クエリパラメータ**:
-- `skip`: integer (default: 0)
-- `limit`: integer (default: 100)
-
-**レスポンス**: 改訂リスト
-
-**アクセス可能ロール**: `approver`, `admin`
-
----
+承認待ち一覧（承認者/`admin`）
 
 #### GET `/proposals/statistics`
-提案統計情報
+提案統計（`admin` は任意の `user_id` 指定可。一般は自分のみ）
 
-**クエリパラメータ**:
-- `user_id`: uuid (optional, adminのみ)
-
-**レスポンス**:
-```json
-{
-  "total_proposals": 10,
-  "draft": 2,
-  "submitted": 3,
-  "approved": 4,
-  "rejected": 1,
-  "approval_rate": 80.0
-}
-```
-
-**アクセス可能ロール**: 認証済みユーザー（自分の統計のみ、adminは全ユーザー）
+#### GET `/proposals/{revision_id}`
+提案詳細（公開・権限ルールは Revisions と同様）
 
 ---
 
 ### 4. 承認管理 (Approvals)
 
 #### POST `/approvals/{revision_id}/decide`
-承認判定処理
-
-**リクエストボディ**:
-```json
-{
-  "action": "approve", // approve, reject, request_changes, defer
-  "comment": "string",
-  "conditions": ["condition1", "condition2"],
-  "priority": "medium", // low, medium, high, urgent
-  "estimated_implementation_time": 60
-}
-```
-
-**レスポンス**: 更新された改訂オブジェクト
-
-**アクセス可能ロール**: `approver`, `admin`
-
----
+承認判定（`approve|reject|request_changes|defer`、コメント等を含む）
 
 #### GET `/approvals/queue`
-承認キュー取得
-
-**クエリパラメータ**:
-- `priority`: string (low, medium, high, urgent)
-- `limit`: integer (default: 50, max: 100)
-
-**レスポンス**:
-```json
-[
-  {
-    "revision_id": "string",
-    "target_article_id": "string",
-    "article_number": "ART001",
-    "proposer_name": "string",
-    "reason": "string",
-    "priority": "medium",
-    "impact_level": "high",
-    "total_changes": 5,
-    "critical_changes": 2,
-    "estimated_review_time": 30,
-    "submitted_at": "2024-01-01T00:00:00",
-    "days_pending": 3,
-    "is_overdue": false
-  }
-]
-```
-
-**アクセス可能ロール**: `approver`, `admin`
-
----
+承認キュー（`priority` フィルタ、`limit` 最大100）
 
 #### GET `/approvals/workload`
-承認者の作業負荷情報
-
-**レスポンス**:
-```json
-{
-  "approver_id": "uuid",
-  "approver_name": "string",
-  "pending_count": 5,
-  "overdue_count": 1,
-  "completed_today": 3,
-  "completed_this_week": 15,
-  "average_review_time": 25,
-  "current_capacity": "medium"
-}
-```
-
-**アクセス可能ロール**: `approver`, `admin`
-
----
+承認者の作業負荷
 
 #### GET `/approvals/metrics`
-承認プロセスメトリクス
-
-**クエリパラメータ**:
-- `days_back`: integer (default: 30, min: 1, max: 365)
-
-**レスポンス**:
-```json
-{
-  "total_pending": 10,
-  "total_overdue": 2,
-  "average_approval_time": 48.5,
-  "approval_rate": 75.0,
-  "rejection_rate": 25.0,
-  "by_priority": {
-    "low": 2,
-    "medium": 5,
-    "high": 3,
-    "urgent": 0
-  },
-  "by_impact_level": {
-    "low": 3,
-    "medium": 4,
-    "high": 3
-  },
-  "bottlenecks": ["approval_group_1"],
-  "performance_trends": {}
-}
-```
-
-**アクセス可能ロール**: `approver`, `admin`
-
----
+承認メトリクス（`days_back`）
 
 #### GET `/approvals/{revision_id}/can-approve`
-承認権限確認
-
-**レスポンス**:
-```json
-{
-  "can_approve": true
-}
-```
-
-**アクセス可能ロール**: 認証済みユーザー
-
----
+自身が当該改訂を承認可能か
 
 #### GET `/approvals/history`
-承認履歴
-
-**クエリパラメータ**:
-- `revision_id`: uuid (optional)
-- `approver_id`: uuid (optional)
-- `limit`: integer (default: 50, max: 200)
-
-**レスポンス**:
-```json
-[
-  {
-    "approval_id": "string",
-    "revision_id": "string",
-    "approver_id": "string",
-    "approver_name": "string",
-    "action": "approve",
-    "comment": "string",
-    "conditions": ["condition1"],
-    "priority": "medium",
-    "estimated_implementation_time": 60,
-    "created_at": "2024-01-01T00:00:00"
-  }
-]
-```
-
-**アクセス可能ロール**: 認証済みユーザー（adminは全履歴、その他は自分のみ）
-
----
+承認履歴（一般ユーザーは自身分のみ、`admin` は全体）
 
 #### GET `/approvals/statistics/dashboard`
-承認ダッシュボード
-
-**レスポンス**:
-```json
-{
-  "workload": { /* ApprovalWorkload object */ },
-  "recent_queue": [ /* ApprovalQueue array */ ],
-  "urgent_items": [ /* ApprovalQueue array */ ],
-  "metrics": { /* ApprovalMetrics object */ },
-  "summary": {
-    "pending_count": 5,
-    "overdue_count": 1,
-    "urgent_count": 0,
-    "capacity_status": "medium"
-  }
-}
-```
-
-**アクセス可能ロール**: `approver`, `admin`
-
----
+ダッシュボード（workload/queue/metrics などのサマリ）
 
 #### POST `/approvals/{revision_id}/quick-actions/{action}`
-クイック承認アクション
-
-**クエリパラメータ**:
-- `comment`: string (optional)
-
-**レスポンス**:
-```json
-{
-  "revision_id": "uuid",
-  "action": "approve",
-  "new_status": "approved",
-  "message": "Revision approved successfully"
-}
-```
-
-**アクセス可能ロール**: `approver`, `admin`
+クイック承認アクション（簡易判定）
 
 ---
 
 ### 5. 記事 (Articles)
 
 #### GET `/articles/`
-記事一覧取得
-
-**クエリパラメータ**:
-- `skip`: integer (default: 0)
-- `limit`: integer (default: 100)
-
-**レスポンス**:
-```json
-[
-  {
-    "article_id": "string",
-    "article_number": "ART001",
-    "article_url": "https://example.com/article",
-    "approval_group": "uuid",
-    "title": "string",
-    "info_category": "uuid",
-    "keywords": "string",
-    "importance": true,
-    "publish_start": "2024-01-01",
-    "publish_end": "2024-12-31",
-    "target": "string",
-    "question": "string",
-    "answer": "string",
-    "additional_comment": "string",
-    "created_at": "2024-01-01T00:00:00",
-    "updated_at": "2024-01-01T00:00:00"
-  }
-]
-```
-
-**アクセス可能ロール**: 全ユーザー
-
----
+記事一覧（`skip`/`limit`）
 
 #### GET `/articles/{article_id}`
-特定記事取得
-
-**レスポンス**: 記事オブジェクト
-
-**アクセス可能ロール**: 全ユーザー
-
----
+記事取得
 
 #### POST `/articles/`
-記事作成
-
-**リクエストボディ**:
-```json
-{
-  "article_id": "string",
-  "article_number": "ART001",
-  "article_url": "https://example.com/article",
-  "approval_group": "uuid",
-  "title": "string",
-  "info_category": "uuid",
-  "keywords": "string",
-  "importance": true,
-  "publish_start": "2024-01-01",
-  "publish_end": "2024-12-31",
-  "target": "string",
-  "question": "string",
-  "answer": "string",
-  "additional_comment": "string"
-}
-```
-
-**レスポンス**: 作成された記事オブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
+記事作成（`admin`）
 
 #### PUT `/articles/{article_id}`
-記事更新
-
-**リクエストボディ**: 記事作成と同じ（article_idを除く）
-
-**レスポンス**: 更新された記事オブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
+記事更新（`admin`）
 
 #### GET `/articles/by-category/{info_category}`
-カテゴリ別記事取得
-
-**レスポンス**: 記事リスト
-
-**アクセス可能ロール**: 全ユーザー
-
----
+カテゴリ別一覧
 
 #### GET `/articles/by-group/{approval_group}`
-承認グループ別記事取得
-
-**レスポンス**: 記事リスト
-
-**アクセス可能ロール**: 全ユーザー
-
----
+承認グループ別一覧
 
 #### GET `/articles/id-by-number/{article_number}`
-記事番号から記事ID取得
-
-**レスポンス**:
-```json
-{
-  "article_id": "string"
-}
-```
-
-**アクセス可能ロール**: 全ユーザー
-
----
+記事番号からID取得 → `{ "article_id": "string" }`
 
 #### GET `/articles/number-by-id/{article_id}`
-記事IDから記事番号取得
-
-**レスポンス**:
-```json
-{
-  "article_number": "ART001"
-}
-```
-
-**アクセス可能ロール**: 全ユーザー
+記事IDから番号取得 → `{ "article_number": "ART001" }`
 
 ---
 
 ### 6. ユーザー管理 (Users)
 
 #### GET `/users/`
-ユーザー一覧取得
-
-**クエリパラメータ**:
-- `skip`: integer (default: 0)
-- `limit`: integer (default: 100)
-
-**レスポンス**: ユーザーリスト
-
-**アクセス可能ロール**: `admin`
-
----
+ユーザー一覧（`admin`）
 
 #### GET `/users/{user_id}`
-特定ユーザー取得
-
-**レスポンス**: ユーザーオブジェクト
-
-**アクセス可能ロール**: `admin`、本人
-
----
+ユーザー取得（本人または `admin`）
 
 #### POST `/users/`
-ユーザー作成
-
-**リクエストボディ**:
-```json
-{
-  "username": "string",
-  "email": "user@example.com",
-  "password": "password123",
-  "full_name": "string",
-  "sweet_name": "string",
-  "ctstage_name": "string",
-  "role": "user",
-  "approval_group_id": "uuid",
-  "is_active": true
-}
-```
-
-**レスポンス**: 作成されたユーザーオブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
+ユーザー作成（`admin`）
 
 #### PUT `/users/{user_id}`
-ユーザー更新
-
-**リクエストボディ**: ユーザー作成と同じ（passwordを除く）
-
-**レスポンス**: 更新されたユーザーオブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
+ユーザー更新（本人または `admin`）。管理者のみ `role`/`approval_group_id` を変更可能。
 
 #### DELETE `/users/{user_id}`
-ユーザー削除
-
-**レスポンス**: 204 No Content
-
-**アクセス可能ロール**: `admin`
-
----
-
-#### PUT `/users/{user_id}/role`
-ユーザーロール更新
-
-**リクエストボディ**:
-```json
-{
-  "role": "approver"
-}
-```
-
-**レスポンス**: 更新されたユーザーオブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
-
-#### PUT `/users/{user_id}/approval-group`
-ユーザー承認グループ更新
-
-**リクエストボディ**:
-```json
-{
-  "approval_group_id": "uuid"
-}
-```
-
-**レスポンス**: 更新されたユーザーオブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
+ユーザー削除（`admin`）
 
 #### PUT `/users/{user_id}/password`
-パスワード変更（自分のみ）
+自身のパスワード変更（現パスワード検証あり）
 
-**リクエストボディ**:
-```json
-{
-  "current_password": "oldpassword",
-  "new_password": "newpassword123"
-}
-```
-
-**レスポンス**: 成功メッセージ
-
-**アクセス可能ロール**: 本人
-
----
-
-#### PUT `/users/{user_id}/password-reset`
-パスワードリセット（管理者用）
-
-**リクエストボディ**:
-```json
-{
-  "new_password": "newpassword123",
-  "reason": "Admin password reset"
-}
-```
-
-**レスポンス**: 成功メッセージ
-
-**アクセス可能ロール**: `admin`
+#### PUT `/users/{user_id}/admin-reset-password`
+管理者によるパスワードリセット（理由付与、監査想定）
 
 ---
 
 ### 7. 情報カテゴリ (Info Categories)
 
 #### GET `/info-categories/`
-情報カテゴリ一覧取得
+情報カテゴリ一覧
 
-**レスポンス**:
+レスポンス例:
 ```json
 [
   {
     "category_id": "uuid",
     "category_name": "string",
+    "is_active": true,
     "description": "string",
     "display_order": 1,
     "created_at": "2024-01-01T00:00:00",
@@ -969,277 +375,126 @@ JWTトークンの検証
 ]
 ```
 
-**アクセス可能ロール**: 全ユーザー
-
----
+#### GET `/info-categories/active`
+有効カテゴリ一覧
 
 #### GET `/info-categories/{category_id}`
-特定カテゴリ取得
-
-**レスポンス**: カテゴリオブジェクト
-
-**アクセス可能ロール**: 全ユーザー
-
----
+カテゴリ取得
 
 #### POST `/info-categories/`
-カテゴリ作成
-
-**リクエストボディ**:
-```json
-{
-  "category_name": "string",
-  "description": "string",
-  "display_order": 1
-}
-```
-
-**レスポンス**: 作成されたカテゴリオブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
+カテゴリ作成（`admin`）
 
 #### PUT `/info-categories/{category_id}`
-カテゴリ更新
+カテゴリ更新（`admin`）
 
-**リクエストボディ**: カテゴリ作成と同じ
-
-**レスポンス**: 更新されたカテゴリオブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
-
-#### DELETE `/info-categories/{category_id}`
-カテゴリ削除
-
-**レスポンス**: 204 No Content
-
-**アクセス可能ロール**: `admin`
+（注）削除エンドポイントは実装されていません
 
 ---
 
 ### 8. 承認グループ (Approval Groups)
 
 #### GET `/approval-groups/`
-承認グループ一覧取得
-
-**レスポンス**:
-```json
-[
-  {
-    "group_id": "uuid",
-    "group_name": "string",
-    "description": "string",
-    "created_at": "2024-01-01T00:00:00",
-    "updated_at": "2024-01-01T00:00:00"
-  }
-]
-```
-
-**アクセス可能ロール**: 全ユーザー
-
----
+承認グループ一覧
 
 #### GET `/approval-groups/{group_id}`
-特定グループ取得
-
-**レスポンス**: グループオブジェクト
-
-**アクセス可能ロール**: 全ユーザー
-
----
+承認グループ取得
 
 #### POST `/approval-groups/`
-グループ作成
-
-**リクエストボディ**:
-```json
-{
-  "group_name": "string",
-  "description": "string"
-}
-```
-
-**レスポンス**: 作成されたグループオブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
+承認グループ作成（`admin`）
 
 #### PUT `/approval-groups/{group_id}`
-グループ更新
+承認グループ更新（`admin`）
 
-**リクエストボディ**: グループ作成と同じ
-
-**レスポンス**: 更新されたグループオブジェクト
-
-**アクセス可能ロール**: `admin`
-
----
-
-#### DELETE `/approval-groups/{group_id}`
-グループ削除
-
-**レスポンス**: 204 No Content
-
-**アクセス可能ロール**: `admin`
-
----
-
-#### GET `/approval-groups/{group_id}/members`
-グループメンバー取得
-
-**レスポンス**: ユーザーリスト
-
-**アクセス可能ロール**: 全ユーザー
+（注）削除およびメンバー一覧エンドポイントは実装されていません
 
 ---
 
 ### 9. 通知 (Notifications)
 
-#### GET `/notifications/`
-通知一覧取得
+#### GET `/notifications/my-notifications`
+自身の通知一覧
 
-**クエリパラメータ**:
-- `unread_only`: boolean (default: false)
-- `skip`: integer (default: 0)
-- `limit`: integer (default: 100)
+クエリ:
+- `unread_only`: boolean（default: false）
+- `skip`: integer（default: 0）
+- `limit`: integer（default: 20, max: 100）
 
-**レスポンス**:
+レスポンス（SimpleNotification 配列）:
 ```json
 [
   {
-    "notification_id": "uuid",
+    "id": "uuid",
     "user_id": "uuid",
-    "title": "string",
+    "revision_id": "uuid",
     "message": "string",
-    "notification_type": "info",
+    "type": "string",
     "is_read": false,
     "created_at": "2024-01-01T00:00:00"
   }
 ]
 ```
 
-**アクセス可能ロール**: 認証済みユーザー（自分の通知のみ）
+#### PUT `/notifications/{notification_id}/read`
+通知を既読にする（受信者または `admin`）
 
----
+#### PUT `/notifications/read-all`
+自身の通知を一括既読
 
-#### GET `/notifications/{notification_id}`
-特定通知取得
+レスポンス例: `{ "message": "N件の通知を既読にしました" }`
 
-**レスポンス**: 通知オブジェクト
+#### GET `/notifications/{user_id}`（レガシー, `admin`）
+指定ユーザーの通知一覧（管理者のみ）
 
-**アクセス可能ロール**: 通知の受信者
+#### POST `/notifications/`（レガシー, `admin`）
+通知作成（簡易通知）
 
----
-
-#### PATCH `/notifications/{notification_id}/read`
-通知を既読にする
-
-**レスポンス**: 更新された通知オブジェクト
-
-**アクセス可能ロール**: 通知の受信者
-
----
-
-#### POST `/notifications/mark-all-read`
-全通知を既読にする
-
-**レスポンス**:
-```json
-{
-  "message": "All notifications marked as read",
-  "count": 5
-}
-```
-
-**アクセス可能ロール**: 認証済みユーザー
-
----
-
-#### DELETE `/notifications/{notification_id}`
-通知削除
-
-**レスポンス**: 204 No Content
-
-**アクセス可能ロール**: 通知の受信者
-
----
-
-#### GET `/notifications/unread-count`
-未読通知数取得
-
-**レスポンス**:
-```json
-{
-  "unread_count": 3
-}
-```
-
-**アクセス可能ロール**: 認証済みユーザー
+（注）通知の削除/未読数取得/詳細取得エンドポイントは実装されていません
 
 ---
 
 ### 10. 差分 (Diffs)
 
 #### GET `/diffs/{revision_id}`
-改訂の差分取得
+改訂の差分取得（`RevisionDiff`）
 
-**レスポンス**:
+レスポンス例（抜粋）:
 ```json
 {
   "revision_id": "uuid",
-  "changes": [
+  "target_article_id": "string",
+  "proposer_name": "string",
+  "reason": "string",
+  "status": "submitted",
+  "created_at": "2024-01-01T00:00:00",
+  "field_diffs": [
     {
-      "field": "title",
-      "before": "Old Title",
-      "after": "New Title",
-      "change_type": "update"
+      "field_name": "title",
+      "field_label": "タイトル",
+      "change_type": "modified",
+      "old_value": "Old Title",
+      "new_value": "New Title",
+      "is_critical": false
     }
   ],
-  "summary": {
-    "total_changes": 3,
-    "fields_changed": ["title", "keywords", "answer"],
-    "has_critical_changes": true
-  }
+  "total_changes": 3,
+  "critical_changes": 1,
+  "change_categories": ["content"],
+  "impact_level": "medium"
 }
 ```
 
-**アクセス可能ロール**: 改訂の閲覧権限を持つユーザー
+権限: 提案者自身、承認者（`submitted` 等の条件下）、`admin`
 
----
+#### GET `/diffs/{revision_id}/summary`
+差分サマリー（`DiffSummary`）
 
-#### GET `/diffs/{revision_id}/formatted`
-フォーマット済み差分取得
+#### GET `/diffs/article/{article_id}/snapshot`
+記事の現行スナップショット（`ArticleSnapshot`）
 
-**クエリパラメータ**:
-- `format`: string (html, markdown, plain) (default: html)
+#### GET `/diffs/article/{article_id}/history`
+記事の差分履歴（最大50件）
 
-**レスポンス**:
-```json
-{
-  "revision_id": "uuid",
-  "formatted_diff": "<html>formatted diff content</html>",
-  "format": "html"
-}
-```
-
-**アクセス可能ロール**: 改訂の閲覧権限を持つユーザー
-
----
-
-#### GET `/diffs/compare`
-2つの改訂を比較
-
-**クエリパラメータ**:
-- `revision_id_1`: uuid
-- `revision_id_2`: uuid
-
-**レスポンス**: 差分情報
-
-**アクセス可能ロール**: 両方の改訂の閲覧権限を持つユーザー
+（注）`/diffs/{revision_id}/formatted` および `/diffs/compare` は未実装です
 
 ---
 
@@ -1248,227 +503,88 @@ JWTトークンの検証
 #### GET `/system/health`
 ヘルスチェック
 
-**レスポンス**:
+レスポンス例:
 ```json
 {
   "status": "healthy",
   "timestamp": "2024-01-01T00:00:00",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "environment": "development",
   "database": "connected"
 }
 ```
 
-**アクセス可能ロール**: 全ユーザー
-
----
+#### GET `/system/version`
+バージョン情報
 
 #### GET `/system/stats`
-システム統計
+システム統計（`admin` のみ）
 
-**レスポンス**:
+レスポンス例:
 ```json
 {
-  "total_users": 100,
-  "total_articles": 500,
-  "total_revisions": 1500,
-  "active_sessions": 25,
-  "database_size": "256MB"
+  "users": { "total_users": 100, "by_role": {"admin": 2, "approver": 5, "user": 93} },
+  "revisions": { "total_revisions": 1500, "by_status": {"draft": 10, "submitted": 20, "approved": 1460, "rejected": 10} },
+  "notifications": { "total_notifications": 200, "unread_count": 12, "read_count": 188 },
+  "system": { "database_status": "connected", "api_status": "operational", "last_updated": "2024-01-01T00:00:00" }
 }
 ```
 
-**アクセス可能ロール**: `admin`
-
----
-
-#### GET `/system/config`
-システム設定取得
-
-**レスポンス**:
-```json
-{
-  "max_upload_size": 10485760,
-  "session_timeout": 3600,
-  "approval_timeout_days": 7,
-  "features": {
-    "notifications": true,
-    "bulk_approval": false
-  }
-}
-```
-
-**アクセス可能ロール**: 認証済みユーザー
+#### GET `/system/api-documentation`
+APIエンドポイントの概要サマリ
 
 ---
 
 ## エラーレスポンス
 
-APIは以下の形式でエラーを返します：
-
+標準形式:
 ```json
-{
-  "detail": "エラーメッセージ"
-}
+{ "detail": "エラーメッセージ" }
 ```
 
-### HTTPステータスコード
+主なHTTPステータス:
 
-| コード | 意味 | 説明 |
-|--------|------|------|
-| 200 | OK | リクエスト成功 |
-| 201 | Created | リソース作成成功 |
-| 204 | No Content | 削除成功 |
-| 400 | Bad Request | 不正なリクエスト |
-| 401 | Unauthorized | 認証が必要 |
-| 403 | Forbidden | アクセス権限なし |
-| 404 | Not Found | リソースが見つからない |
-| 422 | Unprocessable Entity | バリデーションエラー |
-| 500 | Internal Server Error | サーバーエラー |
+| コード | 意味 |
+|--------|------|
+| 200 | OK |
+| 201 | Created |
+| 204 | No Content |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 422 | Unprocessable Entity |
+| 500 | Internal Server Error |
+
+---
 
 ## 開発環境での利用
 
-### APIドキュメント
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
-開発環境では、以下のURLでインタラクティブなAPIドキュメントを利用できます：
-
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
-### テスト用トークン取得
-
+トークン取得例:
 ```bash
-# ログインしてトークンを取得
 curl -X POST "http://localhost:8000/api/v1/auth/login/json" \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "password123"}'
 
-# トークンを使用してAPIにアクセス
 curl -X GET "http://localhost:8000/api/v1/auth/me" \
   -H "Authorization: Bearer {access_token}"
 ```
 
-## フロントエンド実装のヒント
-
-### 認証フロー実装例
-
-```javascript
-// ログイン
-async function login(email, password) {
-  const response = await fetch('/api/v1/auth/login/json', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
-
-  if (response.ok) {
-    const data = await response.json();
-    localStorage.setItem('token', data.access_token);
-    return data;
-  }
-  throw new Error('Login failed');
-}
-
-// APIリクエスト例
-async function fetchMyRevisions() {
-  const token = localStorage.getItem('token');
-  const response = await fetch('/api/v1/revisions/my-revisions', {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  if (response.ok) {
-    return await response.json();
-  }
-
-  if (response.status === 401) {
-    // トークンが無効 - 再ログインが必要
-    window.location.href = '/login';
-  }
-
-  throw new Error('Failed to fetch revisions');
-}
-```
-
-### ロールベースのUI制御
-
-```javascript
-// ユーザー情報を取得してロールを確認
-async function checkUserRole() {
-  const response = await fetch('/api/v1/auth/me', {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-  });
-
-  if (response.ok) {
-    const user = await response.json();
-
-    // ロールに基づいてUIを表示/非表示
-    if (user.role === 'admin') {
-      document.querySelector('.admin-panel').style.display = 'block';
-    }
-
-    if (user.role === 'approver' || user.role === 'admin') {
-      document.querySelector('.approval-section').style.display = 'block';
-    }
-
-    return user;
-  }
-
-  throw new Error('Failed to get user info');
-}
-```
-
-### エラーハンドリング
-
-```javascript
-async function handleApiCall(url, options = {}) {
-  try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...options.headers,
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-
-      switch(response.status) {
-        case 401:
-          // 認証エラー - 再ログイン
-          window.location.href = '/login';
-          break;
-        case 403:
-          // 権限エラー
-          alert('このアクションを実行する権限がありません');
-          break;
-        case 404:
-          // リソースが見つからない
-          alert('要求されたリソースが見つかりません');
-          break;
-        default:
-          // その他のエラー
-          alert(error.detail || 'エラーが発生しました');
-      }
-
-      throw new Error(error.detail);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
-  }
-}
-```
+---
 
 ## 注意事項
 
-1. **JWT トークンの有効期限**: デフォルトで8日間（設定により変更可能）
-2. **CORS設定**: 開発環境では`localhost:3000`と`localhost:3001`からのアクセスを許可
-3. **レート制限**: 本番環境では適切なレート制限を設定することを推奨
-4. **データベース**: PostgreSQLを使用（テスト環境ではSQLite）
-5. **非同期処理**: すべてのエンドポイントは非同期で実装されている
+1. JWTトークン有効期限: `ACCESS_TOKEN_EXPIRE_MINUTES` に依存
+2. CORS: 開発環境では `localhost:3000`/`3001` を許可
+3. レート制限: 本番環境での導入を推奨
+4. データベース: 本番はPostgreSQL、テストはSQLite
+5. 非同期処理: すべてのエンドポイントは非同期実装
+
+## 付記（エイリアス）
+
+- `GET /api/v1/health` は `GET /api/v1/system/health` のエイリアス
+- `GET /api/v1/users/me` は `GET /api/v1/auth/me` のエイリアス
+
