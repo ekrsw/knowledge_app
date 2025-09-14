@@ -13,6 +13,7 @@ This is a **Knowledge System Approval Platform (KSAP)** - a full-stack applicati
 - **Database**: PostgreSQL with SQLAlchemy ORM and Alembic migrations
 - **Authentication**: JWT-based with role-based access control
 - **API Structure**: RESTful API at `/api/v1` with comprehensive OpenAPI docs
+- **API Specification**: Complete endpoint documentation available in `backend/API_SPECIFICATION.md`
 - **Key Modules**:
   - `app/api/v1/endpoints/`: API route handlers (auth, users, proposals, approvals, etc.)
   - `app/core/`: Configuration, security, and exceptions
@@ -108,7 +109,8 @@ uv run alembic history
 3. **Review Process**: Approvers review diffs and make approval decisions
 4. **Change Tracking**: System maintains comprehensive audit trails
 
-### API Endpoints Structure
+### API Endpoints
+For complete API endpoint documentation including request/response formats, authentication requirements, and role-based permissions, refer to `backend/API_SPECIFICATION.md`. Key endpoint groups:
 - `/auth/*` - Authentication and user management
 - `/proposals/*` - Revision proposal CRUD operations
 - `/approvals/*` - Approval workflow management
