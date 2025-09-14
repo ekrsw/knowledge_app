@@ -45,13 +45,13 @@ graph TD
     
     A --> F[approvals/]
     F --> G[queue/page.tsx<br/>承認キュー]
-    F --> H[review/[id]/page.tsx<br/>承認レビュー ⭐最重要]
+    F --> H["review/[id]/page.tsx<br/>承認レビュー ⭐最重要"]
     F --> I[history/page.tsx<br/>承認履歴]
     
     A --> J[proposals/]
     J --> K[new/page.tsx<br/>新規提案]
     J --> L[my/page.tsx<br/>自分の提案]
-    J --> M[edit/[id]/page.tsx<br/>提案編集]
+    J --> M["edit/[id]/page.tsx<br/>提案編集"]
     
     A --> N[admin/]
     N --> O[users/page.tsx<br/>ユーザー管理]
@@ -85,9 +85,9 @@ graph TD
 #### ページ読み込み処理
 ```mermaid
 graph TD
-    A[承認レビューページ<br/>アクセス] --> B[GET /revisions/{revision_id}]
+    A[承認レビューページ<br/>アクセス] --> B["GET /revisions/{revision_id}"]
     B --> C[RevisionWithNames<br/>データ取得]
-    B --> D[GET /diffs/{revision_id}]
+    B --> D["GET /diffs/{revision_id}"]
     D --> E[RevisionDiff<br/>データ取得]
     C --> F[並列レンダリング<br/>Summary + Diff + Actions]
     E --> F
@@ -97,7 +97,7 @@ graph TD
 #### 判定処理フロー
 ```mermaid
 graph TD
-    H[ユーザー判定<br/>A/R/C/D + コメント] --> I[POST /approvals/{id}/decide]
+    H[ユーザー判定<br/>A/R/C/D + コメント] --> I["POST /approvals/{id}/decide"]
     I --> J{API応答}
     J -->|成功| K[判定完了<br/>Success通知]
     J -->|エラー| L[エラー表示<br/>再試行可能]
