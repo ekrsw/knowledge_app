@@ -145,6 +145,32 @@ JWTトークン検証（ユーザー含む簡易応答）
 
 ---
 
+#### JWTトークン仕様（クレーム）
+
+- 署名アルゴリズム: `HS256`
+- 署名鍵: サーバの `SECRET_KEY`
+- 有効期限: `exp`（UTCのUNIXエポック秒）。デフォルトは `ACCESS_TOKEN_EXPIRE_MINUTES`（既定値: 8日）に基づき付与されます。
+- 発行者/オーディエンス: 本実装では `iss`/`aud` は付与・検証していません。
+- ペイロードに含まれる主なクレーム:
+  - `sub`: ユーザーID（UUID文字列）。サーバ側はこのIDでユーザーを特定します。
+  - `exp`: トークンの有効期限（UTC）
+  - `role`: ユーザーの役割（`user` | `approver` | `admin`）。ログイン時に付与。省略される場合があります。
+
+注意事項:
+- サーバ側の認可判定はDB上のユーザー情報を参照して行います。`role` クレームのみでは権限制御しません。
+- トークンはステートレスで、サーバ側にセッションは持ちません。失効やログアウトはクライアントでトークンを破棄してください。
+
+例: JWTペイロード（デコード後）
+```json
+{
+  "sub": "e7a5f1e0-1234-4c9a-9a1a-abcdef012345",
+  "exp": 1726400000,
+  "role": "approver"
+}
+```
+
+---
+
 ### 2. 改訂提案 (Revisions)
 
 #### GET `/revisions/`
@@ -587,4 +613,3 @@ curl -X GET "http://localhost:8000/api/v1/auth/me" \
 
 - `GET /api/v1/health` は `GET /api/v1/system/health` のエイリアス
 - `GET /api/v1/users/me` は `GET /api/v1/auth/me` のエイリアス
-
