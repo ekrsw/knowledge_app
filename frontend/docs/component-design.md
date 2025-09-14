@@ -4,35 +4,246 @@
 
 ```
 app/
-├── layout.tsx (Root Layout)
+├── layout.tsx (Root Layout + サイドバーナビゲーション)
 ├── page.tsx (Dashboard Redirect)
+├── login/page.tsx (認証ページのみ、サイドバーなし)
 ├── approvals/review/[id]/page.tsx ⭐最重要
 └── (other pages...)
 
 components/
+├── layout/
+│   ├── Sidebar.tsx ⭐新規追加 (220px固定幅)
+│   ├── SidebarNavigation.tsx
+│   ├── UserProfile.tsx
+│   ├── QuickActions.tsx
+│   └── MobileNavigation.tsx (ハンバーガーメニュー)
 ├── auth/
 │   ├── AuthGuard.tsx
 │   └── LoginForm.tsx
 ├── approvals/ ⭐承認関連 (最重要)
-│   ├── ApprovalReviewPage.tsx
+│   ├── ApprovalReviewPage.tsx (左60% + 右40%レイアウト)
 │   ├── ProposalSummary.tsx
 │   ├── DiffViewer.tsx
 │   ├── ApprovalActions.tsx
 │   └── ApprovalQueue.tsx
 ├── common/
-│   ├── Layout.tsx
-│   ├── Navigation.tsx
-│   └── LoadingSpinner.tsx
+│   ├── PageHeader.tsx (パンくずナビ + タイトル)
+│   ├── LoadingSpinner.tsx
+│   └── ErrorBoundary.tsx
 └── ui/
     ├── Button.tsx
     ├── Card.tsx
-    └── Input.tsx
+    ├── Input.tsx
+    └── NavigationItem.tsx
 
 hooks/
 ├── useAuth.ts
 ├── useApprovalReview.ts
-├── useKeyboardShortcuts.ts
+├── useSidebar.ts ⭐新規追加
 └── useApprovalNavigation.ts
+```
+
+## 🏗️ レイアウト関連コンポーネント
+
+### Root Layout (app/layout.tsx)
+```tsx
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="ja">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <AuthProvider>
+          <div className="flex h-screen bg-gray-50">
+            {/* サイドバーナビゲーション - 認証後のみ表示 */}
+            <ConditionalSidebar />
+
+            {/* メインコンテンツエリア */}
+            <main className="flex-1 flex flex-col overflow-hidden">
+              {children}
+            </main>
+          </div>
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
+
+function ConditionalSidebar() {
+  const { user, isAuthenticated } = useAuth();
+  const pathname = usePathname();
+
+  // ログインページではサイドバーを表示しない
+  if (!isAuthenticated || pathname === '/login') {
+    return null;
+  }
+
+  return <Sidebar user={user} />;
+}
+```
+
+### Sidebar Component
+```tsx
+interface SidebarProps {
+  user: User;
+}
+
+export function Sidebar({ user }: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useSidebar();
+
+  return (
+    <aside className={clsx(
+      "bg-white border-r border-gray-200 flex flex-col transition-all duration-200",
+      isCollapsed ? "w-16" : "w-56"
+    )}>
+      {/* ユーザー情報 */}
+      <UserProfile user={user} isCollapsed={isCollapsed} />
+
+      {/* メインナビゲーション */}
+      <SidebarNavigation isCollapsed={isCollapsed} />
+
+      {/* クイックアクション */}
+      <QuickActions user={user} isCollapsed={isCollapsed} />
+
+      {/* 折りたたみトグル */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="p-3 border-t border-gray-200 hover:bg-gray-50"
+      >
+        {isCollapsed ? <ChevronRightIcon className="w-5 h-5" /> : <ChevronLeftIcon className="w-5 h-5" />}
+      </button>
+    </aside>
+  );
+}
+```
+
+### UserProfile Component
+```tsx
+interface UserProfileProps {
+  user: User;
+  isCollapsed: boolean;
+}
+
+export function UserProfile({ user, isCollapsed }: UserProfileProps) {
+  return (
+    <div className={clsx(
+      "p-4 border-b border-gray-200",
+      isCollapsed && "px-2"
+    )}>
+      <div className="flex items-center gap-3">
+        <Avatar
+          src={user.avatar_url}
+          alt={user.name}
+          size={isCollapsed ? "sm" : "md"}
+        />
+        {!isCollapsed && (
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {user.name}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {getRoleLabel(user.role)}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+### SidebarNavigation Component
+```tsx
+interface NavigationItem {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  badge?: string | number;
+  children?: NavigationItem[];
+  roles?: UserRole[];
+}
+
+const navigationItems: NavigationItem[] = [
+  {
+    label: 'ダッシュボード',
+    href: '/dashboard',
+    icon: HomeIcon,
+  },
+  {
+    label: '承認関連',
+    href: '/approvals',
+    icon: ClipboardDocumentListIcon,
+    roles: ['approver', 'admin'],
+    children: [
+      {
+        label: '承認キュー',
+        href: '/approvals/queue',
+        icon: QueueListIcon,
+        badge: 'pendingCount', // 動的バッジ
+      },
+      {
+        label: '承認履歴',
+        href: '/approvals/history',
+        icon: ClockIcon,
+      },
+    ],
+  },
+  {
+    label: '提案関連',
+    href: '/proposals',
+    icon: DocumentTextIcon,
+    children: [
+      {
+        label: '新規作成',
+        href: '/proposals/new',
+        icon: PlusIcon,
+      },
+      {
+        label: '自分の提案',
+        href: '/proposals/my',
+        icon: UserIcon,
+      },
+    ],
+  },
+  {
+    label: '管理機能',
+    href: '/admin',
+    icon: Cog6ToothIcon,
+    roles: ['admin'],
+    children: [
+      {
+        label: 'ユーザー管理',
+        href: '/admin/users',
+        icon: UsersIcon,
+      },
+      {
+        label: 'システム統計',
+        href: '/admin/stats',
+        icon: ChartBarIcon,
+      },
+    ],
+  },
+];
+
+export function SidebarNavigation({ isCollapsed }: { isCollapsed: boolean }) {
+  const { user } = useAuth();
+  const pathname = usePathname();
+
+  const filteredItems = navigationItems.filter(item =>
+    !item.roles || item.roles.includes(user.role)
+  );
+
+  return (
+    <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+      {filteredItems.map((item) => (
+        <NavigationItem
+          key={item.href}
+          item={item}
+          pathname={pathname}
+          isCollapsed={isCollapsed}
+        />
+      ))}
+    </nav>
+  );
+}
 ```
 
 ## 🎯 承認レビューページ (最重要コンポーネント)
@@ -48,27 +259,61 @@ export default function ApprovalReviewPage({ params }: ApprovalReviewPageProps) 
   const { revision, diff, loading, error, submitDecision } = useApprovalReview(params.id);
   const { nextId, previousId, navigateNext, navigatePrevious } = useApprovalNavigation(params.id);
 
-  useKeyboardShortcuts({
-    onApprove: () => submitDecision({ action: 'approve' }),
-    onReject: () => submitDecision({ action: 'reject' }),
-    onRequestChanges: () => submitDecision({ action: 'request_changes' }),
-    onDefer: () => submitDecision({ action: 'defer' }),
-    onNext: navigateNext,
-    onPrevious: navigatePrevious,
-  });
-
   if (loading) return <LoadingSkeleton />;
   if (error) return <ErrorBoundary error={error} />;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-screen p-4">
-      <ProposalSummary revision={revision} className="lg:col-span-1" />
-      <DiffViewer diff={diff} className="lg:col-span-2" />
-      <ApprovalActions
-        revisionId={params.id}
-        onDecision={submitDecision}
-        className="lg:col-span-1"
+    <div className="flex flex-col h-full">
+      {/* ページヘッダー */}
+      <PageHeader
+        breadcrumbs={[
+          { label: 'ダッシュボード', href: '/dashboard' },
+          { label: '承認キュー', href: '/approvals/queue' },
+          { label: `案件 #${revision.article_number}`, current: true }
+        ]}
+        title={revision.after_title}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              onClick={navigatePrevious}
+              disabled={!previousId}
+              variant="secondary"
+              size="sm"
+            >
+              ← 前の案件
+            </Button>
+            <Button
+              onClick={navigateNext}
+              disabled={!nextId}
+              variant="secondary"
+              size="sm"
+            >
+              次の案件 →
+            </Button>
+          </div>
+        }
       />
+
+      {/* メインコンテンツ: 左60% + 右40% */}
+      <div className="flex flex-1 gap-6 p-6 overflow-hidden">
+        {/* 左カラム: 記事情報 + 差分表示 */}
+        <div className="flex-[3] flex flex-col gap-4 overflow-hidden">
+          <ProposalSummary revision={revision} className="flex-shrink-0" />
+          <DiffViewer diff={diff} className="flex-1 overflow-hidden" />
+        </div>
+
+        {/* 右カラム: 判定アクション + 履歴 */}
+        <div className="flex-[2] flex flex-col gap-4">
+          <ApprovalActions
+            revisionId={params.id}
+            onDecision={submitDecision}
+            className="flex-shrink-0"
+          />
+
+          {/* 判定履歴 (必要に応じて) */}
+          <ApprovalHistory revisionId={params.id} className="flex-1" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -318,8 +563,8 @@ export function ApprovalActions({ revisionId, onDecision, className }: ApprovalA
         />
       </div>
 
-      {/* キーボードショートカット案内 */}
-      <KeyboardShortcutsHelp />
+      {/* 操作ガイド */}
+      <OperationGuide />
     </Card>
   );
 }
@@ -389,57 +634,74 @@ export function useApprovalReview(revisionId: string) {
 }
 ```
 
-### useKeyboardShortcuts
+### useSidebar
 ```tsx
-interface KeyboardShortcutsCallbacks {
-  onApprove: () => void;
-  onReject: () => void;
-  onRequestChanges: () => void;
-  onDefer: () => void;
-  onNext: () => void;
-  onPrevious: () => void;
-}
+export function useSidebar() {
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // ローカルストレージから設定を復元
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
 
-export function useKeyboardShortcuts(callbacks: KeyboardShortcutsCallbacks) {
+  // 設定をローカルストレージに保存
   useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      // コメント入力中は無効化
-      if (event.target instanceof HTMLTextAreaElement ||
-          event.target instanceof HTMLInputElement) {
-        return;
-      }
+    localStorage.setItem('sidebar-collapsed', String(isCollapsed));
+  }, [isCollapsed]);
 
-      switch (event.key.toLowerCase()) {
-        case 'a':
-          event.preventDefault();
-          callbacks.onApprove();
-          break;
-        case 'r':
-          event.preventDefault();
-          callbacks.onReject();
-          break;
-        case 'c':
-          event.preventDefault();
-          callbacks.onRequestChanges();
-          break;
-        case 'd':
-          event.preventDefault();
-          callbacks.onDefer();
-          break;
-        case 'arrowright':
-          event.preventDefault();
-          callbacks.onNext();
-          break;
-        case 'arrowleft':
-          event.preventDefault();
-          callbacks.onPrevious();
-          break;
+  // モバイル画面では自動的に折りたたみ
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsCollapsed(true);
       }
     };
 
-    document.addEventListener('keydown', handleKeyPress);
-    return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [callbacks]);
+    window.addEventListener('resize', handleResize);
+    handleResize(); // 初回実行
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return [isCollapsed, setIsCollapsed] as const;
+}
+```
+
+### useApprovalQueue
+```tsx
+export function useApprovalQueue() {
+  const [queue, setQueue] = useState<ApprovalQueueItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const fetchQueue = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await apiClient.getApprovalQueue();
+      setQueue(data.items);
+      setPendingCount(data.pending_count);
+    } catch (error) {
+      console.error('Failed to fetch approval queue:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchQueue();
+
+    // 30秒ごとに自動更新
+    const interval = setInterval(fetchQueue, 30000);
+    return () => clearInterval(interval);
+  }, [fetchQueue]);
+
+  return {
+    queue,
+    loading,
+    pendingCount,
+    refetch: fetchQueue,
+  };
 }
 ```
 

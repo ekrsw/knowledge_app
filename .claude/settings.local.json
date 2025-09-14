@@ -131,7 +131,8 @@
       "Read(//Users/ekoresawa/project/**)",
       "mcp__sequential-thinking__sequentialthinking",
       "Bash(git fetch:*)",
-      "Bash(git rev-parse:*)"
+      "Bash(git rev-parse:*)",
+      "Bash(DiffViewer)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

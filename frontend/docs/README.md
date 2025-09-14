@@ -5,13 +5,12 @@ Knowledge System Approval Platform (KSAP) のフロントエンド詳細設計�
 ## 📋 文書構成
 
 ### 🏗️ アーキテクチャ設計
-- [architecture.md](./architecture.md) - システム全体アーキテクチャとMVP方針
-- [component-design.md](./component-design.md) - コンポーネント設計と責務分離
+- [architecture.md](./architecture.md) - **サイドバーナビゲーション**システムアーキテクチャとMVP方針
+- [component-design.md](./component-design.md) - **サイドバーレイアウト**コンポーネント設計と責務分離
 - [api-integration.md](./api-integration.md) - API統合とデータフロー
 
 ### 🎨 UI/UX設計
-- [ui-ux-specifications.md](./ui-ux-specifications.md) - レイアウト、レスポンシブデザイン、アクセシビリティ
-- [keyboard-shortcuts.md](./keyboard-shortcuts.md) - キーボードショートカット仕様
+- [ui-ux-specifications.md](./ui-ux-specifications.md) - **サイドバー + 2カラム**レイアウト、レスポンシブデザイン、アクセシビリティ
 
 ### 🔧 技術仕様
 - [technical-specifications.md](./technical-specifications.md) - 技術スタック、状態管理、エラーハンドリング
@@ -24,18 +23,40 @@ Knowledge System Approval Platform (KSAP) のフロントエンド詳細設計�
 2. **差分理解と判定速度** - MVPレベルでの実用的なソリューション
 3. **確実性** - 基本機能を確実に動作させる
 
+### レイアウト設計 (重要変更)
+- **サイドバーナビゲーション** - 固定サイドバー (220px) + メインコンテンツ
+- **承認レビュー2カラム** - 左カラム60% (差分表示) + 右カラム40% (アクション)
+- **レスポンシブ対応** - モバイル (ハンバーガー) / タブレット (180px) / デスクトップ (220px)
+
 ### 技術選択
 - **Next.js 15** + **React 19** + **TailwindCSS v4**
 - **TypeScript strict** mode
-- **シンプルな状態管理** (React Context + hooks)
+- **サイドバー状態管理** (SidebarContext + useSidebar hook)
+- **レスポンシブ最適化** (フレックスレイアウト + メディアクエリ)
 
-## 🚀 開発フェーズ
+## 🚀 開発フェーズ (サイドバーナビゲーション対応)
 
-1. **認証・ナビゲーション基盤** (Week 1-2)
-2. **承認ワークフロー** (Week 3-4) - 最重要
+1. **認証・サイドバーナビゲーション基盤** (Week 1-2)
+   - JWT認証システム
+   - サイドバーコンポーネント実装
+   - レスポンシブナビゲーション
+   - ユーザープロファイル
+
+2. **承認ワークフロー (2カラムレイアウト)** (Week 3-4) - 最重要
+   - 承認キュー画面
+   - 承認レビューページ (左60% + 右40%)
+   - 差分表示コンポーネント (左カラム)
+   - 判定アクション (右カラム)
+
 3. **提案管理機能** (Week 5-6)
-4. **管理機能** (Week 7-8)
+   - 提案作成フォーム
+   - 提案一覧・編集機能
+
+4. **管理機能・最適化** (Week 7-8)
+   - 管理者機能
+   - パフォーマンス最適化
 
 ## 📝 更新履歴
 
 - 2025-09-14: 初版作成（詳細設計完了）
+- 2025-09-14: **サイドバーナビゲーションに全面リファクタリング** - 3カラムグリッドからサイドバー + 2カラムレイアウトへ変更

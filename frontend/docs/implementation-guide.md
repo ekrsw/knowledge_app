@@ -116,20 +116,20 @@ touch lib/types.ts
 touch lib/api.ts
 ```
 
-#### 1.2 基本レイアウト実装
+#### 1.2 サイドバーナビゲーション + レイアウト実装
 ```typescript
 // app/layout.tsx の実装例
 import { AuthProvider } from '@/contexts/AuthContext';
-import { Navigation } from '@/components/common/Navigation';
+import { Sidebar } from '@/components/common/Sidebar';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
-          <div className="min-h-screen bg-gray-50">
-            <Navigation />
-            <main className="container mx-auto px-4 py-6">
+          <div className="flex h-screen bg-gray-50">
+            <Sidebar />
+            <main className="flex-1 flex flex-col overflow-hidden">
               {children}
             </main>
           </div>
@@ -138,6 +138,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
+```
+
+##### サイドバーコンポーネント実装順序
+```bash
+# 実装優先順位
+1. components/common/Sidebar.tsx → メインサイドバー構造
+2. components/common/SidebarNavigation.tsx → ナビゲーションメニュー
+3. components/common/UserProfile.tsx → ユーザープロファイル
+4. hooks/useSidebar.ts → サイドバー状態管理
+5. contexts/SidebarContext.tsx → グローバル状態
 ```
 
 #### 1.3 認証システム実装
@@ -150,26 +160,66 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 5. app/login/page.tsx → ログインページ
 ```
 
-#### 1.4 基本ナビゲーション
+#### 1.4 サイドバーナビゲーション実装
 ```typescript
-// components/common/Navigation.tsx
-export function Navigation() {
-  const { user, logout } = useAuth();
+// components/common/Sidebar.tsx
+export function Sidebar() {
+  const { user } = useAuth();
+  const { isCollapsed, toggle } = useSidebar();
 
-  const menuItems = [
-    { href: '/dashboard', label: 'ダッシュボード', icon: HomeIcon },
-    ...(user?.role === 'approver' || user?.role === 'admin' ? [
-      { href: '/approvals/queue', label: '承認キュー', icon: ClipboardListIcon },
-    ] : []),
-    { href: '/proposals/my', label: '自分の提案', icon: DocumentTextIcon },
-    ...(user?.role === 'admin' ? [
-      { href: '/admin/users', label: 'ユーザー管理', icon: UsersIcon },
-    ] : []),
+  return (
+    <aside className={clsx(
+      'bg-white border-r border-gray-200 flex-shrink-0 flex flex-col transition-all duration-200',
+      isCollapsed ? 'w-16' : 'w-220px'
+    )}>
+      <SidebarHeader user={user} isCollapsed={isCollapsed} />
+      <SidebarNavigation user={user} isCollapsed={isCollapsed} />
+      <SidebarFooter isCollapsed={isCollapsed} />
+    </aside>
+  );
+}
+
+// components/common/SidebarNavigation.tsx
+export function SidebarNavigation({ user, isCollapsed }: SidebarNavigationProps) {
+  const navigationGroups = [
+    {
+      title: 'メイン',
+      items: [
+        { href: '/dashboard', label: 'ダッシュボード', icon: HomeIcon },
+      ]
+    },
+    ...(user?.role === 'approver' || user?.role === 'admin' ? [{
+      title: '承認作業',
+      items: [
+        { href: '/approvals/queue', label: '承認キュー', icon: ClipboardListIcon },
+        { href: '/approvals/history', label: '承認履歴', icon: ClockIcon },
+      ]
+    }] : []),
+    {
+      title: '提案管理',
+      items: [
+        { href: '/proposals/new', label: '新規作成', icon: PlusIcon },
+        { href: '/proposals/my', label: '自分の提案', icon: DocumentTextIcon },
+      ]
+    },
+    ...(user?.role === 'admin' ? [{
+      title: '管理機能',
+      items: [
+        { href: '/admin/users', label: 'ユーザー管理', icon: UsersIcon },
+        { href: '/admin/stats', label: 'システム統計', icon: ChartBarIcon },
+      ]
+    }] : [])
   ];
 
   return (
-    <nav className="bg-white shadow-sm border-b">
-      {/* ナビゲーション実装 */}
+    <nav className="flex-1 px-2 py-4 space-y-6 overflow-y-auto">
+      {navigationGroups.map(group => (
+        <NavigationGroup
+          key={group.title}
+          group={group}
+          isCollapsed={isCollapsed}
+        />
+      ))}
     </nav>
   );
 }
@@ -188,46 +238,86 @@ export function Navigation() {
 
 #### 2.2 承認レビューページ (最重要)
 ```bash
-# コンポーネント実装順序
-1. app/approvals/review/[id]/page.tsx → ページレイアウト
-2. components/approvals/ProposalSummary.tsx → 提案情報表示
-3. components/approvals/DiffViewer.tsx → 差分表示 (基本版)
+# コンポーネント実装順序 (サイドバーナビゲーション対応)
+1. app/approvals/review/[id]/page.tsx → ページレイアウト (2カラム: 左60% + 右40%)
+2. components/approvals/ProposalSummary.tsx → 提案情報表示 (左カラム)
+3. components/approvals/DiffViewer.tsx → 差分表示 (左カラム、基本版)
 4. components/approvals/FieldDiffItem.tsx → 個別差分項目
-5. components/approvals/ApprovalActions.tsx → 判定ボタン
-6. hooks/useApprovalReview.ts → データ取得・状態管理
-7. hooks/useKeyboardShortcuts.ts → キーボードショートカット
-8. hooks/useApprovalNavigation.ts → 次/前ナビゲーション
+5. components/approvals/ApprovalActions.tsx → 判定ボタン (右カラム)
+6. components/approvals/ApprovalHistory.tsx → 承認履歴 (右カラム)
+7. components/common/PageHeader.tsx → パンくずナビ + タイトル
+8. hooks/useApprovalReview.ts → データ取得・状態管理
+9. hooks/useApprovalNavigation.ts → 次/前ナビゲーション (右カラム)
 ```
 
-#### 2.3 差分表示実装詳細
+##### 承認レビューページレイアウト構造
+```typescript
+// app/approvals/review/[id]/page.tsx
+export default function ApprovalReviewPage({ params }: { params: { id: string } }) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* ページヘッダー */}
+      <PageHeader 
+        breadcrumbs={[
+          { label: 'ダッシュボード', href: '/dashboard' },
+          { label: '承認キュー', href: '/approvals/queue' },
+          { label: `案件 #${revision.article_number}`, href: '#' }
+        ]}
+        title={revision.after_title}
+      />
+
+      {/* メインコンテンツエリア (2カラム) */}
+      <div className="flex flex-1 gap-6 p-6 overflow-hidden">
+        {/* 左カラム 60% (提案サマリー + 差分ビューア) */}
+        <div className="flex-[3] flex flex-col gap-4 overflow-hidden">
+          <ProposalSummary revision={revision} />
+          <DiffViewer diff={diff} />
+        </div>
+
+        {/* 右カラム 40% (判定アクション + 履歴 + ナビゲーション) */}
+        <div className="flex-[2] flex flex-col gap-4">
+          <ApprovalActions revisionId={params.id} onDecision={handleDecision} />
+          <ApprovalHistory revisionId={params.id} />
+          <ApprovalNavigation 
+            currentId={params.id}
+            onNavigate={handleNavigate}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+#### 2.3 左カラム差分表示実装詳細 (サイドバー対応)
 ```typescript
 // components/approvals/DiffViewer.tsx の実装手順
 
-// Step 1: 基本構造
+// Step 1: 基本構造 (左カラムに最適化)
 export function DiffViewer({ diff, loading }: DiffViewerProps) {
   return (
-    <Card className="overflow-hidden">
+    <Card className="flex-1 overflow-hidden flex flex-col">
       <DiffHeader diff={diff} />
       <DiffContent diff={diff} loading={loading} />
     </Card>
   );
 }
 
-// Step 2: ヘッダー実装
+// Step 2: ヘッダー実装 (コンパクト化)
 function DiffHeader({ diff }: { diff: RevisionDiff }) {
   return (
-    <div className="p-4 border-b bg-gray-50">
+    <div className="flex-shrink-0 p-4 border-b bg-gray-50">
       <ChangeSummaryIndicator diff={diff} />
     </div>
   );
 }
 
-// Step 3: メインコンテンツ
+// Step 3: メインコンテンツ (左カラムの高さを最大活用)
 function DiffContent({ diff, loading }: { diff: RevisionDiff; loading: boolean }) {
   if (loading) return <DiffSkeleton />;
 
   return (
-    <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+    <div className="flex-1 overflow-y-auto">
       <div className="space-y-4 p-4">
         {diff.field_diffs.map((fieldDiff, index) => (
           <FieldDiffItem key={index} fieldDiff={fieldDiff} />
@@ -235,6 +325,14 @@ function DiffContent({ diff, loading }: { diff: RevisionDiff; loading: boolean }
       </div>
     </div>
   );
+}
+
+// Step 4: レスポンシブ対応 (タブレット・モバイル)
+// タブレット・モバイルでは縦積みレイアウトに自動調整
+@media (max-width: 1023px) {
+  .diff-viewer {
+    @apply flex-none h-96; /* 固定高さで表示 */
+  }
 }
 ```
 
@@ -281,7 +379,7 @@ function DiffContent({ diff, loading }: { diff: RevisionDiff; loading: boolean }
 
 ## 🎯 重要な実装ガイドライン
 
-### コンポーネント作成パターン
+### コンポーネント作成パターン (サイドバーレイアウト対応)
 ```typescript
 // 1. 型定義を最初に行う
 interface ComponentProps {
@@ -293,10 +391,11 @@ const defaultProps = {
   // defaults
 };
 
-// 3. メインコンポーネント
+// 3. メインコンポーネント (レスポンシブレイアウト考慮)
 export function Component({ prop1, prop2, ...props }: ComponentProps) {
   // 4. hooks を最初に配置
   const [state, setState] = useState();
+  const { isCollapsed } = useSidebar(); // サイドバー状態
   const customHook = useCustomHook();
 
   // 5. イベントハンドラー
@@ -308,9 +407,14 @@ export function Component({ prop1, prop2, ...props }: ComponentProps) {
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorDisplay error={error} />;
 
-  // 7. メインレンダリング
+  // 7. メインレンダリング (レスポンシブクラス適用)
   return (
-    <div className="component-class">
+    <div className={clsx(
+      'component-base-class',
+      'lg:flex lg:gap-6', // デスクトップ: フレックスレイアウト
+      'flex-col md:flex-col', // モバイル・タブレット: 縦積み
+      isCollapsed && 'sidebar-collapsed'
+    )}>
       {/* JSX */}
     </div>
   );
@@ -318,6 +422,54 @@ export function Component({ prop1, prop2, ...props }: ComponentProps) {
 
 // 8. displayName設定 (開発時のデバッグ用)
 Component.displayName = 'Component';
+```
+
+### サイドバーレイアウト専用パターン
+```typescript
+// ページレベルコンポーネントの標準パターン
+export function StandardPage({ title, breadcrumbs, children }: StandardPageProps) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* ページヘッダー (固定) */}
+      <PageHeader breadcrumbs={breadcrumbs} title={title} />
+      
+      {/* メインコンテンツ (可変) */}
+      <div className="flex-1 overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// 2カラムレイアウトパターン (承認レビューページ用)
+export function TwoColumnLayout({ 
+  leftContent, 
+  rightContent, 
+  leftRatio = 3, 
+  rightRatio = 2 
+}: TwoColumnLayoutProps) {
+  return (
+    <div className={clsx(
+      // デスクトップ: 2カラム
+      'lg:flex lg:gap-6 lg:p-6 lg:h-full',
+      // タブレット・モバイル: 縦積み
+      'flex flex-col gap-4 p-4 md:p-4'
+    )}>
+      <div className={clsx(
+        `lg:flex-[${leftRatio}]`,
+        'flex flex-col gap-4 lg:overflow-hidden'
+      )}>
+        {leftContent}
+      </div>
+      <div className={clsx(
+        `lg:flex-[${rightRatio}]`,
+        'flex flex-col gap-4'
+      )}>
+        {rightContent}
+      </div>
+    </div>
+  );
+}
 ```
 
 ### APIクライアント使用パターン

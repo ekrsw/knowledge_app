@@ -87,7 +87,7 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 ```
 
-### TypeScript 設定
+### TypeScript 設定 (サイドバーナビゲーション対応)
 ```json
 {
   "compilerOptions": {
@@ -113,9 +113,13 @@ export default nextConfig;
     "paths": {
       "@/*": ["./*"],
       "@/components/*": ["./components/*"],
+      "@/components/common/*": ["./components/common/*"],
+      "@/components/layout/*": ["./components/layout/*"],
       "@/lib/*": ["./lib/*"],
       "@/hooks/*": ["./hooks/*"],
-      "@/types/*": ["./types/*"]
+      "@/contexts/*": ["./contexts/*"],
+      "@/types/*": ["./types/*"],
+      "@/utils/*": ["./utils/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
@@ -123,9 +127,62 @@ export default nextConfig;
 }
 ```
 
+### サイドバー専用型定義
+```typescript
+// types/sidebar.ts
+export interface SidebarContextType {
+  isCollapsed: boolean;
+  isMobileOpen: boolean;
+  toggle: () => void;
+  collapse: () => void;
+  expand: () => void;
+  openMobile: () => void;
+  closeMobile: () => void;
+}
+
+export interface NavigationItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string | number;
+  isActive?: boolean;
+}
+
+export interface NavigationGroup {
+  title: string;
+  items: NavigationItem[];
+}
+
+export interface SidebarProps {
+  className?: string;
+}
+
+export interface SidebarNavigationProps {
+  user: User | null;
+  isCollapsed: boolean;
+  className?: string;
+}
+
+export interface UserProfileProps {
+  user: User | null;
+  isCollapsed: boolean;
+  onLogout?: () => void;
+}
+
+// レスポンシブブレークポイント型定義
+export type BreakpointSize = 'mobile' | 'tablet' | 'desktop' | 'large';
+
+export interface ResponsiveLayoutProps {
+  breakpoint: BreakpointSize;
+  sidebarWidth: number;
+  isCollapsed: boolean;
+  isMobileOpen: boolean;
+}
+```
+
 ## 🏗️ 状態管理アーキテクチャ
 
-### React Context パターン
+### React Context パターン (サイドバーナビゲーション対応)
 ```typescript
 // contexts/AuthContext.tsx
 interface AuthContextType {
@@ -194,9 +251,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+// contexts/SidebarContext.tsx
+interface SidebarContextType {
+  isCollapsed: boolean;
+  isMobileOpen: boolean;
+  toggle: () => void;
+  collapse: () => void;
+  expand: () => void;
+  openMobile: () => void;
+  closeMobile: () => void;
+}
+
+const SidebarContext = createContext<SidebarContextType | null>(null);
+
+export function SidebarProvider({ children }: { children: ReactNode }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // レスポンシブ対応: 画面サイズ変更時の自動調整
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsCollapsed(false);
+        setIsMobileOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // 初期実行
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggle = () => setIsCollapsed(prev => !prev);
+  const collapse = () => setIsCollapsed(true);
+  const expand = () => setIsCollapsed(false);
+  const openMobile = () => setIsMobileOpen(true);
+  const closeMobile = () => setIsMobileOpen(false);
+
+  return (
+    <SidebarContext.Provider value={{
+      isCollapsed,
+      isMobileOpen,
+      toggle,
+      collapse,
+      expand,
+      openMobile,
+      closeMobile,
+    }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+}
+
+export function useSidebar() {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    throw new Error('useSidebar must be used within a SidebarProvider');
+  }
+  return context;
+}
 ```
 
-### 承認キュー管理 Context
+### 承認キュー管理 Context (サイドバーレイアウト最適化)
 ```typescript
 // contexts/ApprovalQueueContext.tsx
 interface ApprovalQueueContextType {
@@ -295,14 +413,17 @@ const DiffViewer = dynamic(() => import('@/components/approvals/DiffViewer'), {
 const ProposalCreation = lazy(() => import('@/components/proposals/ProposalCreation'));
 ```
 
-### メモ化戦略
+### メモ化戦略 (サイドバーナビゲーション最適化)
 ```typescript
-// hooks/useApprovalReview.ts (最適化版)
+// hooks/useApprovalReview.ts (最適化版: サイドバーレイアウト対応)
 export function useApprovalReview(revisionId: string) {
   // データのメモ化
   const revisionData = useMemo(() => {
     return revisionCache.get(revisionId);
   }, [revisionId]);
+
+  // サイドバー状態の取得 (レイアウト最適化用)
+  const { isCollapsed } = useSidebar();
 
   // API呼び出しの最適化
   const { data: revision, error: revisionError } = useSWR(
@@ -314,17 +435,19 @@ export function useApprovalReview(revisionId: string) {
     }
   );
 
-  // 差分データの並列取得
+  // 差分データの並列取得 (左カラム表示最適化)
   const { data: diff, error: diffError } = useSWR(
     `/diffs/${revisionId}`,
     () => api.approval.getRevisionDiff(revisionId),
     {
       revalidateOnFocus: false,
       dedupingInterval: 5000,
+      // サイドバー折りたたみ時は差分表示を優先ロード
+      suspense: isCollapsed,
     }
   );
 
-  // 判定送信の最適化
+  // 判定送信の最適化 (右カラムアクション)
   const submitDecision = useCallback(async (decision: ApprovalDecision) => {
     // 楽観的更新
     mutate(`/revisions/${revisionId}`,
@@ -343,13 +466,48 @@ export function useApprovalReview(revisionId: string) {
     }
   }, [revisionId, revision]);
 
+  // レスポンシブ対応: モバイル時のパフォーマンス調整
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const shouldPreloadNavigation = !isMobile && !!revision;
+
+  // 次の案件の事前ロード (デスクトップのみ)
+  useEffect(() => {
+    if (shouldPreloadNavigation && revision) {
+      // 右カラムナビゲーション用の事前ロード
+      prefetchNextRevision(revision.revision_id);
+    }
+  }, [shouldPreloadNavigation, revision]);
+
   return {
     revision,
     diff,
     loading: !revision || !diff,
     error: revisionError || diffError,
     submitDecision,
+    // レイアウト最適化情報
+    layout: {
+      isCollapsed,
+      isMobile,
+      shouldPreloadNavigation,
+    },
   };
+}
+
+// レスポンシブ対応: 画面サイズ検知フック
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
+
+    setMatches(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [query]);
+
+  return matches;
 }
 ```
 
@@ -644,21 +802,31 @@ export class CSRFProtection {
 
 ## 🧪 テスト戦略
 
-### Unit Testing (Jest + React Testing Library)
+### Unit Testing (Jest + React Testing Library - サイドバーレイアウト対応)
 ```typescript
 // __tests__/components/ApprovalActions.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ApprovalActions } from '@/components/approvals/ApprovalActions';
+import { SidebarProvider } from '@/contexts/SidebarContext';
 
 const mockOnDecision = jest.fn();
 
-describe('ApprovalActions', () => {
+// サイドバー対応テストヘルパー
+const renderWithSidebar = (component: React.ReactElement) => {
+  return render(
+    <SidebarProvider>
+      {component}
+    </SidebarProvider>
+  );
+};
+
+describe('ApprovalActions (サイドバーレイアウト)', () => {
   beforeEach(() => {
     mockOnDecision.mockClear();
   });
 
-  it('should render all action buttons', () => {
-    render(
+  it('should render all action buttons in right column layout', () => {
+    renderWithSidebar(
       <ApprovalActions
         revisionId="test-id"
         onDecision={mockOnDecision}
@@ -669,10 +837,33 @@ describe('ApprovalActions', () => {
     expect(screen.getByRole('button', { name: /却下/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /変更要求/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /保留/i })).toBeInTheDocument();
+
+    // 右カラムレイアウトクラスの確認
+    const container = screen.getByRole('region', { name: /承認アクション/i });
+    expect(container).toHaveClass('flex-[2]'); // 右カラム 40%
+  });
+
+  it('should adapt to mobile layout', () => {
+    // モバイル画面サイズをシミュレート
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: 600,
+    });
+
+    renderWithSidebar(
+      <ApprovalActions
+        revisionId="test-id"
+        onDecision={mockOnDecision}
+      />
+    );
+
+    const container = screen.getByRole('region', { name: /承認アクション/i });
+    expect(container).toHaveClass('flex-none'); // モバイルでは縦積み
   });
 
   it('should call onDecision with correct parameters when approve button is clicked', async () => {
-    render(
+    renderWithSidebar(
       <ApprovalActions
         revisionId="test-id"
         onDecision={mockOnDecision}
@@ -689,27 +880,38 @@ describe('ApprovalActions', () => {
       });
     });
   });
+});
 
-  it('should include comment when provided', async () => {
+// __tests__/components/Sidebar.test.tsx
+describe('Sidebar Component', () => {
+  it('should render with correct width based on state', () => {
     render(
-      <ApprovalActions
-        revisionId="test-id"
-        onDecision={mockOnDecision}
-      />
+      <SidebarProvider>
+        <Sidebar />
+      </SidebarProvider>
     );
 
-    const commentInput = screen.getByRole('textbox', { name: /コメント/i });
-    const approveButton = screen.getByRole('button', { name: /承認/i });
+    const sidebar = screen.getByRole('complementary');
+    expect(sidebar).toHaveClass('w-220px'); // デフォルト展開状態
+  });
 
-    fireEvent.change(commentInput, { target: { value: 'テストコメント' } });
-    fireEvent.click(approveButton);
+  it('should collapse and expand correctly', () => {
+    render(
+      <SidebarProvider>
+        <Sidebar />
+      </SidebarProvider>
+    );
 
-    await waitFor(() => {
-      expect(mockOnDecision).toHaveBeenCalledWith({
-        action: 'approve',
-        comment: 'テストコメント'
-      });
-    });
+    const toggleButton = screen.getByRole('button', { name: /サイドバー切り替え/i });
+    
+    // 折りたたみ
+    fireEvent.click(toggleButton);
+    const sidebar = screen.getByRole('complementary');
+    expect(sidebar).toHaveClass('w-16');
+
+    // 展開
+    fireEvent.click(toggleButton);
+    expect(sidebar).toHaveClass('w-220px');
   });
 });
 ```

@@ -74,45 +74,137 @@ const breakpoints = {
 
 // 用途別画面サイズ
 interface ScreenSizes {
-  mobile: '~767px';     // モバイルファースト
-  tablet: '768px~1023px'; // 2列レイアウト
-  desktop: '1024px+';    // 3列レイアウト (メイン対象)
+  mobile: '~767px';     // ハンバーガーメニュー + 単一カラム
+  tablet: '768px~1023px'; // サイドバー180px + メインコンテンツ
+  desktop: '1024px+';    // サイドバー220px + 左60%右40%レイアウト
 }
 ```
 
-### 承認レビューページのレスポンシブ
+### サイドバーナビゲーション + 承認レビューのレスポンシブ
 ```css
-/* モバイル (縦スタック) */
+/* アプリケーション全体レイアウト */
+.app-layout {
+  @apply flex h-screen bg-gray-50;
+}
+
+/* サイドバーナビゲーション */
+.sidebar {
+  @apply bg-white border-r border-gray-200 flex-shrink-0;
+  transition: width 0.2s ease-in-out;
+}
+
+/* モバイル (ハンバーガーメニュー) */
 @media (max-width: 767px) {
-  .approval-review-layout {
-    @apply grid grid-cols-1 gap-4 p-4;
+  .sidebar {
+    @apply fixed inset-y-0 left-0 z-50 w-64 transform;
+    /* JavaScript で -translate-x-full / translate-x-0 切り替え */
   }
 
-  .proposal-summary { @apply order-1; }
-  .diff-viewer { @apply order-2; }
-  .approval-actions { @apply order-3; }
+  .main-content {
+    @apply flex-1 flex flex-col;
+  }
+
+  .approval-review-layout {
+    @apply flex flex-col gap-4 p-4 h-full;
+  }
+
+  .proposal-summary { @apply flex-shrink-0; }
+  .diff-viewer { @apply flex-1 overflow-hidden; }
+  .approval-actions { @apply flex-shrink-0; }
 }
 
-/* タブレット (2列) */
+/* タブレット (サイドバー180px) */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .approval-review-layout {
-    @apply grid grid-cols-2 grid-rows-2 gap-4 h-screen p-4;
+  .sidebar {
+    width: 180px;
   }
 
-  .proposal-summary { @apply col-span-2 row-span-1; }
-  .diff-viewer { @apply col-span-1 row-span-1; }
-  .approval-actions { @apply col-span-1 row-span-1; }
+  .main-content {
+    @apply flex-1 flex flex-col;
+  }
+
+  .approval-review-layout {
+    @apply flex flex-col gap-4 p-4 h-full;
+  }
+
+  .proposal-summary { @apply flex-shrink-0; }
+  .diff-viewer { @apply flex-1 overflow-hidden; }
+  .approval-actions { @apply flex-shrink-0; }
 }
 
-/* デスクトップ (3列) - メイン対象 */
+/* デスクトップ (サイドバー220px + 左60%右40%) */
 @media (min-width: 1024px) {
-  .approval-review-layout {
-    @apply grid grid-cols-4 gap-6 h-screen p-6;
+  .sidebar {
+    width: 220px;
   }
 
-  .proposal-summary { @apply col-span-1; }
-  .diff-viewer { @apply col-span-2; }
-  .approval-actions { @apply col-span-1; }
+  .main-content {
+    @apply flex-1 flex flex-col;
+  }
+
+  .approval-review-layout {
+    @apply flex gap-6 p-6 h-full;
+  }
+
+  .left-column {
+    @apply flex-[3] flex flex-col gap-4 overflow-hidden;
+  }
+
+  .right-column {
+    @apply flex-[2] flex flex-col gap-4;
+  }
+
+  .proposal-summary { @apply flex-shrink-0; }
+  .diff-viewer { @apply flex-1 overflow-hidden; }
+  .approval-actions { @apply flex-shrink-0; }
+}
+```
+
+### サイドバーナビゲーション仕様
+```css
+/* サイドバー基本スタイル */
+.sidebar-navigation {
+  @apply flex-1 px-2 py-4 space-y-1 overflow-y-auto;
+}
+
+.nav-item {
+  @apply flex items-center px-2 py-2 text-sm font-medium rounded-md;
+  @apply hover:bg-gray-100 hover:text-gray-900;
+  @apply focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500;
+}
+
+.nav-item.active {
+  @apply bg-blue-100 text-blue-900;
+}
+
+.nav-item-icon {
+  @apply mr-3 h-5 w-5 flex-shrink-0;
+}
+
+/* 折りたたみ対応 */
+.sidebar.collapsed .nav-item-text {
+  @apply hidden;
+}
+
+.sidebar.collapsed .nav-item-icon {
+  @apply mr-0;
+}
+
+/* ユーザープロファイル */
+.user-profile {
+  @apply p-4 border-b border-gray-200;
+}
+
+.user-avatar {
+  @apply h-8 w-8 rounded-full;
+}
+
+.sidebar.collapsed .user-profile {
+  @apply px-2;
+}
+
+.sidebar.collapsed .user-info {
+  @apply hidden;
 }
 ```
 
@@ -571,47 +663,194 @@ export function SuccessAnimation({ show }: { show: boolean }) {
 }
 ```
 
-## 📐 レイアウトシステム
+## 📐 サイドバーナビゲーション + フレックスレイアウトシステム
 
-### グリッドシステムの詳細仕様
+### サイドバー + メインコンテンツレイアウト
 ```css
-/* 承認レビューページ専用グリッド */
-.approval-review-grid {
-  display: grid;
-  height: 100vh;
-  gap: 1.5rem;
-  padding: 1.5rem;
+/* アプリケーション全体レイアウト */
+.app-layout {
+  @apply flex h-screen bg-gray-50;
 }
 
-/* ブレークポイント別レイアウト */
+/* サイドバーの基本構造 */
+.sidebar {
+  @apply bg-white border-r border-gray-200 flex-shrink-0 flex flex-col;
+  transition: width 0.2s ease-in-out;
+}
+
+.main-content {
+  @apply flex-1 flex flex-col overflow-hidden;
+}
+
+/* ページヘッダー */
+.page-header {
+  @apply flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4;
+}
+
+/* コンテンツエリア */
+.content-area {
+  @apply flex-1 overflow-hidden;
+}
+
+/* 承認レビューページの2カラムレイアウト (デスクトップ) */
 @media (min-width: 1024px) {
-  .approval-review-grid {
-    grid-template-columns: minmax(300px, 1fr) minmax(600px, 2fr) minmax(300px, 1fr);
-    grid-template-rows: 1fr;
+  .approval-review-content {
+    @apply flex gap-6 p-6 h-full;
+  }
+
+  .left-column {
+    @apply flex-[3] flex flex-col gap-4 overflow-hidden;
+    min-width: 600px;
+  }
+
+  .right-column {
+    @apply flex-[2] flex flex-col gap-4;
+    min-width: 300px;
+    max-width: 400px;
   }
 }
 
-@media (min-width: 1280px) {
-  .approval-review-grid {
-    grid-template-columns: 320px 1fr 320px;
-    gap: 2rem;
-    padding: 2rem;
+/* タブレット・モバイルでは縦積み */
+@media (max-width: 1023px) {
+  .approval-review-content {
+    @apply flex flex-col gap-4 p-4 h-full;
+  }
+
+  .left-column, .right-column {
+    @apply flex-none;
+  }
+
+  .diff-viewer {
+    @apply flex-1 overflow-hidden;
+  }
+}
+```
+
+### サイドバーナビゲーション詳細仕様
+```css
+/* サイドバー内部構造 */
+.sidebar-header {
+  @apply p-4 border-b border-gray-200;
+}
+
+.sidebar-navigation {
+  @apply flex-1 px-2 py-4 space-y-1 overflow-y-auto;
+}
+
+.sidebar-footer {
+  @apply p-4 border-t border-gray-200;
+}
+
+/* ナビゲーションアイテム */
+.nav-group {
+  @apply mb-6;
+}
+
+.nav-group-title {
+  @apply px-2 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide;
+}
+
+.nav-item {
+  @apply flex items-center px-2 py-2 text-sm font-medium rounded-md;
+  @apply hover:bg-gray-100 hover:text-gray-900;
+  @apply focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500;
+  @apply transition-colors duration-150;
+}
+
+.nav-item.active {
+  @apply bg-blue-100 text-blue-900;
+}
+
+.nav-item-icon {
+  @apply mr-3 h-5 w-5 flex-shrink-0;
+}
+
+.nav-item-badge {
+  @apply ml-auto inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+  @apply bg-gray-100 text-gray-600;
+}
+
+.nav-item.active .nav-item-badge {
+  @apply bg-blue-200 text-blue-800;
+}
+
+/* レスポンシブ幅制御 */
+@media (max-width: 767px) {
+  .sidebar {
+    @apply fixed inset-y-0 left-0 z-50 w-64;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-40;
   }
 }
 
-/* 各エリアの最小・最大サイズ制御 */
-.proposal-summary {
-  min-width: 280px;
-  max-width: 400px;
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sidebar {
+    width: 180px;
+  }
 }
 
-.diff-viewer {
-  min-width: 500px;
-  overflow: hidden;
+@media (min-width: 1024px) {
+  .sidebar {
+    width: 220px;
+  }
+}
+```
+
+### 承認レビューページレイアウト詳細
+```css
+/* ページ全体構造 */
+.approval-review-page {
+  @apply flex flex-col h-full;
 }
 
-.approval-actions {
-  min-width: 280px;
-  max-width: 400px;
+/* ヘッダー部分 */
+.page-header {
+  @apply flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4;
+}
+
+.breadcrumb-nav {
+  @apply flex items-center space-x-2 text-sm text-gray-500 mb-2;
+}
+
+.page-title {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+/* メインコンテンツエリア */
+.approval-content {
+  @apply flex-1 overflow-hidden;
+}
+
+/* 左カラム（提案サマリー + 差分ビューア） */
+.left-column {
+  .proposal-summary {
+    @apply flex-shrink-0;
+  }
+
+  .diff-viewer {
+    @apply flex-1 overflow-hidden;
+  }
+}
+
+/* 右カラム（アクション + 履歴） */
+.right-column {
+  .approval-actions {
+    @apply flex-shrink-0;
+  }
+
+  .approval-history {
+    @apply flex-1 overflow-y-auto;
+  }
+
+  .navigation-controls {
+    @apply flex-shrink-0 border-t border-gray-200 pt-4;
+  }
 }
 ```
