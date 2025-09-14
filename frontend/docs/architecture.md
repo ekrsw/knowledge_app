@@ -75,8 +75,8 @@ graph TD
     D --> F[Tablet 768px+]
     D --> G[Mobile ~768px]
     
-    E --> H[3列グリッド<br/>Summary | DiffViewer | Actions]
-    F --> I[2列グリッド<br/>Diff+Actions | Summary]
+    E --> H["3列グリッド<br/>Summary → DiffViewer → Actions"]
+    F --> I["2列グリッド<br/>Diff+Actions → Summary"]
     G --> J[縦スタック<br/>Summary<br/>↓<br/>DiffViewer<br/>↓<br/>Actions]
 ```
 
