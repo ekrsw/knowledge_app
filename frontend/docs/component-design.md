@@ -187,7 +187,7 @@ const navigationItems: NavigationItem[] = [
     ],
   },
   {
-    label: '提案関連',
+    label: 'メンテナンス提案関連',
     href: '/proposals',
     icon: DocumentTextIcon,
     children: [
@@ -197,7 +197,7 @@ const navigationItems: NavigationItem[] = [
         icon: PlusIcon,
       },
       {
-        label: '自分の提案',
+        label: '自分のメンテナンス提案',
         href: '/proposals/my',
         icon: UserIcon,
       },
@@ -342,9 +342,9 @@ export function ProposalSummary({ revision, className }: ProposalSummaryProps) {
           <p>{revision.proposer_name}</p>
         </div>
 
-        {/* 提案理由 */}
+        {/* メンテナンス理由 */}
         <div>
-          <label className="text-sm font-medium">提案理由</label>
+          <label className="text-sm font-medium">メンテナンス理由</label>
           <p className="mt-1 text-sm">{revision.reason}</p>
         </div>
 
@@ -735,7 +735,7 @@ export function ActionButton({ action, label, variant, onClick, disabled }: Acti
         variants[variant],
         disabled && 'opacity-50 cursor-not-allowed'
       )}
-      aria-label={`この提案を${action}する`}
+      aria-label={`このメンテナンス提案を${action}する`}
     >
       {disabled ? <LoadingSpinner size="sm" /> : label}
     </button>

@@ -465,7 +465,7 @@ function ImpactLevelBadge({ level }: { level: 'low' | 'medium' | 'high' }) {
 <button
   className="action-button action-button-approve"
   onClick={handleApprove}
-  aria-label="この改訂提案を承認します。ショートカット: A キー"
+  aria-label="このメンテナンス提案を承認します。ショートカット: A キー"
   aria-describedby="approval-help-text"
 >
   <CheckIcon className="w-5 h-5" aria-hidden="true" />
@@ -473,7 +473,7 @@ function ImpactLevelBadge({ level }: { level: 'low' | 'medium' | 'high' }) {
 </button>
 
 <div id="approval-help-text" className="sr-only">
-  承認すると提案が承認済み状態になり、提案者に通知が送信されます
+  承認するとメンテナンス提案が承認済み状態になり、提案者に通知が送信されます
 </div>
 
 // 差分表示のアクセシビリティ
@@ -828,7 +828,7 @@ export function SuccessAnimation({ show }: { show: boolean }) {
   @apply flex-1 overflow-hidden;
 }
 
-/* 左カラム（提案サマリー + 差分ビューア） */
+/* 左カラム（メンテナンス提案サマリー + 差分ビューア） */
 .left-column {
   .proposal-summary {
     @apply flex-shrink-0;

@@ -2,7 +2,7 @@
 
 ## 概要
 
-Knowledge System Approval Platform (KSAP)は、知識改訂提案の作成、承認ワークフロー、変更追跡を管理するためのRESTful APIです。本書は 2025-09-14 時点の実装（`backend/app/api/v1`）に準拠しています。
+Knowledge System Approval Platform (KSAP)は、ナレッジメンテナンス提案の作成、承認ワークフロー、変更追跡を管理するためのRESTful APIです。本書は 2025-09-14 時点の実装（`backend/app/api/v1`）に準拠しています。
 
 - ベースURL: `http://localhost:8000/api/v1`
 - 認証方式: JWT Bearer Token
@@ -14,7 +14,7 @@ Knowledge System Approval Platform (KSAP)は、知識改訂提案の作成、承
 
 | ロール | 説明 | 権限 |
 |--------|------|------|
-| `user` | 一般ユーザー | 自身の改訂提案の作成・管理 |
+| `user` | 一般ユーザー | 自身のメンテナンス提案の作成・管理 |
 | `approver` | 承認者 | 担当領域の提案レビュー・承認/却下 |
 | `admin` | 管理者 | システム全体へのフルアクセス |
 
@@ -171,10 +171,10 @@ JWTトークン検証（ユーザー含む簡易応答）
 
 ---
 
-### 2. 改訂提案 (Revisions)
+### 2. メンテナンス提案 (Revisions)
 
 #### GET `/revisions/`
-改訂一覧取得（権限フィルタ）。レスポンスは提案者/承認者名と記事番号を含む拡張形。
+メンテナンス提案一覧取得（権限フィルタ）。レスポンスは提案者/承認者名と記事番号を含む拡張形。
 
 クエリ:
 - `skip`: integer (default: 0)
@@ -214,12 +214,12 @@ JWTトークン検証（ユーザー含む簡易応答）
 ---
 
 #### GET `/revisions/my-revisions`
-自分の改訂一覧（拡張形）
+自分のメンテナンス提案一覧（拡張形）
 
 ---
 
 #### GET `/revisions/{revision_id}`
-特定の改訂取得
+特定のメンテナンス提案取得
 
 アクセス:
 - `admin`: 全て
@@ -230,14 +230,14 @@ JWTトークン検証（ユーザー含む簡易応答）
 ---
 
 #### POST `/revisions/`
-新規改訂作成（`proposer_id` はログインユーザーに自動設定）
+新規メンテナンス提案作成（`proposer_id` はログインユーザーに自動設定）
 
 リクエスト（RevisionCreate）: `target_article_id`, `reason`, `approver_id` は必須。`after_*` は任意。
 
 ---
 
 #### PUT `/revisions/{revision_id}`
-改訂更新
+メンテナンス提案更新
 
 アクセス:
 - draft: 提案者のみ
@@ -246,24 +246,24 @@ JWTトークン検証（ユーザー含む簡易応答）
 ---
 
 #### PATCH `/revisions/{revision_id}/status`
-改訂ステータス更新（`submitted|approved|rejected|deleted`）
+メンテナンス提案ステータス更新（`submitted|approved|rejected|deleted`）
 
 アクセス: `approver`, `admin`
 
 ---
 
 #### GET `/revisions/by-status/{status}`
-ステータス別改訂（`RevisionWithNames` 配列）
+ステータス別メンテナンス提案（`RevisionWithNames` 配列）
 
 ---
 
 #### GET `/revisions/by-article/{target_article_id}`
-記事別の公開改訂（`submitted`/`approved` のみ）
+記事別の公開メンテナンス提案（`submitted`/`approved` のみ）
 
 ---
 
 #### GET `/revisions/by-proposer/{proposer_id}`
-提案者別改訂（本人または `admin`）
+提案者別メンテナンス提案（本人または `admin`）
 
 ---
 
@@ -315,7 +315,7 @@ JWTトークン検証（ユーザー含む簡易応答）
 承認メトリクス（`days_back`）
 
 #### GET `/approvals/{revision_id}/can-approve`
-自身が当該改訂を承認可能か
+自身が当該メンテナンス提案を承認可能か
 
 #### GET `/approvals/history`
 承認履歴（一般ユーザーは自身分のみ、`admin` は全体）
@@ -481,7 +481,7 @@ JWTトークン検証（ユーザー含む簡易応答）
 ### 10. 差分 (Diffs)
 
 #### GET `/diffs/{revision_id}`
-改訂の差分取得（`RevisionDiff`）
+メンテナンス提案の差分取得（`RevisionDiff`）
 
 レスポンス例（抜粋）:
 ```json

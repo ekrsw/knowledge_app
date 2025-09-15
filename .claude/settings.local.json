@@ -132,7 +132,8 @@
       "mcp__sequential-thinking__sequentialthinking",
       "Bash(git fetch:*)",
       "Bash(git rev-parse:*)",
-      "Bash(DiffViewer)"
+      "Bash(DiffViewer)",
+      "mcp__morphllm-fast-apply__tiny_edit_file"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

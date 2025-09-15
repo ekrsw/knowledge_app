@@ -75,7 +75,7 @@ frontend/
 │   │   ├── queue/page.tsx
 │   │   ├── review/[id]/page.tsx
 │   │   └── history/page.tsx
-│   ├── proposals/               # 提案関連ページ
+│   ├── proposals/               # メンテナンス提案関連ページ
 │   │   ├── new/page.tsx
 │   │   ├── my/page.tsx
 │   │   └── edit/[id]/page.tsx
@@ -85,7 +85,7 @@ frontend/
 ├── components/                   # React コンポーネント
 │   ├── auth/                    # 認証関連
 │   ├── approvals/               # 承認関連 ⭐最重要
-│   ├── proposals/               # 提案関連
+│   ├── proposals/               # メンテナンス提案関連
 │   ├── admin/                   # 管理機能
 │   ├── common/                  # 共通コンポーネント
 │   └── ui/                      # 基本UIコンポーネント
@@ -196,10 +196,10 @@ export function SidebarNavigation({ user, isCollapsed }: SidebarNavigationProps)
       ]
     }] : []),
     {
-      title: '提案管理',
+      title: 'メンテナンス提案管理',
       items: [
         { href: '/proposals/new', label: '新規作成', icon: PlusIcon },
-        { href: '/proposals/my', label: '自分の提案', icon: DocumentTextIcon },
+        { href: '/proposals/my', label: '自分のメンテナンス提案', icon: DocumentTextIcon },
       ]
     },
     ...(user?.role === 'admin' ? [{
@@ -240,7 +240,7 @@ export function SidebarNavigation({ user, isCollapsed }: SidebarNavigationProps)
 ```bash
 # コンポーネント実装順序 (サイドバーナビゲーション対応)
 1. app/approvals/review/[id]/page.tsx → ページレイアウト (2カラム: 左60% + 右40%)
-2. components/approvals/ProposalSummary.tsx → 提案情報表示 (左カラム)
+2. components/approvals/ProposalSummary.tsx → メンテナンス提案情報表示 (左カラム)
 3. components/approvals/DiffViewer.tsx → 差分表示 (左カラム、基本版)
 4. components/approvals/FieldDiffItem.tsx → 個別差分項目
 5. components/approvals/ApprovalActions.tsx → 判定ボタン (右カラム)
@@ -268,7 +268,7 @@ export default function ApprovalReviewPage({ params }: { params: { id: string } 
 
       {/* メインコンテンツエリア (2カラム) */}
       <div className="flex flex-1 gap-6 p-6 overflow-hidden">
-        {/* 左カラム 60% (提案サマリー + 差分ビューア) */}
+        {/* 左カラム 60% (メンテナンス提案サマリー + 差分ビューア) */}
         <div className="flex-[3] flex flex-col gap-4 overflow-hidden">
           <ProposalSummary revision={revision} />
           <DiffViewer diff={diff} />
@@ -336,9 +336,9 @@ function DiffContent({ diff, loading }: { diff: RevisionDiff; loading: boolean }
 }
 ```
 
-### フェーズ3: 提案管理 (Week 5-6)
+### フェーズ3: メンテナンス提案管理 (Week 5-6)
 
-#### 3.1 提案作成機能
+#### 3.1 メンテナンス提案作成機能
 ```bash
 # 実装順序
 1. app/proposals/new/page.tsx
@@ -348,7 +348,7 @@ function DiffContent({ diff, loading }: { diff: RevisionDiff; loading: boolean }
 5. hooks/useProposalCreation.ts
 ```
 
-#### 3.2 提案管理機能
+#### 3.2 メンテナンス提案管理機能
 ```bash
 # 実装順序
 1. app/proposals/my/page.tsx
