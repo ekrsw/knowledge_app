@@ -70,18 +70,16 @@ graph TD
     S --> V[クイックアクション]
 
     U --> W[ダッシュボード<br/>📊 Overview]
-    U --> X[承認関連<br/>📋 Approvals]
-    U --> Y[提案関連<br/>📝 Proposals]
-    U --> Z[管理機能<br/>⚙️ Admin]
+    U --> X[メンテナンス一覧<br/>📋 Maintenance List]
+    U --> Y[承認待ち<br/>⏳ Pending Approval]
+    U --> Z[新規メンテナンス<br/>➕ New Maintenance]
+    U --> AA[管理機能<br/>⚙️ Admin]
 
-    X --> AA[承認キュー<br/>✅ Queue]
-    X --> BB[承認履歴<br/>📈 History]
+    X --> BB[検索・フィルター<br/>🔍 Search & Filter]
+    X --> CC[集計機能<br/>📊 Analytics]
 
-    Y --> CC[新規作成<br/>➕ Create New]
-    Y --> DD[自分の提案<br/>📄 My Proposals]
-
-    Z --> EE[ユーザー管理<br/>👥 Users]
-    Z --> FF[システム統計<br/>📊 Statistics]
+    AA --> DD[ユーザー管理<br/>👥 Users]
+    AA --> EE[システム統計<br/>📊 Statistics]
 ```
 
 ## 🎨 承認レビューページ設計 (核心機能)

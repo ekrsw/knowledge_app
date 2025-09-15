@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Knowledge System Approval Platform (KSAP)** - a full-stack application for managing knowledge revision proposals and approvals. The system enables users to create revision proposals, route them through approval workflows, and track changes with comprehensive diff analysis.
+This is a **Knowledge System Approval Platform (KSAP)** - a full-stack application for managing knowledge maintenance proposals and approvals. The system enables users to create maintenance proposals, route them through approval workflows, and track changes with comprehensive diff analysis.
 
 ## Architecture
 
@@ -23,7 +23,8 @@ This is a **Knowledge System Approval Platform (KSAP)** - a full-stack applicati
 - **Framework**: Next.js 15 with App Router and Turbopack
 - **Styling**: TailwindCSS v4
 - **TypeScript**: Strict mode enabled
-- **Structure**: Currently minimal with `app/layout.tsx` and `app/page.tsx`
+- **Architecture**: Sidebar navigation system (220px desktop, 180px tablet, hamburger mobile)
+- **Structure**: App Router with comprehensive design documentation in `frontend/docs/`
 
 ## Development Commands
 
@@ -99,23 +100,23 @@ uv run alembic history
 ## Key Business Logic
 
 ### User Roles & Permissions
-- **General Users**: Create and manage own revision proposals
+- **General Users**: Create and manage own maintenance proposals
 - **Approvers**: Review and approve/reject proposals in assigned domains
 - **Administrators**: Full system access including user management
 
 ### Core Workflows
-1. **Proposal Creation**: Users submit knowledge revision proposals
+1. **Proposal Creation**: Users submit knowledge maintenance proposals
 2. **Approval Routing**: System routes proposals to appropriate approvers
-3. **Review Process**: Approvers review diffs and make approval decisions
+3. **Review Process**: Approvers review diffs and make approval decisions with sidebar navigation
 4. **Change Tracking**: System maintains comprehensive audit trails
 
 ### API Endpoints
 For complete API endpoint documentation including request/response formats, authentication requirements, and role-based permissions, refer to `backend/API_SPECIFICATION.md`. Key endpoint groups:
 - `/auth/*` - Authentication and user management
-- `/proposals/*` - Revision proposal CRUD operations
+- `/proposals/*` - Maintenance proposal CRUD operations
 - `/approvals/*` - Approval workflow management
 - `/diffs/*` - Change analysis and diff generation
-- `/revisions/*` - Historical revision tracking
+- `/revisions/*` - Historical maintenance tracking
 - `/system/*` - Health checks and system statistics
 
 ## Testing Strategy

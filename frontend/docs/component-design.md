@@ -168,40 +168,33 @@ const navigationItems: NavigationItem[] = [
     icon: HomeIcon,
   },
   {
-    label: '承認関連',
-    href: '/approvals',
-    icon: ClipboardDocumentListIcon,
-    roles: ['approver', 'admin'],
+    label: 'メンテナンス一覧',
+    href: '/maintenance',
+    icon: DocumentTextIcon,
     children: [
       {
-        label: '承認キュー',
-        href: '/approvals/queue',
-        icon: QueueListIcon,
-        badge: 'pendingCount', // 動的バッジ
+        label: '検索・フィルター',
+        href: '/maintenance/search',
+        icon: MagnifyingGlassIcon,
       },
       {
-        label: '承認履歴',
-        href: '/approvals/history',
-        icon: ClockIcon,
+        label: '集計機能',
+        href: '/maintenance/analytics',
+        icon: ChartBarIcon,
       },
     ],
   },
   {
-    label: 'メンテナンス提案関連',
-    href: '/proposals',
-    icon: DocumentTextIcon,
-    children: [
-      {
-        label: '新規作成',
-        href: '/proposals/new',
-        icon: PlusIcon,
-      },
-      {
-        label: '自分のメンテナンス提案',
-        href: '/proposals/my',
-        icon: UserIcon,
-      },
-    ],
+    label: '承認待ち',
+    href: '/approvals/pending',
+    icon: ClockIcon,
+    roles: ['approver', 'admin'],
+    badge: 'pendingCount', // 動的バッジ
+  },
+  {
+    label: '新規メンテナンス',
+    href: '/maintenance/new',
+    icon: PlusIcon,
   },
   {
     label: '管理機能',

@@ -191,8 +191,9 @@ export function SidebarNavigation({ user, isCollapsed }: SidebarNavigationProps)
     ...(user?.role === 'approver' || user?.role === 'admin' ? [{
       title: '承認作業',
       items: [
-        { href: '/approvals/queue', label: '承認キュー', icon: ClipboardListIcon },
-        { href: '/approvals/history', label: '承認履歴', icon: ClockIcon },
+        { href: '/maintenance', label: 'メンテナンス一覧', icon: DocumentTextIcon },
+        { href: '/approvals/pending', label: '承認待ち', icon: ClockIcon },
+        { href: '/maintenance/new', label: '新規メンテナンス', icon: PlusIcon },
       ]
     }] : []),
     {
@@ -227,7 +228,7 @@ export function SidebarNavigation({ user, isCollapsed }: SidebarNavigationProps)
 
 ### フェーズ2: 承認ワークフロー (Week 3-4) ⭐最重要
 
-#### 2.1 承認キューページ
+#### 2.1 承認待ちページ
 ```bash
 # ファイル作成順序
 1. app/approvals/queue/page.tsx
@@ -260,7 +261,7 @@ export default function ApprovalReviewPage({ params }: { params: { id: string } 
       <PageHeader 
         breadcrumbs={[
           { label: 'ダッシュボード', href: '/dashboard' },
-          { label: '承認キュー', href: '/approvals/queue' },
+          { label: '承認待ち', href: '/approvals/pending' },
           { label: `案件 #${revision.article_number}`, href: '#' }
         ]}
         title={revision.after_title}
