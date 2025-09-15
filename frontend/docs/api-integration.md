@@ -221,8 +221,8 @@ export class ApprovalApi {
     if (filters?.limit) params.append('limit', filters.limit.toString());
 
     const endpoint = params.toString()
-      ? `/approvals/queue?${params}`
-      : '/approvals/queue';
+      ? `/approvals/pending?${params}`
+      : '/approvals/pending';
 
     return this.client.request(endpoint);
   }
@@ -271,8 +271,8 @@ export class ProposalApi {
     if (params?.limit) searchParams.append('limit', params.limit.toString());
 
     const endpoint = searchParams.toString()
-      ? `/proposals/my-proposals?${searchParams}`
-      : '/proposals/my-proposals';
+      ? `/maintenance/my?${searchParams}`
+      : '/maintenance/my';
 
     return this.client.request(endpoint);
   }

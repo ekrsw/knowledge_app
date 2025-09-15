@@ -47,19 +47,20 @@ graph TD
 
     F --> G[dashboard/page.tsx<br/>ロール別ダッシュボード]
 
-    F --> H[approvals/]
-    H --> I[queue/page.tsx<br/>承認キュー]
-    H --> J["review/[id]/page.tsx<br/>承認レビュー ⭐最重要"]
-    H --> K[history/page.tsx<br/>承認履歴]
+    F --> H[maintenance/]
+    H --> I[page.tsx<br/>メンテナンス一覧]
+    H --> J[search/page.tsx<br/>検索・フィルター]
+    H --> K[analytics/page.tsx<br/>集計機能]
+    H --> L[new/page.tsx<br/>新規メンテナンス]
+    H --> M["edit/[id]/page.tsx<br/>メンテナンス編集"]
 
-    F --> L[proposals/]
-    L --> M[new/page.tsx<br/>新規提案]
-    L --> N[my/page.tsx<br/>自分の提案]
-    L --> O["edit/[id]/page.tsx<br/>提案編集"]
+    F --> N[approvals/]
+    N --> O[pending/page.tsx<br/>承認待ち]
+    N --> P["review/[id]/page.tsx<br/>承認レビュー ⭐最重要"]
 
-    F --> P[admin/]
-    P --> Q[users/page.tsx<br/>ユーザー管理]
-    P --> R[stats/page.tsx<br/>システム統計]
+    F --> Q[admin/]
+    Q --> R[users/page.tsx<br/>ユーザー管理]
+    Q --> S[stats/page.tsx<br/>システム統計]
 ```
 
 #### サイドバーナビゲーション構成

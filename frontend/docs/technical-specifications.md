@@ -404,13 +404,13 @@ const AdminPanel = dynamic(() => import('@/components/admin/AdminPanel'), {
   loading: () => <LoadingSpinner />,
 });
 
-const DiffViewer = dynamic(() => import('@/components/approvals/DiffViewer'), {
+const DiffViewer = dynamic(() => import('@/components/maintenance/DiffViewer'), {
   ssr: false,
   loading: () => <DiffSkeleton />,
 });
 
 // Route-level code splitting
-const ProposalCreation = lazy(() => import('@/components/proposals/ProposalCreation'));
+const MaintenanceCreation = lazy(() => import('@/components/maintenance/MaintenanceCreation'));
 ```
 
 ### メモ化戦略 (サイドバーナビゲーション最適化)
@@ -458,7 +458,7 @@ export function useApprovalReview(revisionId: string) {
     try {
       await api.approval.submitDecision(revisionId, decision);
       // 成功時にキューを更新
-      mutate('/approvals/queue');
+      mutate('/approvals/pending');
     } catch (error) {
       // エラー時に元の状態に戻す
       mutate(`/revisions/${revisionId}`);
@@ -513,7 +513,7 @@ function useMediaQuery(query: string): boolean {
 
 ### 仮想スクロール (大量データ対応)
 ```typescript
-// components/approvals/VirtualizedQueue.tsx (将来拡張用)
+// components/maintenance/VirtualizedList.tsx (将来拡張用)
 import { FixedSizeList as List } from 'react-window';
 
 interface VirtualizedQueueProps {
@@ -806,7 +806,7 @@ export class CSRFProtection {
 ```typescript
 // __tests__/components/ApprovalActions.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ApprovalActions } from '@/components/approvals/ApprovalActions';
+import { ApprovalActions } from '@/components/maintenance/ApprovalActions';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 
 const mockOnDecision = jest.fn();
@@ -921,7 +921,7 @@ describe('Sidebar Component', () => {
 // __tests__/integration/approval-flow.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { server } from '__mocks__/server';
-import { ApprovalReviewPage } from '@/app/approvals/review/[id]/page';
+import { ApprovalReviewPage } from '@/app/maintenance/review/[id]/page';
 
 describe('Approval Flow Integration', () => {
   beforeAll(() => server.listen());
@@ -956,7 +956,7 @@ describe('Approval Flow Integration', () => {
 // __tests__/performance/rendering.test.tsx
 import { render } from '@testing-library/react';
 import { performance } from 'perf_hooks';
-import { ApprovalReviewPage } from '@/app/approvals/review/[id]/page';
+import { ApprovalReviewPage } from '@/app/maintenance/review/[id]/page';
 
 describe('Performance Tests', () => {
   it('should render approval review page within acceptable time', async () => {
