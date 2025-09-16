@@ -191,9 +191,9 @@ export function SidebarNavigation({ user, isCollapsed }: SidebarNavigationProps)
     ...(user?.role === 'approver' || user?.role === 'admin' ? [{
       title: '承認作業',
       items: [
+        { href: '/maintenance/new', label: '新規メンテナンス', icon: PlusIcon },
         { href: '/maintenance', label: 'メンテナンス一覧', icon: DocumentTextIcon },
         { href: '/approvals/pending', label: '承認待ち', icon: ClockIcon },
-        { href: '/maintenance/new', label: '新規メンテナンス', icon: PlusIcon },
       ]
     }] : []),
     {

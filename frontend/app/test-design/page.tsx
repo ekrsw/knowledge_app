@@ -22,6 +22,12 @@ const SidebarNavigation = ({
       isActive: false,
     },
     {
+      label: '新規メンテナンス',
+      href: '/maintenance/new',
+      icon: '➕',
+      isActive: false,
+    },
+    {
       label: 'メンテナンス一覧',
       href: '/maintenance',
       icon: '📋',
@@ -44,12 +50,6 @@ const SidebarNavigation = ({
       href: '/approvals/pending',
       icon: '⏳',
       badge: 5,
-      isActive: false,
-    },
-    {
-      label: '新規メンテナンス',
-      href: '/maintenance/new',
-      icon: '➕',
       isActive: false,
     },
     {
@@ -262,34 +262,6 @@ const MainContent = ({ onMobileMenuOpen }: { onMobileMenuOpen: () => void }) => 
             </div>
           </div>
 
-          {/* 統計カード */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
-            {[
-              { label: '総メンテナンス数', value: '248', color: 'blue' },
-              { label: '承認待ち', value: '15', color: 'yellow' },
-              { label: '今月承認済み', value: '32', color: 'green' },
-              { label: '却下件数', value: '3', color: 'red' },
-            ].map((stat, index) => (
-              <div key={index} className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
-                <div className="flex items-center">
-                  <div
-                    className={`p-2 rounded-lg ${
-                      stat.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                      stat.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-                      stat.color === 'green' ? 'bg-green-100 text-green-600' :
-                      'bg-red-100 text-red-600'
-                    }`}
-                  >
-                    📊
-                  </div>
-                  <div className="ml-3 lg:ml-4">
-                    <p className="text-xs lg:text-sm font-medium text-gray-600">{stat.label}</p>
-                    <p className="text-xl lg:text-2xl font-semibold text-gray-900">{stat.value}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
 
           {/* メンテナンス一覧テーブル */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">

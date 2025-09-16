@@ -71,13 +71,13 @@ graph TD
     S --> V[クイックアクション]
 
     U --> W[ダッシュボード<br/>📊 Overview]
-    U --> X[メンテナンス一覧<br/>📋 Maintenance List]
-    U --> Y[承認待ち<br/>⏳ Pending Approval]
-    U --> Z[新規メンテナンス<br/>➕ New Maintenance]
+    U --> X[新規メンテナンス<br/>➕ New Maintenance]
+    U --> Y[メンテナンス一覧<br/>📋 Maintenance List]
+    U --> Z[承認待ち<br/>⏳ Pending Approval]
     U --> AA[管理機能<br/>⚙️ Admin]
 
-    X --> BB[検索・フィルター<br/>🔍 Search & Filter]
-    X --> CC[集計機能<br/>📊 Analytics]
+    Y --> BB[検索・フィルター<br/>🔍 Search & Filter]
+    Y --> CC[集計機能<br/>📊 Analytics]
 
     AA --> DD[ユーザー管理<br/>👥 Users]
     AA --> EE[システム統計<br/>📊 Statistics]

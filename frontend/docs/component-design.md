@@ -168,6 +168,11 @@ const navigationItems: NavigationItem[] = [
     icon: HomeIcon,
   },
   {
+    label: '新規メンテナンス',
+    href: '/maintenance/new',
+    icon: PlusIcon,
+  },
+  {
     label: 'メンテナンス一覧',
     href: '/maintenance',
     icon: DocumentTextIcon,
@@ -190,11 +195,6 @@ const navigationItems: NavigationItem[] = [
     icon: ClockIcon,
     roles: ['approver', 'admin'],
     badge: 'pendingCount', // 動的バッジ
-  },
-  {
-    label: '新規メンテナンス',
-    href: '/maintenance/new',
-    icon: PlusIcon,
   },
   {
     label: '管理機能',
